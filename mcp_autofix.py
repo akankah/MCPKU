@@ -42,22 +42,96 @@ mcp = FastMCP(
 
 MAX_RETRIES_DEFAULT = 3
 
-FIX_STRATEGIES = {
-    "Python.ImportError": {
-        "cmd": "pip install",
-        "extract": re.compile(r"'([^']+)'|\"([^\"]+)\""),
-        "desc": "Install missing Python package",
-    },
-    "Python.ModuleNotFoundError": {
-        "cmd": "pip install",
-        "extract": re.compile(r"'([^']+)'|\"([^\"]+)\""),
-        "desc": "Install missing Python module",
-    },
-    "JS.ModuleNotFound": {
-        "cmd": "npm install",
-        "extract": re.compile(r"'([^']+)'|\"([^\"]+)\""),
-        "desc": "Install missing npm package",
-    },
+# ── Fix handlers ─────────────────────────────────────────────────────────────
+# Each handler takes (error_types, error_text, cwd) and returns
+# a list of (command_string, description) tuples.
+
+_Q_STR = re.compile(r"'([^']+)'|\"([^\"]+)\"")
+
+
+def _first_quoted(text: str) -> str | None:
+    m = _Q_STR.search(text)
+    return m.group(1) or m.group(2) if m else None
+
+
+def _h_pip_install(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
+    mod = _first_quoted(error_text)
+    return [(f"pip install {mod}", f"Install Python package '{mod}'")] if mod else []
+
+
+def _h_npm_install(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
+    mod = _first_quoted(error_text)
+    return [(f"npm install {mod}", f"Install npm package '{mod}'")] if mod else []
+
+
+def _h_mkdir_parent(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
+    path = _first_quoted(error_text)
+    if path:
+        parent = str(Path(path).parent)
+        if parent != ".":
+            return [(f"mkdir -p \"{parent}\"", f"Create directory '{parent}'")]
+    return []
+
+
+def _h_kill_port(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
+    port_m = re.search(r':(\d{4,5})', error_text)
+    if port_m:
+        port = port_m.group(1)
+        cmds = []
+        if os.name == "nt":
+            cmds.append((
+                f'netstat -ano | findstr :{port} > %temp%\\_port_{port}.txt '
+                f'&& for /f "tokens=5" %p in (%temp%\\_port_{port}.txt) do '
+                f'taskkill /PID %p /F 2>nul & del %temp%\\_port_{port}.txt 2>nul',
+                f"Kill process on port {port}"
+            ))
+        else:
+            cmds.append((
+                f"lsof -ti:{port} | xargs kill -9 2>/dev/null; true",
+                f"Kill process on port {port}"
+            ))
+        return cmds
+    return []
+
+
+def _h_go_mod_tidy(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
+    return [("go mod tidy", "Run go mod tidy")]
+
+
+def _h_black_format(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
+    # Extract file path from last traceback frame
+    frame_m = re.search(r'File "([^"]+)", line \d+', error_text)
+    if frame_m:
+        file_path = frame_m.group(1)
+        return [(f"black \"{file_path}\"", f"Format '{file_path}' with black")]
+    return [("black .", "Format all Python files with black")]
+
+
+def _h_ping_db(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
+    # Try a simple connectivity check
+    return [("python -c \"import socket; socket.gethostbyname('localhost')\"", "Check DB host resolution")]
+
+
+FIX_HANDLERS: dict[str, callable] = {
+    "Python.ImportError": _h_pip_install,
+    "Python.ModuleNotFoundError": _h_pip_install,
+    "JS.ModuleNotFound": _h_npm_install,
+    "Python.FileNotFound": _h_mkdir_parent,
+    "JS.ENOENT": _h_mkdir_parent,
+    "JS.EADDRINUSE": _h_kill_port,
+    "Go.BuildError": _h_go_mod_tidy,
+    "Python.IndentationError": _h_black_format,
+}
+
+FIX_STRATEGIES_DESC = {
+    "Python.ImportError": "pip install <package> (auto-extract)",
+    "Python.ModuleNotFoundError": "pip install <package> (auto-extract)",
+    "JS.ModuleNotFound": "npm install <package> (auto-extract)",
+    "Python.FileNotFound": "mkdir parent directory (auto-extract path)",
+    "JS.ENOENT": "mkdir parent directory (auto-extract path)",
+    "JS.EADDRINUSE": "netstat + taskkill / lsof -ti:PORT | kill (auto-extract port)",
+    "Go.BuildError": "go mod tidy",
+    "Python.IndentationError": "black <file> (auto-extract file from traceback)",
 }
 
 FIX_SUGGESTIONS = {
@@ -104,28 +178,20 @@ FIX_SUGGESTIONS = {
 }
 
 
-def _extract_module_name(text: str, pattern: re.Pattern) -> str | None:
-    m = pattern.search(text)
-    if m:
-        return m.group(1) or m.group(2)
-    # Fallback: grab the last quoted string
-    fallback = re.search(r"['\"]([^'\"]+)['\"]", text)
-    return fallback.group(1) if fallback else None
-
-
-def _build_fix_commands(error_types: list[str], error_text: str) -> list[str]:
-    cmds = []
+def _build_fix_commands(error_types: list[str], error_text: str, cwd: str = "") -> list[tuple[str, str]]:
+    cmds: list[tuple[str, str]] = []
     for etype in error_types:
-        if etype in FIX_STRATEGIES:
-            strat = FIX_STRATEGIES[etype]
-            mod = _extract_module_name(error_text, strat["extract"])
-            if mod:
-                cmds.append(strat["cmd"] + " " + mod)
+        handler = FIX_HANDLERS.get(etype)
+        if handler:
+            result = handler(error_types, error_text, cwd)
+            for cmd, desc in result:
+                if cmd not in [c for c, _ in cmds]:
+                    cmds.append((cmd, desc))
     return cmds
 
 
 def _can_auto_fix(error_types: list[str]) -> bool:
-    return any(et in FIX_STRATEGIES for et in error_types)
+    return any(et in FIX_HANDLERS for et in error_types)
 
 
 _autofix_history: list[dict] = []
@@ -266,15 +332,16 @@ async def autofix_run(
             break
 
         # Try auto-fix
-        fix_cmds = _build_fix_commands(error_types, error_text)
+        fix_cmds = _build_fix_commands(error_types, error_text, cwd)
 
         if fix_cmds:
-            for fix_cmd in fix_cmds:
-                lines.append(f"\n🛠  Applying fix: {fix_cmd}")
+            for fix_cmd, fix_desc in fix_cmds:
+                lines.append(f"\n🛠  {fix_desc}")
+                lines.append(f"    $ {fix_cmd}")
                 fix_result = await _run_shell(fix_cmd, cwd, timeout=120)
                 if fix_result["success"]:
-                    lines.append(f"   ✅ Fix succeeded: {fix_cmd}")
-                    applied_fixes.append(fix_cmd)
+                    lines.append(f"   ✅ Fix succeeded")
+                    applied_fixes.append(fix_desc)
                 else:
                     err = fix_result["stderr"][:200]
                     lines.append(f"   ⚠️  Fix failed: {err}")
@@ -335,12 +402,11 @@ async def autofix_history(limit: int = 10) -> str:
 )
 async def autofix_strategies() -> str:
     lines = ["── Auto-Fix Strategies ──\n"]
-    for etype, strat in sorted(FIX_STRATEGIES.items()):
-        lines.append(f"  {etype}: {strat['desc']}")
-        lines.append(f"           → {strat['cmd']} <package>\n")
+    for etype, desc in sorted(FIX_STRATEGIES_DESC.items()):
+        lines.append(f"  {etype}: {desc}")
     lines.append("\n── Other Errors (suggestions only) ──\n")
     for etype, suggestion in sorted(FIX_SUGGESTIONS.items()):
-        if etype not in FIX_STRATEGIES:
+        if etype not in FIX_STRATEGIES_DESC:
             lines.append(f"  {etype}: {suggestion}")
     return "\n".join(lines)
 
