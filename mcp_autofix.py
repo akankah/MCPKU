@@ -245,13 +245,13 @@ async def _search_references(error_text: str, error_types: list[str]) -> str:
     async def _search_web():
         result = await search_web(f"{' '.join(error_types)} {query}", max_results=3)
         if result and not result.startswith("("):
-            return f"\n🌐 Web Search Results:\n{result}"
+            return f"\n[Web] Search Results:\n{result}"
         return ""
 
     async def _search_gh():
         result = await search_issues(f"{' '.join(error_types)} {query}", max_results=3)
         if result and not result.startswith("("):
-            return f"\n🐙 GitHub Issues:\n{result}"
+            return f"\n[GitHub] Issues:\n{result}"
         return ""
 
     results = await asyncio.gather(_search_web(), _search_gh(), return_exceptions=True)

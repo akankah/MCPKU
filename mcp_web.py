@@ -5,14 +5,7 @@ import requests
 from mcp_cache import cache_get, cache_set
 
 FIRECRAWL_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "")
-
-_DDG_AVAILABLE = False
-if os.environ.get("DISABLE_DUCKDUCKGO", "0") != "1":
-    try:
-        from duckduckgo_search import DDGS
-        _DDG_AVAILABLE = True
-    except ImportError:
-        pass
+_DDG_ENABLED = os.environ.get("DISABLE_DUCKDUCKGO", "0") != "1"
 
 mcp = FastMCP("web-tools", instructions="""
 Web fetch and search tools for real-time information. fetch_url extracts
@@ -73,22 +66,34 @@ async def fetch_url(url: str, max_length: int = 5000, start_index: int = 0, raw:
     except Exception as e:
         return f"(error fetching {url}: {e})"
 
-async def _search_duckduckgo(query: str, max_results: int = 5) -> str | None:
-    if not _DDG_AVAILABLE:
+def _scrape_ddg(query: str, max_results: int = 5) -> str | None:
+    """Scrape DuckDuckGo lite HTML directly (free, no API key needed)."""
+    if not _DDG_ENABLED:
         return None
     try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=max_results))
-        if not results:
-            return None
+        r = requests.post("https://lite.duckduckgo.com/lite/", data={"q": query}, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        }, timeout=10)
+        r.raise_for_status()
+
+        # Each result = 3 consecutive <tr> rows: title, snippet, domain
+        links = re.findall(
+            r'<a rel="nofollow" href="([^"]+)"[^>]*class=\'result-link\'[^>]*>(.+?)</a>',
+            r.text, re.DOTALL
+        )
+        snippets = re.findall(
+            r"<td class='result-snippet'>(.+?)</td>",
+            r.text, re.DOTALL
+        )
+
         out = []
-        for i, r in enumerate(results[:max_results], 1):
-            title = r.get("title", "")
-            body = r.get("body", "")
-            href = r.get("href", "")
-            out.append(f"{i}. {title}\n   {body}\n   {href}")
-        return "\n\n".join(out)
-    except Exception as e:
+        for i, (href, title_html) in enumerate(links[:max_results]):
+            title = html.unescape(re.sub(r'<[^>]+>', '', title_html)).strip()
+            snippet = html.unescape(re.sub(r'<[^>]+>', '', snippets[i])).strip() if i < len(snippets) else ""
+            out.append(f"{i+1}. {title}\n   {snippet}\n   {href}")
+
+        return "\n\n".join(out) if out else None
+    except Exception:
         return None
 
 
@@ -103,7 +108,8 @@ async def search_web(query: str, max_results: int = 5) -> str:
         return cached
 
     # DuckDuckGo (free, zero config)
-    ddg = await _search_duckduckgo(query, max_results)
+    import asyncio
+    ddg = await asyncio.to_thread(_scrape_ddg, query, max_results)
     if ddg is not None:
         cache_set(cache_key, ddg, ttl=1800)
         return ddg
