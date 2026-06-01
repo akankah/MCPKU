@@ -41,7 +41,7 @@ Desktop, Cursor, or any MCP-compatible client.
 | `redis`       | `mcp_redis.py`        | Strings, lists, sets, hashes, TTL, `FLUSHDB` with 2-step confirmation     |
 | `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
-| `diagnostics` | `mcp_diagnostics.py`  | Parse, classify, and explain errors from Python/Node.js/Rust/Go tracebacks|
+| `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output. AI MUST use tools like `parse_traceback` / `classify_error` automatically on every error detected.|
 
 `mcp_cache.py` is a shared helper used by `postgres`, `vector`, and `web` for
 optional Redis-backed response caching. It is not a standalone server.
