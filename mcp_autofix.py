@@ -27,6 +27,8 @@ from mcp_diagnostics import (
     _parse_rust_traceback,
     _classify,
 )
+from mcp_web import search_web
+from mcp_github import search_issues
 
 mcp = FastMCP(
     "autofix",
@@ -228,12 +230,42 @@ async def _run_shell(command: str, cwd: str, timeout: int) -> dict:
         return {"exit_code": -1, "stdout": "", "stderr": f"(error: {e})", "success": False}
 
 
+async def _search_references(error_text: str, error_types: list[str]) -> str:
+    """Search web and GitHub for error references to help AI find solutions."""
+    lines = error_text.strip().split('\n')
+    query_lines = [l for l in lines if l.strip() and not l.startswith(('Traceback', '  File', '    ', 'File ', 'at '))]
+    query = (query_lines[-1] if query_lines else error_text[:200])[:200]
+
+    parts = []
+
+    async def _search_web():
+        result = await search_web(f"{' '.join(error_types)} {query}", max_results=3)
+        if result and not result.startswith("("):
+            return f"\n🌐 Web Search Results:\n{result}"
+        return ""
+
+    async def _search_gh():
+        result = await search_issues(f"{' '.join(error_types)} {query}", max_results=3)
+        if result and not result.startswith("("):
+            return f"\n🐙 GitHub Issues:\n{result}"
+        return ""
+
+    results = await asyncio.gather(_search_web(), _search_gh(), return_exceptions=True)
+    for r in results:
+        if isinstance(r, str) and r:
+            parts.append(r)
+
+    return "\n".join(parts)
+
+
 @mcp.tool(
     name="autofix_run",
     description=(
         "Run a command, auto-detect errors, apply fixes, retry, and optionally commit. "
         "Supports pip install for ImportError, npm install for JS.ModuleNotFound, "
-        "and general fix suggestions for other errors. Returns full debug log."
+        "and general fix suggestions for other errors. "
+        "When no auto-fix strategy exists, automatically searches web and GitHub "
+        "for the error message to find relevant solutions. Returns full debug log."
     ),
 )
 async def autofix_run(
@@ -328,7 +360,11 @@ async def autofix_run(
         lines.append(f"   Classifications: {', '.join(error_types)}")
 
         if attempt >= max_retries:
-            lines.append(f"\n⚠️  Max retries ({max_retries}) reached. Manual debugging needed.")
+            lines.append(f"\n⚠️  Max retries ({max_retries}) reached. Searching references...")
+            refs = await _search_references(error_text, error_types)
+            if refs:
+                lines.append(refs)
+            lines.append(f"\n⚠️  Manual debugging needed after all retries.")
             break
 
         # Try auto-fix
@@ -346,7 +382,7 @@ async def autofix_run(
                     err = fix_result["stderr"][:200]
                     lines.append(f"   ⚠️  Fix failed: {err}")
         else:
-            # No auto-fix strategy — give suggestion
+            # No auto-fix strategy — give suggestion + search references
             suggestions = []
             for et in error_types:
                 if et in FIX_SUGGESTIONS:
@@ -354,7 +390,15 @@ async def autofix_run(
             if suggestions:
                 lines.append(f"\n💡 No automatic fix available. Suggestions:")
                 lines.extend(suggestions)
-            lines.append(f"\n⚠️  Cannot auto-fix this error. Manual debugging required.")
+
+            lines.append(f"\n🔍 Searching web and GitHub for error references...")
+            refs = await _search_references(error_text, error_types)
+            if refs:
+                lines.append(refs)
+            else:
+                lines.append(f"   (no relevant references found)")
+
+            lines.append(f"\n⚠️  Cannot auto-fix this error. Use search results above as reference.")
             break
 
         attempt += 1

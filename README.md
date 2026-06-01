@@ -48,9 +48,19 @@ Run command   ──❌──→  Parse traceback  ──→  Classify error
     │                                                    │
     │                                              Apply fix strategy
     │                                                    │
-    └──✅── Retry ──────────── Fix succeeds ─────────────┘
-                                      │
-                                Optional: git commit
+    │                                         ┌──────────┴──────────┐
+    │                                         │                     │
+    │                                    Fix succeeds        No fix / max retries
+    │                                         │                     │
+    │                                         │            Search web + GitHub
+    │                                         │            for error references
+    │                                         │                     │
+    └──✅── Retry ──────────── Fix succeeds ───┘                     │
+                                      │                              │
+                                      │                        AI reads results,
+                                      │                        applies fix, retry
+                                      │                              │
+                                Optional: git commit ──────── retry ─┘
 ```
 
 This pipeline is implemented across two servers:
@@ -58,7 +68,7 @@ This pipeline is implemented across two servers:
 | Server        | Role                                          |
 |---------------|-----------------------------------------------|
 | `diagnostics` | Parse, classify, explain any error (Python / Node.js / Rust / Go) |
-| `autofix`     | Apply auto-fix (pip, npm, mkdir, kill-port, go mod tidy, black) + retry + commit |
+| `autofix`     | Apply auto-fix (pip, npm, mkdir, kill-port, go mod tidy, black) + search web + GitHub for unknown errors + retry + commit |
 
 Supported auto-fix strategies:
 
@@ -93,7 +103,7 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
 | `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output          |
-| `autofix`     | `mcp_autofix.py`      | Closed-loop debugging: detect → fix → retry → commit                     |
+| `autofix`     | `mcp_autofix.py`      | Closed-loop debugging + web/GitHub search for unknown errors             |
 
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by
 `postgres`, `vector`, `web`). Not a standalone server.
