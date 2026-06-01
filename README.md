@@ -1,6 +1,6 @@
 # MCPKU
 
-A personal toolbox of **14 MCP servers** in a single Python repo, all built on
+A personal toolbox of **15 MCP servers** in a single Python repo, all built on
 `FastMCP` and exposed over **stdio**. Plug the whole set into opencode, Claude
 Desktop, Cursor, or any MCP-compatible client.
 
@@ -43,6 +43,7 @@ Desktop, Cursor, or any MCP-compatible client.
 | `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
 | `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output. AI MUST use tools like `parse_traceback` / `classify_error` automatically on every error detected.|
+| `autofix`     | `mcp_autofix.py`      | **Closed-loop debugging**: run command → detect error → apply fix (pip/npm install) → retry → optionally commit. "Devin-lite."|
 
 `mcp_cache.py` is a shared helper used by `postgres`, `vector`, and `web` for
 optional Redis-backed response caching. It is not a standalone server.
@@ -105,7 +106,7 @@ Persist via System Properties → Environment Variables, or in your shell profil
 
 A working `opencode.jsonc` is checked into the repo root. After `pip install`
 and setting the env vars above, **quit and restart opencode** so the config
-is reloaded. Run `/mcp` to confirm all 14 servers are connected.
+is reloaded. Run `/mcp` to confirm all 15 servers are connected.
 
 ### Claude Desktop
 
@@ -128,7 +129,8 @@ is reloaded. Run `/mcp` to confirm all 14 servers are connected.
     "redis":     { "command": "python", "args": ["E:/MCPKU/mcp_redis.py"] },
     "memory":    { "command": "python", "args": ["E:/MCPKU/mcp_memory.py"] },
     "browser":   { "command": "python", "args": ["E:/MCPKU/mcp_browser.py"] },
-    "diagnostics":{ "command": "python", "args": ["E:/MCPKU/mcp_diagnostics.py"] }
+    "diagnostics":{ "command": "python", "args": ["E:/MCPKU/mcp_diagnostics.py"] },
+    "autofix":   { "command": "python", "args": ["E:/MCPKU/mcp_autofix.py"] }
   }
 }
 ```
@@ -136,7 +138,7 @@ is reloaded. Run `/mcp` to confirm all 14 servers are connected.
 ### Cursor / others
 
 Same shape — register each `mcp_*.py` as a stdio command. Trim the list to
-whatever you actually need; you don't have to enable all 14.
+whatever you actually need; you don't have to enable all 15.
 
 ---
 
@@ -184,6 +186,7 @@ typed parameters and descriptions directly in code (via `@mcp.tool()` decorator)
 | `memory`      | `create_entity`, `add_observations`, `search_entities`, `open_nodes`      |
 | `browser`     | `snapshot`, `click`, `fill`, `screenshot`, `navigate` — headless browser  |
 | `diagnostics` | `parse_traceback`, `read_log_tail`, `watch_stderr`, `classify_error`, `scan_project_errors`, `explain_error`, `get_error_history` |
+| `autofix`     | `autofix_run`, `autofix_history`, `autofix_strategies` — run → detect → fix → retry → commit |
 
 ### Usage examples
 
@@ -240,6 +243,25 @@ result = await read_log_tail(
 # Tool: git_status → current branch, staged/unstaged changes
 # Tool: git_diff  → diff of working tree vs HEAD
 # Tool: git_log   → last N commits with graph
+```
+</details>
+
+<details>
+<summary><b>Auto-fix a failing command</b></summary>
+
+```python
+# Tool: autofix_run
+# Automatically: run → detect error → pip/npm install → retry → git commit
+result = await autofix_run(
+    command="python app.py",
+    max_retries=3,
+    auto_commit=True
+)
+# Output:
+# ❌ Exit code: 1  →  ModuleNotFoundError: No module named 'pandas'
+# 🛠  Applying fix: pip install pandas  →  ✅ Fix succeeded
+# 🔄 Retry #1     →  ✅ Command succeeded (exit code 0)
+# ✅ Committed: autofix: pip install pandas
 ```
 </details>
 
