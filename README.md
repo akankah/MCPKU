@@ -19,6 +19,7 @@ Desktop, Cursor, or any MCP-compatible client.
 | `.gitignore`      | File yang dikecualikan dari version control   |
 | `LICENSE`         | Lisensi project                               |
 | `opencode.jsonc`  | Konfigurasi MCP server untuk opencode         |
+| `tests/`          | Unit tests (pytest, 106 tests)                |
 | `mcp_*.py`        | Implementasi MCP server & tools/functions     |
 | `mcp_cache.py`    | Shared helper (Redis caching)                 |
 
@@ -308,8 +309,15 @@ python mcp_bash.py
 mcp dev mcp_bash.py
 ```
 
-There are no automated tests yet. Adding a `tests/` directory and a few
-`pytest` cases per server is the next obvious step — contributions welcome.
+Automated tests are in [`tests/`](tests/). Run them with:
+
+```bash
+pip install pytest
+python -m pytest tests/ -v
+```
+
+Currently **106 tests** covering security validation, error parsing, data
+persistence, and edge cases across 12 server modules. Contributions welcome.
 
 ---
 
