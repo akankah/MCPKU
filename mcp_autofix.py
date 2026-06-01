@@ -61,6 +61,9 @@ FIX_STRATEGIES = {
 }
 
 FIX_SUGGESTIONS = {
+    "Python.ImportError": "Missing Python package. Use pip install <package>.",
+    "Python.ModuleNotFoundError": "Missing Python module. Use pip install <package>.",
+    "JS.ModuleNotFound": "Missing npm package. Use npm install <package>.",
     "Python.SyntaxError": "Check for missing brackets, colons, or indentation.",
     "Python.IndentationError": "Fix indentation — mix of tabs/spaces.",
     "Python.NameError": "Check variable/function name for typos.",
