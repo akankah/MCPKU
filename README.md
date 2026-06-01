@@ -331,15 +331,17 @@ python mcp_bash.py
 mcp dev mcp_bash.py
 ```
 
-Automated tests are in [`tests/`](tests/). Run them with:
+Automated tests are in [`tests/`](tests/). Requires `pytest` and `pytest-asyncio`:
 
 ```bash
-pip install pytest
+pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-Currently **106 tests** covering security validation, error parsing, data
-persistence, and edge cases across 12 server modules. Contributions welcome.
+Currently **132 tests** covering security validation, error parsing, data
+persistence, auto-fix workflows, and edge cases across 13 server modules.
+All tests are pure unit tests (no network/DB/browser) — run in ~4 seconds.
+Contributions welcome.
 
 ---
 
