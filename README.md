@@ -43,7 +43,7 @@ Desktop, Cursor, or any MCP-compatible client.
 | `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
 | `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output. AI MUST use tools like `parse_traceback` / `classify_error` automatically on every error detected.|
-| `autofix`     | `mcp_autofix.py`      | **Closed-loop debugging**: run command → detect error → apply fix (pip/npm install) → retry → optionally commit. "Devin-lite."|
+| `autofix`     | `mcp_autofix.py`      | **Closed-loop debugging**: run command → detect error → apply fix (pip/npm install, mkdir, kill-port, go mod tidy, black) → retry → optionally commit. "Devin-lite."|
 
 `mcp_cache.py` is a shared helper used by `postgres`, `vector`, and `web` for
 optional Redis-backed response caching. It is not a standalone server.
@@ -186,7 +186,7 @@ typed parameters and descriptions directly in code (via `@mcp.tool()` decorator)
 | `memory`      | `create_entity`, `add_observations`, `search_entities`, `open_nodes`      |
 | `browser`     | `snapshot`, `click`, `fill`, `screenshot`, `navigate` — headless browser  |
 | `diagnostics` | `parse_traceback`, `read_log_tail`, `watch_stderr`, `classify_error`, `scan_project_errors`, `explain_error`, `get_error_history` |
-| `autofix`     | `autofix_run`, `autofix_history`, `autofix_strategies` — run → detect → fix → retry → commit |
+| `autofix`     | `autofix_run`, `autofix_history`, `autofix_strategies` — run → detect → fix (pip, npm, mkdir, kill-port, go tidy, black) → retry → commit |
 
 ### Usage examples
 
@@ -338,7 +338,7 @@ pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-Currently **132 tests** covering security validation, error parsing, data
+Currently **135 tests** covering security validation, error parsing, data
 persistence, auto-fix workflows, and edge cases across 13 server modules.
 All tests are pure unit tests (no network/DB/browser) — run in ~4 seconds.
 Contributions welcome.
