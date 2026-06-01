@@ -110,6 +110,9 @@
       "command": ["python", "E:/MCPKU/mcp_browser.py"],
       "enabled": true
     },
+    // diagnostics: Auto-parse errors from any command output.
+    //              AI MUST call parse_traceback / classify_error
+    //              automatically on every error without waiting for user.
     "diagnostics": {
       "type": "local",
       "command": ["python", "E:/MCPKU/mcp_diagnostics.py"],

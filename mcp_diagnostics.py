@@ -36,10 +36,13 @@ from mcp.server.fastmcp import FastMCP
 mcp = FastMCP(
     "diagnostics",
     instructions=(
-        "Error diagnostics server. Parse Python/Node.js/Rust/Go tracebacks, "
-        "read log files, classify error types, scan project errors, and get "
-        "actionable fix suggestions. Use when the user mentions an error, "
-        "exception, or when a command fails."
+        "Error diagnostics server. You MUST automatically call parse_traceback "
+        "or classify_error whenever you detect ANY error, exception, traceback, "
+        "or crash in command output — do NOT wait for the user to ask. "
+        "Also supports reading log files (read_log_tail), scanning entire log "
+        "folders (scan_project_errors), running commands with stderr capture "
+        "(watch_stderr), and providing fix explanations (explain_error). "
+        "Track error history with get_error_history."
     ),
 )
 
