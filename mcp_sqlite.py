@@ -5,9 +5,12 @@ from functools import partial
 from mcp.server.fastmcp import FastMCP
 
 if sys.platform == "win32" and os.environ.get("PYTHONIOENCODING") is None:
-    sys.stdin.reconfigure(encoding="utf-8")
-    sys.stdout.reconfigure(encoding="utf-8")
-    sys.stderr.reconfigure(encoding="utf-8")
+    try:
+        sys.stdin.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except AttributeError:
+        pass
 
 mcp = FastMCP("sqlite", instructions="""
 SQLite database server: query, create tables, list schemas, analyze data,
