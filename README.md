@@ -1,350 +1,241 @@
-# MCPKU
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-dark.png">
+  <img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
+</picture>
 
-A personal toolbox of **15 MCP servers** in a single Python repo, all built on
-`FastMCP` and exposed over **stdio**. Plug the whole set into opencode, Claude
-Desktop, Cursor, or any MCP-compatible client.
+**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 15 MCP
+servers that gives AI agents the ability to read, write, execute, debug, fix,
+and commit code autonomously.
 
-> Status: personal project. Tested on Windows / Python 3.11+. See
-> [`PATCH_NOTES.md`](PATCH_NOTES.md) for the most recent security and
-> correctness fixes.
+Not a collection of tools. A **closed-loop** for AI-driven development.
+
+```
+AI Model
+    │  understands intent, generates code
+    ▼
+MCPKU Runtime
+    │  orchestrates: shell → git → web → browser → diagnostics → autofix
+    ▼
+15 MCP Servers
+    │  each a self-contained stdio process
+    ▼
+Your System / Repo / DB / Browser / Logs
+```
+
+> Status: personal project · Tested on Windows / Python 3.11+ ·
+> [PATCH_NOTES.md](PATCH_NOTES.md) · [MIT License](LICENSE)
 
 ---
 
-## Project Structure
+## Why MCPKU exists
 
-| File              | Description                                   |
-|-------------------|-----------------------------------------------|
-| `README.md`       | Dokumentasi lengkap project                   |
-| `requirements.txt`| Dependencies Python (pip install -r)          |
-| `.gitignore`      | File yang dikecualikan dari version control   |
-| `LICENSE`         | Lisensi project                               |
-| `opencode.jsonc`  | Konfigurasi MCP server untuk opencode         |
-| `tests/`          | Unit tests (pytest, 106 tests)                |
-| `mcp_*.py`        | Implementasi MCP server & tools/functions     |
-| `mcp_cache.py`    | Shared helper (Redis caching)                 |
+Most MCP repos ship one tool at a time: a filesystem server, a browser server,
+a git server. They solve one problem each.
+
+MCPKU solves a **workflow**: when a command fails, the AI doesn't just see
+an error — it can parse, classify, fix, retry, and commit, all within the
+same orchestration layer. That's the difference between "AI that assists" and
+"AI that builds."
 
 ---
 
-## What's inside
+## Autonomous Debugging Engine
+
+The heart of MCPKU is its **closed-loop debugging pipeline**:
+
+```
+Run command   ──❌──→  Parse traceback  ──→  Classify error
+    │                                                    │
+    │                                              Apply fix strategy
+    │                                                    │
+    └──✅── Retry ──────────── Fix succeeds ─────────────┘
+                                      │
+                                Optional: git commit
+```
+
+This pipeline is implemented across two servers:
+
+| Server        | Role                                          |
+|---------------|-----------------------------------------------|
+| `diagnostics` | Parse, classify, explain any error (Python / Node.js / Rust / Go) |
+| `autofix`     | Apply auto-fix (pip, npm, mkdir, kill-port, go mod tidy, black) + retry + commit |
+
+Supported auto-fix strategies:
+
+| Error | Fix |
+|---|---|
+| `ImportError` / `ModuleNotFoundError` | `pip install <package>` |
+| `JS.ModuleNotFound` | `npm install <package>` |
+| `FileNotFoundError` / `ENOENT` | `mkdir -p <parent_dir>` |
+| `EADDRINUSE` | `taskkill /PID` (Win) / `lsof -ti:PORT \| kill` (Unix) |
+| `Go.BuildError` | `go mod tidy` |
+| `IndentationError` | `black <file>` |
+
+---
+
+## 15 MCP Servers
+
+Each server is a single self-contained Python file. Enable only what you need.
 
 | Server        | File                  | What it gives you                                                         |
 |---------------|-----------------------|---------------------------------------------------------------------------|
-| `bash`        | `mcp_bash.py`         | Sandboxed shell with command + argument denylist and git-subcommand ACL   |
-| `think`       | `mcp_think.py`        | Per-session chain-of-thought scratchpad (`new_session`, `think`, `reset`)  |
+| `bash`        | `mcp_bash.py`         | Sandboxed shell with command+argument denylist and git-subcommand ACL     |
+| `think`       | `mcp_think.py`        | Per-session chain-of-thought scratchpad (`new_session`, `think`, `reset`) |
 | `time`        | `mcp_time.py`         | Current time, timezone conversion, IANA timezone listing                  |
-| `filesystem`  | `mcp_filesystem.py`   | Read / write / search / diff inside an allowlisted directory tree         |
+| `filesystem`  | `mcp_filesystem.py`   | Read/write/search/diff inside an allowlisted directory tree               |
 | `git`         | `mcp_git.py`          | Status, diff, log, commit, branch, merge, rebase, stash, tag, blame       |
-| `github`      | `mcp_github.py`       | ~65 tools: repos, issues, PRs, releases, gists, workflows, alerts, …      |
+| `github`      | `mcp_github.py`       | ~65 tools: repos, issues, PRs, releases, gists, workflows, alerts        |
 | `web`         | `mcp_web.py`          | URL fetch (HTML→text or raw) and Firecrawl-backed web search              |
-| `vector`      | `mcp_vector.py`       | Postgres + `pgvector` collections, OpenAI embeddings, cosine search       |
-| `postgres`    | `mcp_postgres.py`     | Read-only SQL with retry+backoff and a connection pool                    |
+| `vector`      | `mcp_vector.py`       | Postgres + `pgvector` + OpenAI embeddings, cosine similarity search       |
+| `postgres`    | `mcp_postgres.py`     | Read-only SQL with retry+backoff and connection pool                      |
 | `sqlite`      | `mcp_sqlite.py`       | Read/write queries, schema introspection, identifier-safe PRAGMA          |
-| `redis`       | `mcp_redis.py`        | Strings, lists, sets, hashes, TTL, `FLUSHDB` with 2-step confirmation     |
+| `redis`       | `mcp_redis.py`        | Strings, lists, sets, hashes, TTL, FLUSHDB with 2-step confirmation       |
 | `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
-| `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output. AI MUST use tools like `parse_traceback` / `classify_error` automatically on every error detected.|
-| `autofix`     | `mcp_autofix.py`      | **Closed-loop debugging**: run command → detect error → apply fix (pip/npm install, mkdir, kill-port, go mod tidy, black) → retry → optionally commit. "Devin-lite."|
+| `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output          |
+| `autofix`     | `mcp_autofix.py`      | Closed-loop debugging: detect → fix → retry → commit                     |
 
-`mcp_cache.py` is a shared helper used by `postgres`, `vector`, and `web` for
-optional Redis-backed response caching. It is not a standalone server.
+`mcp_cache.py` is a shared helper for Redis-backed response caching (used by
+`postgres`, `vector`, `web`). Not a standalone server.
 
 ---
 
-## Install
-
-Requires **Python 3.10+** on the PATH as `python`.
+## Quick start
 
 ```bash
 pip install -r requirements.txt
 playwright install chromium
+python -m pytest tests/ -v    # 135 tests, ~4 seconds
 ```
 
-See [`requirements.txt`](requirements.txt) for the full list of dependencies.
-Servers that rely only on stdlib (`bash`, `think`, `time`, `filesystem`,
-`memory`, `diagnostics`) will gracefully skip missing packages.
+Environment variables (set before starting the MCP client):
+
+| Var | Used by | Notes |
+|---|---|---|
+| `GITHUB_API_KEY` | `mcp_github.py` | Personal access token |
+| `FIRECRAWL_API_KEY` | `mcp_web.py` | Required for web search |
+| `OPENAI_API_KEY` | `mcp_vector.py` | Embeddings (falls back to local hash) |
+| `DATABASE_URL` | `mcp_postgres.py`, `mcp_vector.py` | Standard libpq URL |
+| `REDIS_URL` | `mcp_redis.py`, `mcp_cache.py` | Default `redis://localhost:6379/0` |
+| `SQLITE_DB_PATH` | `mcp_sqlite.py` | Default = in-memory |
+| `MCP_EXTRA_ALLOWED_DIR` | `mcp_filesystem.py` | Extra allowlisted roots (comma-sep) |
+| `MEMORY_FILE_PATH` | `mcp_memory.py` | Default `memory.jsonl` |
+| `LOCAL_TIMEZONE` | `mcp_time.py` | Default timezone |
 
 ---
 
-## Environment variables
-
-All env vars are read at server startup. Leave any blank to disable the
-matching feature.
-
-| Var                       | Used by                | Notes                                              |
-|---------------------------|------------------------|----------------------------------------------------|
-| `GITHUB_API_KEY`          | `mcp_github.py`        | Personal access token. Unauthenticated = 60 req/h. |
-| `FIRECRAWL_API_KEY`       | `mcp_web.py`           | Required only for `search_web`.                    |
-| `OPENAI_API_KEY`          | `mcp_vector.py`        | Embeddings. Falls back to a local hash if missing. |
-| `DATABASE_URL`            | `mcp_postgres.py`, `mcp_vector.py` | Standard libpq URL.                    |
-| `REDIS_URL`               | `mcp_redis.py`, `mcp_cache.py`     | Default `redis://localhost:6379/0`.    |
-| `SQLITE_DB_PATH`          | `mcp_sqlite.py`        | Default = in-memory.                               |
-| `MCP_EXTRA_ALLOWED_DIR`   | `mcp_filesystem.py`    | Extra allowlisted root (comma-separated).          |
-| `MEMORY_FILE_PATH`        | `mcp_memory.py`        | Default `memory.jsonl` next to the script.         |
-| `LOCAL_TIMEZONE`          | `mcp_time.py`          | Default timezone for `get_current_time()`.         |
-| `DB_POOL_MIN` / `DB_POOL_MAX` | `mcp_postgres.py`  | Pool sizing. Default 2 / 10.                       |
-| `REDIS_POOL_MAX`          | `mcp_redis.py`         | Default 10.                                        |
-| `VECTOR_EMBEDDING_MODEL`  | `mcp_vector.py`        | Default `text-embedding-3-small`.                  |
-| `VECTOR_EMBEDDING_DIM`    | `mcp_vector.py`        | Default 1536.                                      |
-
-On Windows (PowerShell):
-
-```powershell
-$env:GITHUB_API_KEY  = "ghp_..."
-$env:FIRECRAWL_API_KEY = "fc-..."
-$env:OPENAI_API_KEY  = "sk-..."
-$env:DATABASE_URL    = "postgresql://user:pass@localhost:5432/mcpku"
-$env:REDIS_URL       = "redis://localhost:6379/0"
-```
-
-Persist via System Properties → Environment Variables, or in your shell profile.
-
----
-
-## Register with an MCP client
+## Client configuration
 
 ### opencode
 
-A working `opencode.jsonc` is checked into the repo root. After `pip install`
-and setting the env vars above, **quit and restart opencode** so the config
-is reloaded. Run `/mcp` to confirm all 15 servers are connected.
+`opencode.jsonc` is checked into the repo root. After installing deps and
+setting env vars, restart opencode and run `/mcp`.
 
 ### Claude Desktop
-
-`%APPDATA%\Claude\claude_desktop_config.json` (Windows) or
-`~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
 
 ```json
 {
   "mcpServers": {
-    "bash":      { "command": "python", "args": ["E:/MCPKU/mcp_bash.py"] },
-    "think":     { "command": "python", "args": ["E:/MCPKU/mcp_think.py"] },
-    "time":      { "command": "python", "args": ["E:/MCPKU/mcp_time.py"] },
-    "filesystem":{ "command": "python", "args": ["E:/MCPKU/mcp_filesystem.py"] },
-    "git":       { "command": "python", "args": ["E:/MCPKU/mcp_git.py"] },
-    "github":    { "command": "python", "args": ["E:/MCPKU/mcp_github.py"] },
-    "web":       { "command": "python", "args": ["E:/MCPKU/mcp_web.py"] },
-    "vector":    { "command": "python", "args": ["E:/MCPKU/mcp_vector.py"] },
-    "postgres":  { "command": "python", "args": ["E:/MCPKU/mcp_postgres.py"] },
-    "sqlite":    { "command": "python", "args": ["E:/MCPKU/mcp_sqlite.py"] },
-    "redis":     { "command": "python", "args": ["E:/MCPKU/mcp_redis.py"] },
-    "memory":    { "command": "python", "args": ["E:/MCPKU/mcp_memory.py"] },
-    "browser":   { "command": "python", "args": ["E:/MCPKU/mcp_browser.py"] },
-    "diagnostics":{ "command": "python", "args": ["E:/MCPKU/mcp_diagnostics.py"] },
-    "autofix":   { "command": "python", "args": ["E:/MCPKU/mcp_autofix.py"] }
+    "bash":       { "command": "python", "args": ["E:/MCPKU/mcp_bash.py"] },
+    "think":      { "command": "python", "args": ["E:/MCPKU/mcp_think.py"] },
+    "time":       { "command": "python", "args": ["E:/MCPKU/mcp_time.py"] },
+    "filesystem": { "command": "python", "args": ["E:/MCPKU/mcp_filesystem.py"] },
+    "git":        { "command": "python", "args": ["E:/MCPKU/mcp_git.py"] },
+    "github":     { "command": "python", "args": ["E:/MCPKU/mcp_github.py"] },
+    "web":        { "command": "python", "args": ["E:/MCPKU/mcp_web.py"] },
+    "vector":     { "command": "python", "args": ["E:/MCPKU/mcp_vector.py"] },
+    "postgres":   { "command": "python", "args": ["E:/MCPKU/mcp_postgres.py"] },
+    "sqlite":     { "command": "python", "args": ["E:/MCPKU/mcp_sqlite.py"] },
+    "redis":      { "command": "python", "args": ["E:/MCPKU/mcp_redis.py"] },
+    "memory":     { "command": "python", "args": ["E:/MCPKU/mcp_memory.py"] },
+    "browser":    { "command": "python", "args": ["E:/MCPKU/mcp_browser.py"] },
+    "diagnostics":{"command": "python", "args": ["E:/MCPKU/mcp_diagnostics.py"] },
+    "autofix":    { "command": "python", "args": ["E:/MCPKU/mcp_autofix.py"] }
   }
 }
 ```
 
 ### Cursor / others
 
-Same shape — register each `mcp_*.py` as a stdio command. Trim the list to
-whatever you actually need; you don't have to enable all 15.
+Same pattern — register each `mcp_*.py` as a stdio command. Trim the list to
+whatever you need.
 
 ---
 
-## Security model (high level)
+## Architecture
 
-- `bash` runs only commands in `ALLOWED_COMMANDS` **and** rejects any argument
-  matching `DANGEROUS_ARG_PATTERNS` (wildcard deletes, `-rf`,
-  `--no-preserve-root`, subshell syntax, etc.). Git is further restricted to
-  an explicit subcommand allowlist.
-- `redis.flushdb` is a **two-step** operation: `redis_flushdb_request` issues
-  a short-lived token, `redis_flushdb_confirm` consumes it. The token expires
-  automatically.
-- `sqlite` validates every table identifier with a regex
-  (`^[A-Za-z_][A-Za-z0-9_ ]*$`) before interpolating into `PRAGMA`.
-- `postgres` is read-only: only `SELECT` / `WITH` / `EXPLAIN` / `SHOW` are
-  allowed through `query` / `run_query`.
-- `filesystem` is rooted at a fixed allowlist. Set `MCP_EXTRA_ALLOWED_DIR`
-  to extend it; the default is intentionally narrow.
+Each server is a single file with a `mcp.run(transport="stdio")` entrypoint,
+built on `FastMCP`. The orchestrator is implicit: the AI client decides which
+server to call based on the `instructions` metadata embedded in each server.
 
-See [`PATCH_NOTES.md`](PATCH_NOTES.md) for the full list of fixes and the
-remaining known issues.
-
----
-
-## API Documentation
-
-Each server exposes its tools via the MCP protocol. Tools are documented with
-typed parameters and descriptions directly in code (via `@mcp.tool()` decorator).
-
-### Tool categories per server
-
-| Server        | Key tools                                                                 |
-|---------------|---------------------------------------------------------------------------|
-| `bash`        | `run_command` — execute shell command with security filtering             |
-| `think`       | `think`, `new_session`, `reset_thinking`, `get_thoughts` — CoT scratchpad |
-| `time`        | `get_current_time`, `convert_timezone`, `list_timezones`                  |
-| `filesystem`  | `read_file`, `write_file`, `search_files`, `diff_directories`             |
-| `git`         | `git_status`, `git_diff`, `git_log`, `git_commit`, `git_branch`, …        |
-| `github`      | ~65 tools: repos, issues, PRs, releases, gists, workflows, alerts         |
-| `web`         | `fetch_url`, `search_web` — URL fetch + Firecrawl web search              |
-| `vector`      | `create_collection`, `upsert_vectors`, `similarity_search`, `list_collections` |
-| `postgres`    | `query`, `run_query`, `list_tables`, `get_table_schema` — read-only SQL   |
-| `sqlite`      | `query`, `execute`, `list_tables`, `get_table_info` — read/write SQL      |
-| `redis`       | `redis_get`, `redis_set`, `redis_delete`, `redis_flushdb_request/confirm` |
-| `memory`      | `create_entity`, `add_observations`, `search_entities`, `open_nodes`      |
-| `browser`     | `snapshot`, `click`, `fill`, `screenshot`, `navigate` — headless browser  |
-| `diagnostics` | `parse_traceback`, `read_log_tail`, `watch_stderr`, `classify_error`, `scan_project_errors`, `explain_error`, `get_error_history` |
-| `autofix`     | `autofix_run`, `autofix_history`, `autofix_strategies` — run → detect → fix (pip, npm, mkdir, kill-port, go tidy, black) → retry → commit |
-
-### Usage examples
-
-<details>
-<summary><b>Parse a Python traceback</b></summary>
-
-```python
-# Tool: parse_traceback
-# Input: traceback from a Python crash
-result = await parse_traceback("""
-Traceback (most recent call last):
-  File "app.py", line 10, in <module>
-    import pandas
-ModuleNotFoundError: No module named 'pandas'
-""")
-# Output: Parsed Python error → Type: ModuleNotFoundError
-#         Class: Python.ImportError → Fix: pip install pandas
 ```
-</details>
-
-<details>
-<summary><b>Scan project logs for errors</b></summary>
-
-```python
-# Tool: scan_project_errors
-result = await scan_project_errors(
-    folder_path="E:/app/logs",
-    max_files=20,
-    lines_per_file=50
-)
-# Output: Found 3 log files, 12 error lines
-#         DB.ConnectionError × 8, HTTP.5xx × 4
-```
-</details>
-
-<details>
-<summary><b>Read the last N lines of a log file</b></summary>
-
-```python
-# Tool: read_log_tail
-result = await read_log_tail(
-    log_path="E:/app/logs/server.log",
-    lines=100,
-    parse_errors=True
-)
-# Output: Last 100 lines, auto-detected 3 errors with classifications
-```
-</details>
-
-<details>
-<summary><b>Git operations</b></summary>
-
-```python
-# Tool: git_status → current branch, staged/unstaged changes
-# Tool: git_diff  → diff of working tree vs HEAD
-# Tool: git_log   → last N commits with graph
-```
-</details>
-
-<details>
-<summary><b>Auto-fix a failing command</b></summary>
-
-```python
-# Tool: autofix_run
-# Automatically: run → detect error → pip/npm install → retry → git commit
-result = await autofix_run(
-    command="python app.py",
-    max_retries=3,
-    auto_commit=True
-)
-# Output:
-# ❌ Exit code: 1  →  ModuleNotFoundError: No module named 'pandas'
-# 🛠  Applying fix: pip install pandas  →  ✅ Fix succeeded
-# 🔄 Retry #1     →  ✅ Command succeeded (exit code 0)
-# ✅ Committed: autofix: pip install pandas
-```
-</details>
-
-<details>
-<summary><b>Browser automation</b></summary>
-
-```python
-# Tool: navigate → go to a URL
-# Tool: snapshot → get page text content
-# Tool: click    → click an element by selector
-# Tool: screenshot → capture page screenshot
-```
-</details>
-
----
-
-## Server configuration (MCP)
-
-Each server is registered as a **stdio** MCP server. The configuration tells
-the MCP client how to launch the server process:
-
-```jsonc
-{
-  "type": "local",
-  "command": ["python", "E:/MCPKU/mcp_bash.py"],
-  "enabled": true,
-  "env": {
-    "KEY": "value"
-  }
-}
-```
-
-- **type**: `"local"` — runs as a child process on the same machine
-- **command**: interpreter + script path (Windows paths with forward slashes)
-- **enabled**: toggle the server on/off without removing the config
-- **env**: environment variables passed to the server process
-
-Tools are registered via the `@mcp.tool()` decorator and exposed
-automatically. Example from [`mcp_diagnostics.py`](mcp_diagnostics.py):
-
-```python
-from mcp.server.fastmcp import FastMCP
-
-mcp = FastMCP("diagnostics", instructions="...")
-
-@mcp.tool(
-    name="classify_error",
-    description="Klasifikasi tipe error dari pesan error apapun"
-)
-async def classify_error(error_message: str) -> str:
-    classifications = _classify(error_message)
-    return "\n".join(lines)
-
-mcp.run(transport="stdio")
+User prompt
+    │
+AI Model
+    │  reads instructions: "auto-call parse_traceback on every error"
+    ▼
+MCPKU Server  ──── stdio ────→  Python process
+    │                           │
+    │                           ├── mcp_bash.py        (shell)
+    │                           ├── mcp_filesystem.py  (file I/O)
+    │                           ├── mcp_diagnostics.py (error parsing)
+    │                           ├── mcp_autofix.py     (auto-fix loop)
+    │                           └── ... (11 more)
+    │
+    └──→ Returns structured result → AI interprets → next action
 ```
 
 ---
 
-## Development
+## Security
 
-Each server is a single self-contained file with a `mcp.run(transport="stdio")`
-entrypoint. To run one in isolation for debugging:
+- `bash` — command allowlist + argument denylist (wildcard deletes, `-rf`,
+  subshell injection, etc.). Git restricted to explicit subcommand allowlist.
+- `redis.flushdb` — 2-step: request issues a short-lived token, confirm
+  consumes it.
+- `sqlite` — identifier validation via regex before PRAGMA interpolation.
+- `postgres` — read-only: only `SELECT` / `WITH` / `EXPLAIN` / `SHOW`
+  allowed.
+- `filesystem` — rooted at fixed allowlist. Extend via `MCP_EXTRA_ALLOWED_DIR`.
 
-```bash
-python mcp_bash.py
-# …or with the MCP Inspector:
-mcp dev mcp_bash.py
-```
+See [`PATCH_NOTES.md`](PATCH_NOTES.md) for full details.
 
-Automated tests are in [`tests/`](tests/). Requires `pytest` and `pytest-asyncio`:
+---
+
+## Tests
 
 ```bash
 pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-Currently **135 tests** covering security validation, error parsing, data
-persistence, auto-fix workflows, and edge cases across 13 server modules.
-All tests are pure unit tests (no network/DB/browser) — run in ~4 seconds.
-Contributions welcome.
+**135 tests** across 13 server modules. All pure unit tests (no network, DB,
+or browser dependency). Runs in ~4 seconds.
+
+| Module | Tests | What's covered |
+|---|---|---|
+| `test_diagnostics.py` | 33 | Error classification, traceback parsing (Python/Node/Rust), language detection, history |
+| `test_bash.py` | 15 | Command allowlist, argument denylist, git ACL, injection blocking |
+| `test_autofix.py` | 29 | Fix handlers, module extraction, async run loop with mocked shell |
+| `test_sqlite.py` | 13 | Identifier validation, CRUD operations |
+| `test_vector.py` | 9 | Fallback embeddings, collection name sanitization |
+| `test_postgres.py` | 4 | Retry with exponential backoff |
+| `test_*` (6 more) | 32 | Git flag protection, memory persistence, think sessions, timezone, HTML parsing, filesystem paths, Redis flush tokens |
+
+---
+
+## Terminology
+
+| Term | Meaning |
+|---|---|
+| **MCPKU Runtime** | The orchestration layer of 15 coordinated servers |
+| **Autonomous Debugging Engine** | The diagnostics + autofix pipeline that closes the debug loop |
+| **Closed-loop debugging** | Run → detect → fix → retry → commit without human intervention |
+| **Fix strategy** | A handler function that maps an error type to an executable fix command |
+| **AI Runtime** | Infrastructure that lets AI models interact with system resources through MCP |
 
 ---
 
 ## License
 
-MIT License — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
