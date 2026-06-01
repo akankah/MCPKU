@@ -1,12 +1,26 @@
 # MCPKU
 
-A personal toolbox of **13 MCP servers** in a single Python repo, all built on
+A personal toolbox of **14 MCP servers** in a single Python repo, all built on
 `FastMCP` and exposed over **stdio**. Plug the whole set into opencode, Claude
 Desktop, Cursor, or any MCP-compatible client.
 
 > Status: personal project. Tested on Windows / Python 3.11+. See
 > [`PATCH_NOTES.md`](PATCH_NOTES.md) for the most recent security and
 > correctness fixes.
+
+---
+
+## Project Structure
+
+| File              | Description                                   |
+|-------------------|-----------------------------------------------|
+| `README.md`       | Dokumentasi lengkap project                   |
+| `requirements.txt`| Dependencies Python (pip install -r)          |
+| `.gitignore`      | File yang dikecualikan dari version control   |
+| `LICENSE`         | Lisensi project                               |
+| `opencode.jsonc`  | Konfigurasi MCP server untuk opencode         |
+| `mcp_*.py`        | Implementasi MCP server & tools/functions     |
+| `mcp_cache.py`    | Shared helper (Redis caching)                 |
 
 ---
 
@@ -27,6 +41,7 @@ Desktop, Cursor, or any MCP-compatible client.
 | `redis`       | `mcp_redis.py`        | Strings, lists, sets, hashes, TTL, `FLUSHDB` with 2-step confirmation     |
 | `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
+| `diagnostics` | `mcp_diagnostics.py`  | Parse, classify, and explain errors from Python/Node.js/Rust/Go tracebacks|
 
 `mcp_cache.py` is a shared helper used by `postgres`, `vector`, and `web` for
 optional Redis-backed response caching. It is not a standalone server.
@@ -38,14 +53,13 @@ optional Redis-backed response caching. It is not a standalone server.
 Requires **Python 3.10+** on the PATH as `python`.
 
 ```bash
-pip install "mcp[cli]" \
-            redis psycopg2-binary numpy requests \
-            GitPython playwright
+pip install -r requirements.txt
 playwright install chromium
 ```
 
-That is the full dependency set. Servers that don't need a package
-(`bash`, `think`, `time`, `filesystem`, `memory`) will simply not import it.
+See [`requirements.txt`](requirements.txt) for the full list of dependencies.
+Servers that rely only on stdlib (`bash`, `think`, `time`, `filesystem`,
+`memory`, `diagnostics`) will gracefully skip missing packages.
 
 ---
 
@@ -90,7 +104,7 @@ Persist via System Properties → Environment Variables, or in your shell profil
 
 A working `opencode.jsonc` is checked into the repo root. After `pip install`
 and setting the env vars above, **quit and restart opencode** so the config
-is reloaded. Run `/mcp` to confirm all 13 servers are connected.
+is reloaded. Run `/mcp` to confirm all 14 servers are connected.
 
 ### Claude Desktop
 
@@ -112,7 +126,8 @@ is reloaded. Run `/mcp` to confirm all 13 servers are connected.
     "sqlite":    { "command": "python", "args": ["E:/MCPKU/mcp_sqlite.py"] },
     "redis":     { "command": "python", "args": ["E:/MCPKU/mcp_redis.py"] },
     "memory":    { "command": "python", "args": ["E:/MCPKU/mcp_memory.py"] },
-    "browser":   { "command": "python", "args": ["E:/MCPKU/mcp_browser.py"] }
+    "browser":   { "command": "python", "args": ["E:/MCPKU/mcp_browser.py"] },
+    "diagnostics":{ "command": "python", "args": ["E:/MCPKU/mcp_diagnostics.py"] }
   }
 }
 ```
@@ -120,7 +135,7 @@ is reloaded. Run `/mcp` to confirm all 13 servers are connected.
 ### Cursor / others
 
 Same shape — register each `mcp_*.py` as a stdio command. Trim the list to
-whatever you actually need; you don't have to enable all 13.
+whatever you actually need; you don't have to enable all 14.
 
 ---
 
@@ -142,6 +157,143 @@ whatever you actually need; you don't have to enable all 13.
 
 See [`PATCH_NOTES.md`](PATCH_NOTES.md) for the full list of fixes and the
 remaining known issues.
+
+---
+
+## API Documentation
+
+Each server exposes its tools via the MCP protocol. Tools are documented with
+typed parameters and descriptions directly in code (via `@mcp.tool()` decorator).
+
+### Tool categories per server
+
+| Server        | Key tools                                                                 |
+|---------------|---------------------------------------------------------------------------|
+| `bash`        | `run_command` — execute shell command with security filtering             |
+| `think`       | `think`, `new_session`, `reset_thinking`, `get_thoughts` — CoT scratchpad |
+| `time`        | `get_current_time`, `convert_timezone`, `list_timezones`                  |
+| `filesystem`  | `read_file`, `write_file`, `search_files`, `diff_directories`             |
+| `git`         | `git_status`, `git_diff`, `git_log`, `git_commit`, `git_branch`, …        |
+| `github`      | ~65 tools: repos, issues, PRs, releases, gists, workflows, alerts         |
+| `web`         | `fetch_url`, `search_web` — URL fetch + Firecrawl web search              |
+| `vector`      | `create_collection`, `upsert_vectors`, `similarity_search`, `list_collections` |
+| `postgres`    | `query`, `run_query`, `list_tables`, `get_table_schema` — read-only SQL   |
+| `sqlite`      | `query`, `execute`, `list_tables`, `get_table_info` — read/write SQL      |
+| `redis`       | `redis_get`, `redis_set`, `redis_delete`, `redis_flushdb_request/confirm` |
+| `memory`      | `create_entity`, `add_observations`, `search_entities`, `open_nodes`      |
+| `browser`     | `snapshot`, `click`, `fill`, `screenshot`, `navigate` — headless browser  |
+| `diagnostics` | `parse_traceback`, `read_log_tail`, `watch_stderr`, `classify_error`, `scan_project_errors`, `explain_error`, `get_error_history` |
+
+### Usage examples
+
+<details>
+<summary><b>Parse a Python traceback</b></summary>
+
+```python
+# Tool: parse_traceback
+# Input: traceback from a Python crash
+result = await parse_traceback("""
+Traceback (most recent call last):
+  File "app.py", line 10, in <module>
+    import pandas
+ModuleNotFoundError: No module named 'pandas'
+""")
+# Output: Parsed Python error → Type: ModuleNotFoundError
+#         Class: Python.ImportError → Fix: pip install pandas
+```
+</details>
+
+<details>
+<summary><b>Scan project logs for errors</b></summary>
+
+```python
+# Tool: scan_project_errors
+result = await scan_project_errors(
+    folder_path="E:/app/logs",
+    max_files=20,
+    lines_per_file=50
+)
+# Output: Found 3 log files, 12 error lines
+#         DB.ConnectionError × 8, HTTP.5xx × 4
+```
+</details>
+
+<details>
+<summary><b>Read the last N lines of a log file</b></summary>
+
+```python
+# Tool: read_log_tail
+result = await read_log_tail(
+    log_path="E:/app/logs/server.log",
+    lines=100,
+    parse_errors=True
+)
+# Output: Last 100 lines, auto-detected 3 errors with classifications
+```
+</details>
+
+<details>
+<summary><b>Git operations</b></summary>
+
+```python
+# Tool: git_status → current branch, staged/unstaged changes
+# Tool: git_diff  → diff of working tree vs HEAD
+# Tool: git_log   → last N commits with graph
+```
+</details>
+
+<details>
+<summary><b>Browser automation</b></summary>
+
+```python
+# Tool: navigate → go to a URL
+# Tool: snapshot → get page text content
+# Tool: click    → click an element by selector
+# Tool: screenshot → capture page screenshot
+```
+</details>
+
+---
+
+## Server configuration (MCP)
+
+Each server is registered as a **stdio** MCP server. The configuration tells
+the MCP client how to launch the server process:
+
+```jsonc
+{
+  "type": "local",
+  "command": ["python", "E:/MCPKU/mcp_bash.py"],
+  "enabled": true,
+  "env": {
+    "KEY": "value"
+  }
+}
+```
+
+- **type**: `"local"` — runs as a child process on the same machine
+- **command**: interpreter + script path (Windows paths with forward slashes)
+- **enabled**: toggle the server on/off without removing the config
+- **env**: environment variables passed to the server process
+
+Tools are registered via the `@mcp.tool()` decorator and exposed
+automatically. Example from [`mcp_diagnostics.py`](mcp_diagnostics.py):
+
+```python
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("diagnostics", instructions="...")
+
+@mcp.tool(
+    name="classify_error",
+    description="Klasifikasi tipe error dari pesan error apapun"
+)
+async def classify_error(error_message: str) -> str:
+    classifications = _classify(error_message)
+    return "\n".join(lines)
+
+mcp.run(transport="stdio")
+```
 
 ---
 

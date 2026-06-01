@@ -1,0 +1,9 @@
+mcp[cli]
+GitPython
+playwright
+requests
+redis
+psycopg2-binary
+numpy
+openai
+python-dotenv

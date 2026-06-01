@@ -1,7 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
 
-  // MCPKU — 13 stdio MCP servers from E:\MCPKU
+  // MCPKU — 14 stdio MCP servers from E:\MCPKU
   // All use `python <file>.py`. Path resolved by the opencode parent process
   // (which on Windows is the same shell that launched opencode).
   //
@@ -108,6 +108,11 @@
     "browser": {
       "type": "local",
       "command": ["python", "E:/MCPKU/mcp_browser.py"],
+      "enabled": true
+    },
+    "diagnostics": {
+      "type": "local",
+      "command": ["python", "E:/MCPKU/mcp_diagnostics.py"],
       "enabled": true
     }
   }
