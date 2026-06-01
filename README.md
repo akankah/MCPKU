@@ -323,4 +323,4 @@ persistence, and edge cases across 12 server modules. Contributions welcome.
 
 ## License
 
-Personal project. Pick a license before publishing externally.
+MIT License — see [LICENSE](LICENSE).
