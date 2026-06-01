@@ -100,6 +100,59 @@ Semua perubahan berdasarkan review kode aktual. Setiap fix disertai alasan dan l
 - `mcp_memory.py`: single-file JSONL bisa race condition kalau 2 concurrent writes
 - Semua file: tidak ada type hints, tidak ada tests, tidak ada structured logging
 
+---
+
+## v2.0 — Autofix Search + Stateless + DuckDuckGo (Jun 2026)
+
+### mcp_autofix.py
+
+**1. `_search_references()` — auto-search web + GitHub saat error tidak dikenal**
+- Saat fix strategy tidak ada atau semua retry gagal → langsung cari error di web (DuckDuckGo) dan GitHub Issues
+- Query dibentuk dari error_types + baris error terakhir (exclude traceback frames)
+- Search via `asyncio.gather()` — web dan GitHub dicari parallel
+- Hasil search disertakan dalam output autofix, AI langsung bisa baca & apply solusi
+
+**2. `AUTOFIX_STATELESS=1` — skip session history**
+- `_record()` return early jika env var diset
+- Mengurangi memory usage untuk long-running / one-shot sessions
+
+**3. Tool description diupdate**
+- Menyebut fitur search referensi agar AI tau
+
+### mcp_diagnostics.py
+
+**1. `AUTOFIX_STATELESS=1` — skip error history**
+- Sama dengan autofix, `_record()` return early jika stateless
+
+### mcp_web.py
+
+**1. DuckDuckGo search gratis (default)**
+- Scrape `lite.duckduckgo.com` langsung via `requests` (no API key, zero config)
+- Parse HTML dengan regex untuk extract title + snippet + URL
+- `DISABLE_DUCKDUCKGO=1` untuk force Firecrawl-only
+
+**2. Firecrawl sebagai fallback**
+- Jika DuckDuckGo gagal, fallback ke Firecrawl (jika API key diset)
+
+### requirements.txt
+
+**1. `duckduckgo_search` dihapus**
+- Tidak jadi dipakai — scraping langsung via `requests` lebih ringan dan 0 dep
+
+### Perubahan Non-Breaking
+
+- Semua perubahan backward compatible
+- Tanpa env var → behavior sama seperti sebelumnya (kecuali DuckDuckGo aktif default)
+- Emoji diganti ASCII-safe `[Web]` / `[GitHub]` untuk kompatibilitas Windows cp1252
+
+| Aspek        | Sebelum | Sesudah | Catatan |
+|-------------|---------|---------|---------|
+| Akurat       | 8/10    | 8.5/10  | autofix search referensi nyata, bukan saran statis |
+| Pintar       | 6.5/10  | 8/10    | search web + github otomatis saat bingung |
+| Cepat        | 8.5/10  | 8.5/10  | search parallel via gather, cache via Redis |
+| Aman         | 6.5/10  | 6.5/10  | tidak ada perubahan security |
+| Maintainable | 5/10    | 6/10    | import cross-module lebih rapi |
+
 ## Skor Setelah Fix
 
 | Aspek        | Sebelum | Sesudah | Catatan |
