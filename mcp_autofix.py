@@ -44,6 +44,8 @@ mcp = FastMCP(
 
 MAX_RETRIES_DEFAULT = 3
 
+_STATELESS = os.environ.get("AUTOFIX_STATELESS", "0") == "1"
+
 # ── Fix handlers ─────────────────────────────────────────────────────────────
 # Each handler takes (error_types, error_text, cwd) and returns
 # a list of (command_string, description) tuples.
@@ -200,6 +202,8 @@ _autofix_history: list[dict] = []
 
 
 def _record(entry: dict):
+    if _STATELESS:
+        return
     _autofix_history.append(entry)
     if len(_autofix_history) > 50:
         _autofix_history.pop(0)

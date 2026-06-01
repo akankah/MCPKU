@@ -49,7 +49,11 @@ mcp = FastMCP(
 # ── Session error history ────────────────────────────────────────────────────
 _error_history: list[dict] = []
 
+_STATELESS = os.environ.get("AUTOFIX_STATELESS", "0") == "1"
+
 def _record(error_type: str, message: str, source: str = "") -> None:
+    if _STATELESS:
+        return
     _error_history.append({
         "timestamp": datetime.now().isoformat(),
         "type": error_type,

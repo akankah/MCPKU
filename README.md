@@ -95,7 +95,7 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `filesystem`  | `mcp_filesystem.py`   | Read/write/search/diff inside an allowlisted directory tree               |
 | `git`         | `mcp_git.py`          | Status, diff, log, commit, branch, merge, rebase, stash, tag, blame       |
 | `github`      | `mcp_github.py`       | ~65 tools: repos, issues, PRs, releases, gists, workflows, alerts        |
-| `web`         | `mcp_web.py`          | URL fetch (HTML→text or raw) and Firecrawl-backed web search              |
+| `web`         | `mcp_web.py`          | URL fetch + DuckDuckGo (free) / Firecrawl (premium) web search           |
 | `vector`      | `mcp_vector.py`       | Postgres + `pgvector` + OpenAI embeddings, cosine similarity search       |
 | `postgres`    | `mcp_postgres.py`     | Read-only SQL with retry+backoff and connection pool                      |
 | `sqlite`      | `mcp_sqlite.py`       | Read/write queries, schema introspection, identifier-safe PRAGMA          |
@@ -117,20 +117,6 @@ pip install -r requirements.txt
 playwright install chromium
 python -m pytest tests/ -v    # 135 tests, ~4 seconds
 ```
-
-Environment variables (set before starting the MCP client):
-
-| Var | Used by | Notes |
-|---|---|---|
-| `GITHUB_API_KEY` | `mcp_github.py` | Personal access token |
-| `FIRECRAWL_API_KEY` | `mcp_web.py` | Required for web search |
-| `OPENAI_API_KEY` | `mcp_vector.py` | Embeddings (falls back to local hash) |
-| `DATABASE_URL` | `mcp_postgres.py`, `mcp_vector.py` | Standard libpq URL |
-| `REDIS_URL` | `mcp_redis.py`, `mcp_cache.py` | Default `redis://localhost:6379/0` |
-| `SQLITE_DB_PATH` | `mcp_sqlite.py` | Default = in-memory |
-| `MCP_EXTRA_ALLOWED_DIR` | `mcp_filesystem.py` | Extra allowlisted roots (comma-sep) |
-| `MEMORY_FILE_PATH` | `mcp_memory.py` | Default `memory.jsonl` |
-| `LOCAL_TIMEZONE` | `mcp_time.py` | Default timezone |
 
 ---
 
@@ -233,6 +219,22 @@ or browser dependency). Runs in ~4 seconds.
 | `test_*` (6 more) | 32 | Git flag protection, memory persistence, think sessions, timezone, HTML parsing, filesystem paths, Redis flush tokens |
 
 ---
+
+## Environment reference
+
+| Var | Used by | Default | Notes |
+|---|---|---|---|
+| `GITHUB_API_KEY` | `mcp_github.py` | — | Personal access token |
+| `FIRECRAWL_API_KEY` | `mcp_web.py` | — | Optional; DuckDuckGo used if available |
+| `DISABLE_DUCKDUCKGO=1` | `mcp_web.py` | — | Force Firecrawl only |
+| `AUTOFIX_STATELESS=1` | `autofix`, `diagnostics` | `0` | Skip in-memory history |
+| `OPENAI_API_KEY` | `mcp_vector.py` | — | Embeddings (falls back to local hash) |
+| `DATABASE_URL` | `mcp_postgres.py`, `mcp_vector.py` | — | Standard libpq URL |
+| `REDIS_URL` | `mcp_redis.py`, `mcp_cache.py` | `redis://localhost:6379/0` | For caching & Redis server |
+| `SQLITE_DB_PATH` | `mcp_sqlite.py` | `:memory:` | File path for persistent DB |
+| `MCP_EXTRA_ALLOWED_DIR` | `mcp_filesystem.py` | — | Extra allowlisted roots (comma-sep) |
+| `MEMORY_FILE_PATH` | `mcp_memory.py` | `memory.jsonl` | Knowledge graph persistence |
+| `LOCAL_TIMEZONE` | `mcp_time.py` | UTC | Default display timezone |
 
 ## Terminology
 

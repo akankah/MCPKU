@@ -6,9 +6,18 @@ from mcp_cache import cache_get, cache_set
 
 FIRECRAWL_API_KEY = os.environ.get("FIRECRAWL_API_KEY", "")
 
+_DDG_AVAILABLE = False
+if os.environ.get("DISABLE_DUCKDUCKGO", "0") != "1":
+    try:
+        from duckduckgo_search import DDGS
+        _DDG_AVAILABLE = True
+    except ImportError:
+        pass
+
 mcp = FastMCP("web-tools", instructions="""
 Web fetch and search tools for real-time information. fetch_url extracts
-content as clean text/markdown. search_web uses Firecrawl API for results.
+content as clean text/markdown. search_web uses DuckDuckGo (free, no key)
+with Firecrawl fallback if configured.
 
 Results are cached in Redis for 1 hour (fetch_url) or 30 minutes (search_web)
 to avoid redundant API calls. Use ?nocache=true in URL to bypass cache.
@@ -64,9 +73,28 @@ async def fetch_url(url: str, max_length: int = 5000, start_index: int = 0, raw:
     except Exception as e:
         return f"(error fetching {url}: {e})"
 
+async def _search_duckduckgo(query: str, max_results: int = 5) -> str | None:
+    if not _DDG_AVAILABLE:
+        return None
+    try:
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=max_results))
+        if not results:
+            return None
+        out = []
+        for i, r in enumerate(results[:max_results], 1):
+            title = r.get("title", "")
+            body = r.get("body", "")
+            href = r.get("href", "")
+            out.append(f"{i}. {title}\n   {body}\n   {href}")
+        return "\n\n".join(out)
+    except Exception as e:
+        return None
+
+
 @mcp.tool(
     name="search_web",
-    description="Cari informasi real-time di web via Firecrawl API. Untuk berita, harga, cuaca, dll."
+    description="Cari informasi real-time di web. Default DuckDuckGo (free, no API key), fallback Firecrawl."
 )
 async def search_web(query: str, max_results: int = 5) -> str:
     cache_key = f"mcp:web:search:{query}:{max_results}"
@@ -74,34 +102,40 @@ async def search_web(query: str, max_results: int = 5) -> str:
     if cached is not None:
         return cached
 
-    if not FIRECRAWL_API_KEY:
-        return "(FIRECRAWL_API_KEY not configured)"
-    try:
-        r = requests.post(
-            "https://api.firecrawl.dev/v1/search",
-            json={"query": query},
-            headers={"Authorization": f"Bearer {FIRECRAWL_API_KEY}", "Content-Type": "application/json"},
-            timeout=15,
-        )
-        if r.status_code != 200:
-            return f"(search failed: HTTP {r.status_code})"
-        data = r.json()
-        results = data.get("data", [])
-        if not results:
-            return "(no results)"
-        out = []
-        for i, res in enumerate(results[:max_results], 1):
-            title = res.get("title", "")
-            snippet = res.get("snippet", "") or res.get("description", "")
-            link = res.get("url", "")
-            out.append(f"{i}. {title}\n   {snippet}\n   {link}")
-        text = "\n\n".join(out)
+    # DuckDuckGo (free, zero config)
+    ddg = await _search_duckduckgo(query, max_results)
+    if ddg is not None:
+        cache_set(cache_key, ddg, ttl=1800)
+        return ddg
 
-        cache_set(cache_key, text, ttl=1800)
+    # Fallback: Firecrawl
+    if FIRECRAWL_API_KEY:
+        try:
+            r = requests.post(
+                "https://api.firecrawl.dev/v1/search",
+                json={"query": query},
+                headers={"Authorization": f"Bearer {FIRECRAWL_API_KEY}", "Content-Type": "application/json"},
+                timeout=15,
+            )
+            if r.status_code != 200:
+                return f"(search failed: HTTP {r.status_code})"
+            data = r.json()
+            results = data.get("data", [])
+            if not results:
+                return "(no results)"
+            out = []
+            for i, res in enumerate(results[:max_results], 1):
+                title = res.get("title", "")
+                snippet = res.get("snippet", "") or res.get("description", "")
+                link = res.get("url", "")
+                out.append(f"{i}. {title}\n   {snippet}\n   {link}")
+            text = "\n\n".join(out)
+            cache_set(cache_key, text, ttl=1800)
+            return text
+        except Exception as e:
+            return f"(firecrawl search failed: {e})"
 
-        return text
-    except Exception as e:
-        return f"(search failed: {e})"
+    return "(no search available — install duckduckgo_search or set FIRECRAWL_API_KEY)"
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")
