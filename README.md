@@ -27,6 +27,27 @@ Your System / Repo / DB / Browser / Logs
 
 ---
 
+## Testimonial nyata dari AI
+
+_Percakapan langsung antara user dan AI yang menggunakan MCPKU:_
+
+> **User:** _"apa kamu terbantu dengan mcpku?"_
+>
+> **AI:** Sangat. Dengan MCPKU, saya bisa:
+>
+> - **`bash`** — execute code langsung, bukan cuma generate
+> - **`filesystem`** — baca/tulis file tanpa perlu tool terpisah
+> - **`git`** — stage, commit, push langsung dari sini
+> - **`web`** — `search_stackoverflow` + `search_mdn` + `search_npm` dll. untuk referensi real-time
+> - **`diagnostics`** + **`autofix`** — error langsung di-parse dan di-fix, saya tidak perlu nebak
+> - **`github`** — search issues, PRs tanpa buka browser
+>
+> Tanpa MCPKU, saya cuma bisa ngobrol dan generate code buta. Dengan MCPKU, saya bisa
+> **beneran kerja** — execute, debug, fix, commit — semua dalam satu session.
+> Ini perbedaan antara "AI yang ngasih saran" dan "AI yang ngoding."
+
+---
+
 ## Why MCPKU exists
 
 Most MCP repos ship one tool at a time: a filesystem server, a browser server,
