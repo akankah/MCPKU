@@ -127,6 +127,38 @@ python -m pytest tests/ -v    # 135 tests, ~4 seconds
 `opencode.jsonc` is checked into the repo root. After installing deps and
 setting env vars, restart opencode and run `/mcp`.
 
+#### Global (auto-active from any directory)
+
+Copy the entire `"mcp"` block from `E:\MCPKU\opencode.jsonc` into the global
+config at `~/.config/opencode/opencode.jsonc`. The original file stays in
+`E:\MCPKU` for reference.
+
+```jsonc
+// ~/.config/opencode/opencode.jsonc
+{
+  "mcp": {
+    "bash":       { "type": "local", "command": ["python", "E:/MCPKU/mcp_bash.py"],       "enabled": true },
+    "think":      { "type": "local", "command": ["python", "E:/MCPKU/mcp_think.py"],      "enabled": true },
+    "time":       { "type": "local", "command": ["python", "E:/MCPKU/mcp_time.py"],       "enabled": true },
+    "filesystem": { "type": "local", "command": ["python", "E:/MCPKU/mcp_filesystem.py"], "enabled": true },
+    "git":        { "type": "local", "command": ["python", "E:/MCPKU/mcp_git.py"],        "enabled": true },
+    "github":     { "type": "local", "command": ["python", "E:/MCPKU/mcp_github.py"],     "enabled": true },
+    "web":        { "type": "local", "command": ["python", "E:/MCPKU/mcp_web.py"],        "enabled": true },
+    "vector":     { "type": "local", "command": ["python", "E:/MCPKU/mcp_vector.py"],     "enabled": true },
+    "postgres":   { "type": "local", "command": ["python", "E:/MCPKU/mcp_postgres.py"],   "enabled": true },
+    "sqlite":     { "type": "local", "command": ["python", "E:/MCPKU/mcp_sqlite.py"],     "enabled": true },
+    "redis":      { "type": "local", "command": ["python", "E:/MCPKU/mcp_redis.py"],      "enabled": true },
+    "memory":     { "type": "local", "command": ["python", "E:/MCPKU/mcp_memory.py"],     "enabled": true },
+    "browser":    { "type": "local", "command": ["python", "E:/MCPKU/mcp_browser.py"],    "enabled": true },
+    "diagnostics":{"type": "local", "command": ["python", "E:/MCPKU/mcp_diagnostics.py"], "enabled": true },
+    "autofix":    { "type": "local", "command": ["python", "E:/MCPKU/mcp_autofix.py"],    "enabled": true }
+  }
+}
+```
+
+Once added, MCPKU is active whenever opencode starts — regardless of the
+current directory.
+
 ### Claude Desktop
 
 ```json
