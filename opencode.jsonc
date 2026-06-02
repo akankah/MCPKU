@@ -67,7 +67,8 @@
       "command": ["python", "E:/MCPKU/mcp_web.py"],
       "enabled": true,
       "env": {
-        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
+        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}",
+        "STACKEX_API_KEY": "${STACKEX_API_KEY}"
       }
     },
     "github": {

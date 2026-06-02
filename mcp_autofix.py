@@ -12,6 +12,7 @@ Depends on: mcp_diagnostics.py (for parse/classify functions)
 """
 
 import asyncio
+import json
 import os
 import re
 import sys
@@ -27,7 +28,7 @@ from mcp_diagnostics import (
     _parse_rust_traceback,
     _classify,
 )
-from mcp_web import search_web
+from mcp_web import search_web, search_stackoverflow
 from mcp_github import search_issues
 
 mcp = FastMCP(
@@ -45,6 +46,7 @@ mcp = FastMCP(
 MAX_RETRIES_DEFAULT = 3
 
 _STATELESS = os.environ.get("AUTOFIX_STATELESS", "0") == "1"
+_ERROR_KB_DIR = Path(os.environ.get("ERROR_KB_DIR", Path(__file__).parent / "error_kb"))
 
 # ── Fix handlers ─────────────────────────────────────────────────────────────
 # Each handler takes (error_types, error_text, cwd) and returns
@@ -234,32 +236,103 @@ async def _run_shell(command: str, cwd: str, timeout: int) -> dict:
         return {"exit_code": -1, "stdout": "", "stderr": f"(error: {e})", "success": False}
 
 
-async def _search_references(error_text: str, error_types: list[str]) -> str:
-    """Search web and GitHub for error references to help AI find solutions."""
+def _extract_query(error_text: str, error_types: list[str]) -> str:
     lines = error_text.strip().split('\n')
     query_lines = [l for l in lines if l.strip() and not l.startswith(('Traceback', '  File', '    ', 'File ', 'at '))]
-    query = (query_lines[-1] if query_lines else error_text[:200])[:200]
+    return (query_lines[-1] if query_lines else error_text[:200])[:200]
 
+
+async def _search_references(error_text: str, error_types: list[str]) -> str:
+    """Search ALL reference sources in parallel: web, GitHub, Stack Overflow."""
+    query = _extract_query(error_text, error_types)
+    search_query = f"{' '.join(error_types)} {query}"
     parts = []
 
-    async def _search_web():
-        result = await search_web(f"{' '.join(error_types)} {query}", max_results=3)
-        if result and not result.startswith("("):
-            return f"\n[Web] Search Results:\n{result}"
+    async def _wrap(coro, label: str):
+        try:
+            result = await coro
+            if result and not result.startswith("("):
+                return f"\n[{label}]\n{result}"
+        except Exception:
+            pass
         return ""
 
-    async def _search_gh():
-        result = await search_issues(f"{' '.join(error_types)} {query}", max_results=3)
-        if result and not result.startswith("("):
-            return f"\n[GitHub] Issues:\n{result}"
-        return ""
+    tasks = [
+        _wrap(search_web(search_query, max_results=3), "Web"),
+        _wrap(search_issues(search_query, max_results=3), "GitHub Issues"),
+        _wrap(search_stackoverflow(search_query, max_results=3), "Stack Overflow"),
+    ]
 
-    results = await asyncio.gather(_search_web(), _search_gh(), return_exceptions=True)
+    results = await asyncio.gather(*tasks, return_exceptions=True)
     for r in results:
         if isinstance(r, str) and r:
             parts.append(r)
 
     return "\n".join(parts)
+
+
+# ── Error Knowledge Base ─────────────────────────────────────────────
+
+def _save_to_kb(entry: dict) -> str:
+    _ERROR_KB_DIR.mkdir(parents=True, exist_ok=True)
+    ts = entry.get("timestamp", datetime.now().isoformat())
+    safe_ts = ts.replace(":", "-").replace(".", "-")
+    fname = f"error_{safe_ts}.json"
+    fpath = _ERROR_KB_DIR / fname
+    try:
+        with open(fpath, "w", encoding="utf-8") as f:
+            json.dump(entry, f, indent=2, ensure_ascii=False)
+        return str(fpath)
+    except Exception as e:
+        return f"(save failed: {e})"
+
+
+def _search_kb(query: str, limit: int = 5) -> list[dict]:
+    _ERROR_KB_DIR.mkdir(parents=True, exist_ok=True)
+    q_lower = query.lower()
+    results = []
+    files = sorted(_ERROR_KB_DIR.glob("error_*.json"), reverse=True)
+    for f in files:
+        try:
+            with open(f, "r", encoding="utf-8") as fh:
+                entry = json.load(fh)
+        except Exception:
+            continue
+        score = 0
+        for val in entry.values():
+            if isinstance(val, str) and q_lower in val.lower():
+                score += 1
+            elif isinstance(val, list):
+                for v in val:
+                    if isinstance(v, str) and q_lower in v.lower():
+                        score += 1
+        if score > 0:
+            results.append((score, entry))
+    results.sort(key=lambda x: -x[0])
+    return [e for _, e in results[:limit]]
+
+
+def _kb_stats() -> dict:
+    _ERROR_KB_DIR.mkdir(parents=True, exist_ok=True)
+    total = 0
+    by_type: dict[str, int] = {}
+    by_project: dict[str, int] = {}
+    for f in _ERROR_KB_DIR.glob("error_*.json"):
+        total += 1
+        try:
+            with open(f, "r", encoding="utf-8") as fh:
+                e = json.load(fh)
+            for et in e.get("error_types", []):
+                by_type[et] = by_type.get(et, 0) + 1
+            proj = e.get("project", "?")
+            by_project[proj] = by_project.get(proj, 0) + 1
+        except Exception:
+            pass
+    return {
+        "total": total,
+        "by_type": dict(sorted(by_type.items(), key=lambda x: -x[1])[:10]),
+        "by_project": dict(sorted(by_project.items(), key=lambda x: -x[1])[:10]),
+    }
 
 
 @mcp.tool(
@@ -268,8 +341,10 @@ async def _search_references(error_text: str, error_types: list[str]) -> str:
         "Run a command, auto-detect errors, apply fixes, retry, and optionally commit. "
         "Supports pip install for ImportError, npm install for JS.ModuleNotFound, "
         "and general fix suggestions for other errors. "
-        "When no auto-fix strategy exists, automatically searches web and GitHub "
-        "for the error message to find relevant solutions. Returns full debug log."
+        "When no auto-fix strategy exists, automatically searches web, GitHub, "
+        "and Stack Overflow for the error message. Saves failed errors to knowledge "
+        "base (error_kb/) for future reference. Checks KB for similar past errors. "
+        "Returns full debug log."
     ),
 )
 async def autofix_run(
@@ -340,6 +415,7 @@ async def autofix_run(
                 "success": True,
                 "attempts": attempt,
                 "fixes": applied_fixes,
+                "error_types": [],
             })
             return "\n".join(lines)
 
@@ -362,6 +438,19 @@ async def autofix_run(
         if parsed.get("error_message"):
             lines.append(f"   Message: {parsed['error_message'][:200]}")
         lines.append(f"   Classifications: {', '.join(error_types)}")
+
+        # Search KB for similar past errors
+        if attempt == 0:
+            kb_results = _search_kb(" ".join(error_types), limit=3)
+            if kb_results:
+                lines.append(f"\n📚 Found {len(kb_results)} similar error(s) in knowledge base:")
+                for i, kb in enumerate(kb_results, 1):
+                    ts = kb.get("timestamp", "")[:19]
+                    cmd = kb.get("command", "")[:60]
+                    kb_fixes = kb.get("fixes", [])
+                    kb_str = ", ".join(kb_fixes) if kb_fixes else "no fix found"
+                    lines.append(f"  {i}. [{ts}] {cmd}")
+                    lines.append(f"     Fixes: {kb_str}")
 
         if attempt >= max_retries:
             lines.append(f"\n⚠️  Max retries ({max_retries}) reached. Searching references...")
@@ -395,7 +484,7 @@ async def autofix_run(
                 lines.append(f"\n💡 No automatic fix available. Suggestions:")
                 lines.extend(suggestions)
 
-            lines.append(f"\n🔍 Searching web and GitHub for error references...")
+            lines.append(f"\n🔍 Searching all references (web, GitHub, Stack Overflow)...")
             refs = await _search_references(error_text, error_types)
             if refs:
                 lines.append(refs)
@@ -414,7 +503,25 @@ async def autofix_run(
         "attempts": attempt,
         "fixes": applied_fixes,
         "error_types": error_types,
+        "error_text": error_text[:500],
+        "project": cwd,
     })
+
+    # Auto-save failed error to KB
+    if not _STATELESS:
+        kb_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "command": command,
+            "success": False,
+            "attempts": attempt,
+            "fixes": applied_fixes,
+            "error_types": error_types,
+            "error_message": (parsed.get("error_message") or error_text[:300]),
+            "error_text_tail": error_text[:1000],
+            "project": cwd,
+        }
+        saved_path = _save_to_kb(kb_entry)
+        lines.append(f"\n💾 Error saved to knowledge base: {saved_path}")
 
     # Show stderr tail
     if stderr.strip():
@@ -436,10 +543,12 @@ async def autofix_history(limit: int = 10) -> str:
     entries = _autofix_history[-limit:]
     lines = [f"── Auto-Fix History (last {len(entries)}/{len(_autofix_history)}) ──\n"]
     for i, e in enumerate(reversed(entries), 1):
+        etypes = ", ".join(e.get("error_types", [])) if not e.get("success") else ""
         lines.append(
             f"{i:2d}. [{e['timestamp'][11:19]}] {'✅' if e['success'] else '❌'} "
             f"{e['command'][:60]}\n"
-            f"     Attempts: {e['attempts']}, Fixes: {e.get('fixes', [])}\n"
+            f"     Attempts: {e['attempts']}, Fixes: {e.get('fixes', [])}"
+            f"{f', Types: {etypes}' if etypes else ''}\n"
         )
     return "\n".join(lines)
 
@@ -457,6 +566,83 @@ async def autofix_strategies() -> str:
         if etype not in FIX_STRATEGIES_DESC:
             lines.append(f"  {etype}: {suggestion}")
     return "\n".join(lines)
+
+
+@mcp.tool(
+    name="autofix_save_error",
+    description="Simpan error manual ke knowledge base untuk referensi session mendatang."
+)
+async def autofix_save_error(
+    error_message: str,
+    error_types: str = "",
+    command: str = "",
+    context: str = "",
+    project: str = "",
+) -> str:
+    entry = {
+        "timestamp": datetime.now().isoformat(),
+        "command": command or "",
+        "success": False,
+        "attempts": 0,
+        "fixes": [],
+        "error_types": [et.strip() for et in error_types.split(",") if et.strip()] or ["Unknown"],
+        "error_message": error_message,
+        "error_text_tail": context[:1000] or error_message[:1000],
+        "project": project or os.getcwd(),
+    }
+    path = _save_to_kb(entry)
+    return f"✅ Error saved to knowledge base: {path}"
+
+
+@mcp.tool(
+    name="autofix_search_kb",
+    description="Cari error serupa di knowledge base (error_kb/). Berguna sebagai referensi cepat."
+)
+async def autofix_search_kb(query: str, limit: int = 5) -> str:
+    results = _search_kb(query, limit=limit)
+    if not results:
+        return "(no matching errors in knowledge base)"
+
+    out = [f"── Knowledge Base Search: {query!r} (found {len(results)}) ──\n"]
+    for i, e in enumerate(results, 1):
+        ts = e.get("timestamp", "?")[:19]
+        cmd = e.get("command", "?")[:80]
+        emsg = e.get("error_message", "")[:150]
+        etypes = ", ".join(e.get("error_types", []))
+        fixes = ", ".join(e.get("fixes", [])) or "—"
+        proj = e.get("project", "?")
+        out.append(
+            f"{i}. [{ts}] {cmd}\n"
+            f"   Types: {etypes}\n"
+            f"   Error: {emsg}\n"
+            f"   Fixes: {fixes}\n"
+            f"   Project: {proj}\n"
+        )
+    return "\n".join(out)
+
+
+@mcp.tool(
+    name="autofix_kb_stats",
+    description="Lihat statistik knowledge base: total error, error types, project."
+)
+async def autofix_kb_stats() -> str:
+    stats = _kb_stats()
+    total = stats["total"]
+    if total == 0:
+        return "(knowledge base is empty — errors will be saved automatically when autofix_run fails)"
+
+    out = [
+        f"── Knowledge Base Stats ──",
+        f"Total errors saved: {total}\n",
+        "Top Error Types:",
+    ]
+    for etype, count in stats["by_type"].items():
+        out.append(f"  {etype}: {count}x")
+    out.append("")
+    out.append("Top Projects:")
+    for proj, count in stats["by_project"].items():
+        out.append(f"  {proj}: {count}x")
+    return "\n".join(out)
 
 
 if __name__ == "__main__":

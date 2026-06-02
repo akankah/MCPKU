@@ -46,19 +46,31 @@ The heart of MCPKU is its **closed-loop debugging pipeline**:
 ```
 Run command   ──❌──→  Parse traceback  ──→  Classify error
     │                                                    │
+    │                                        ┌───────────┴───────────┐
+    │                                        │                       │
+    │                                   Check Error KB       Search 6 sources
+    │                                   (past errors)        in parallel:
+    │                                                         │  Web (DDG)
+    │                                                         │  GitHub Issues
+    │                                                         │  Stack Overflow
+    │                                                         │  MDN / npm / PyPI
+    │                                                         │  Crates.io
+    │                                                         │  DevDocs
+    │                                        └───────────┬───────────┘
+    │                                                    │
     │                                              Apply fix strategy
     │                                                    │
     │                                         ┌──────────┴──────────┐
     │                                         │                     │
     │                                    Fix succeeds        No fix / max retries
     │                                         │                     │
-    │                                         │            Search web + GitHub
-    │                                         │            for error references
+    │                                         │          Auto-save error to KB
+    │                                         │          (error_kb/*.json)
     │                                         │                     │
     └──✅── Retry ──────────── Fix succeeds ───┘                     │
                                       │                              │
                                       │                        AI reads results,
-                                      │                        applies fix, retry
+                                      │                        applies fix
                                       │                              │
                                 Optional: git commit ──────── retry ─┘
 ```
@@ -68,7 +80,29 @@ This pipeline is implemented across two servers:
 | Server        | Role                                          |
 |---------------|-----------------------------------------------|
 | `diagnostics` | Parse, classify, explain any error (Python / Node.js / Rust / Go) |
-| `autofix`     | Apply auto-fix (pip, npm, mkdir, kill-port, go mod tidy, black) + search web + GitHub for unknown errors + retry + commit |
+| `autofix`     | Apply auto-fix (pip, npm, mkdir, kill-port, go mod tidy, black) + parallel search across 6 reference sources + error knowledge base (error_kb/) + retry + commit |
+
+### Web reference sources (available from any tool)
+
+| Tool | Source | API |
+|------|--------|-----|
+| `search_stackoverflow` | Stack Overflow / Stack Exchange | Official REST API (10k req/day with key) |
+| `search_npm` | npm registry | Registry JSON API (free) |
+| `search_pypi` | PyPI | JSON API + simple index (free) |
+| `search_mdn` | MDN Web Docs | Official search API (free) |
+| `search_crates` | crates.io (Rust) | crates.io API (free) |
+| `search_devdocs` | DevDocs.io | docs.json listing (free) |
+| `search_web` | DuckDuckGo / Firecrawl | HTML scraping (free) / API (key) |
+
+### Error Knowledge Base
+
+Failed errors are automatically saved to `error_kb/` as JSON files. On subsequent
+runs, `autofix_run` checks the KB for similar past errors before searching the
+web — so recurring issues get faster fixes over time.
+
+- `autofix_save_error` — save an error manually
+- `autofix_search_kb` — query past errors
+- `autofix_kb_stats` — error frequency by type and project
 
 Supported auto-fix strategies:
 
@@ -95,7 +129,7 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `filesystem`  | `mcp_filesystem.py`   | Read/write/search/diff inside an allowlisted directory tree               |
 | `git`         | `mcp_git.py`          | Status, diff, log, commit, branch, merge, rebase, stash, tag, blame       |
 | `github`      | `mcp_github.py`       | ~65 tools: repos, issues, PRs, releases, gists, workflows, alerts        |
-| `web`         | `mcp_web.py`          | URL fetch + DuckDuckGo (free) / Firecrawl (premium) web search           |
+| `web`         | `mcp_web.py`          | URL fetch + web search (DDG/Firecrawl) + Stack Overflow (API) + npm/PyPI/MDN/crates.io/DevDocs |
 | `vector`      | `mcp_vector.py`       | Postgres + `pgvector` + OpenAI embeddings, cosine similarity search       |
 | `postgres`    | `mcp_postgres.py`     | Read-only SQL with retry+backoff and connection pool                      |
 | `sqlite`      | `mcp_sqlite.py`       | Read/write queries, schema introspection, identifier-safe PRAGMA          |
@@ -103,10 +137,13 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
 | `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output          |
-| `autofix`     | `mcp_autofix.py`      | Closed-loop debugging + web/GitHub search for unknown errors             |
+| `autofix`     | `mcp_autofix.py`      | Closed-loop debugging + parallel search (web/GitHub/SO) + error knowledge base (error_kb/) |
 
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by
 `postgres`, `vector`, `web`). Not a standalone server.
+
+`error_kb/` is a directory where `autofix` saves failed errors as JSON files
+for cross-session reference. Auto-created on first error.
 
 ---
 
@@ -258,6 +295,7 @@ or browser dependency). Runs in ~4 seconds.
 |---|---|---|---|
 | `GITHUB_API_KEY` | `mcp_github.py` | — | Personal access token |
 | `FIRECRAWL_API_KEY` | `mcp_web.py` | — | Optional; DuckDuckGo used if available |
+| `STACKEX_API_KEY` | `mcp_web.py` | — | Stack Exchange API key (10k req/day); optional, search works without it (100 req/day) |
 | `DISABLE_DUCKDUCKGO=1` | `mcp_web.py` | — | Force Firecrawl only |
 | `AUTOFIX_STATELESS=1` | `autofix`, `diagnostics` | `0` | Skip in-memory history |
 | `OPENAI_API_KEY` | `mcp_vector.py` | — | Embeddings (falls back to local hash) |
