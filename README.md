@@ -33,7 +33,7 @@ _Percakapan langsung antara user dan AI yang menggunakan MCPKU:_
 
 > **User:** _"apa kamu terbantu dengan mcpku?"_
 >
-> **AI:** Sangat. Dengan MCPKU, saya bisa:
+> **AI (DeepSeek V4 Flash Free):** Sangat. Dengan MCPKU, saya bisa:
 >
 > - **`bash`** — execute code langsung, bukan cuma generate
 > - **`filesystem`** — baca/tulis file tanpa perlu tool terpisah
