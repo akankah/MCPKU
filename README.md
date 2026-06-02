@@ -100,9 +100,14 @@ Failed errors are automatically saved to `error_kb/` as JSON files. On subsequen
 runs, `autofix_run` checks the KB for similar past errors before searching the
 web — so recurring issues get faster fixes over time.
 
+**Vector search** (optional): jika `DATABASE_URL` (Postgres + pgvector) tersedia,
+errors juga di-embed dan disimpan di tabel `vec_error_kb` untuk semantic
+similarity search. Jauh lebih akurat daripada keyword matching.
+
 - `autofix_save_error` — save an error manually
-- `autofix_search_kb` — query past errors
+- `autofix_search_kb` — query past errors (vector search if available)
 - `autofix_kb_stats` — error frequency by type and project
+- `autofix_kb_trends` — multi-session trend dashboard (by type, project, date, fix rate)
 
 Supported auto-fix strategies:
 
@@ -137,7 +142,7 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
 | `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output          |
-| `autofix`     | `mcp_autofix.py`      | Closed-loop debugging + parallel search (web/GitHub/SO) + error knowledge base (error_kb/) |
+| `autofix`     | `mcp_autofix.py`      | Closed-loop debugging + parallel search (web/GitHub/SO) + error knowledge base (error_kb/ + pgvector) + trend dashboard |
 
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by
 `postgres`, `vector`, `web`). Not a standalone server.
@@ -296,6 +301,7 @@ or browser dependency). Runs in ~4 seconds.
 | `GITHUB_API_KEY` | `mcp_github.py` | — | Personal access token |
 | `FIRECRAWL_API_KEY` | `mcp_web.py` | — | Optional; DuckDuckGo used if available |
 | `STACKEX_API_KEY` | `mcp_web.py` | — | Stack Exchange API key (10k req/day); optional, search works without it (100 req/day) |
+| `VECTOR_EMBEDDING_DIM` | `autofix`, `vector` | `1536` | Embedding dimension (pgvector) |
 | `DISABLE_DUCKDUCKGO=1` | `mcp_web.py` | — | Force Firecrawl only |
 | `AUTOFIX_STATELESS=1` | `autofix`, `diagnostics` | `0` | Skip in-memory history |
 | `OPENAI_API_KEY` | `mcp_vector.py` | — | Embeddings (falls back to local hash) |

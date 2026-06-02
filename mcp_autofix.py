@@ -282,12 +282,17 @@ def _save_to_kb(entry: dict) -> str:
     try:
         with open(fpath, "w", encoding="utf-8") as f:
             json.dump(entry, f, indent=2, ensure_ascii=False)
-        return str(fpath)
+        # Also save to vector DB if available
+        vec_ok = _save_to_vector(entry)
+        result = str(fpath)
+        if vec_ok:
+            result += " (vector indexed)"
+        return result
     except Exception as e:
         return f"(save failed: {e})"
 
 
-def _search_kb(query: str, limit: int = 5) -> list[dict]:
+def _search_kb_file(query: str, limit: int = 5) -> list[dict]:
     _ERROR_KB_DIR.mkdir(parents=True, exist_ok=True)
     q_lower = query.lower()
     results = []
@@ -312,6 +317,33 @@ def _search_kb(query: str, limit: int = 5) -> list[dict]:
     return [e for _, e in results[:limit]]
 
 
+def _search_kb(query: str, limit: int = 5) -> list[dict]:
+    # Try vector search first (semantic similarity, more accurate)
+    vec_results = _vector_search_kb(query, limit=limit, min_score=0.0)
+    if vec_results:
+        out = []
+        for vr in vec_results:
+            meta = vr.get("metadata", {})
+            entry = {
+                "timestamp": vr.get("id", "?")[:19],
+                "command": meta.get("command", ""),
+                "fixes": meta.get("fixes", []),
+                "error_types": meta.get("error_types", []),
+                "error_message": vr.get("text", ""),
+                "project": meta.get("project", ""),
+                "_score": vr.get("score", 0),
+                "_source": "vector",
+            }
+            out.append(entry)
+        if out:
+            return out
+    # Fallback: keyword-based file search
+    file_results = _search_kb_file(query, limit=limit)
+    for r in file_results:
+        r["_source"] = "keyword"
+    return file_results
+
+
 def _kb_stats() -> dict:
     _ERROR_KB_DIR.mkdir(parents=True, exist_ok=True)
     total = 0
@@ -332,6 +364,188 @@ def _kb_stats() -> dict:
         "total": total,
         "by_type": dict(sorted(by_type.items(), key=lambda x: -x[1])[:10]),
         "by_project": dict(sorted(by_project.items(), key=lambda x: -x[1])[:10]),
+    }
+
+
+# ── Vector integration (pgvector) ────────────────────────────────────
+# Optional: if DATABASE_URL is set, errors are also embedded and stored
+# in a pgvector table for semantic similarity search.
+# Fallback: keyword-based file search when DB is unavailable.
+
+_VECTOR_COLLECTION = "error_kb"
+_DATABASE_URL = os.environ.get("DATABASE_URL", "")
+_EMBEDDING_DIM = int(os.environ.get("VECTOR_EMBEDDING_DIM", "1536"))
+
+
+def _embed_text(text: str) -> list[float]:
+    """Embed text using OpenAI (if key available) or deterministic hash fallback."""
+    import hashlib, struct, numpy as np
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if api_key:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            r = client.embeddings.create(
+                model=os.environ.get("VECTOR_EMBEDDING_MODEL", "text-embedding-3-small"),
+                input=[text],
+            )
+            return r.data[0].embedding
+        except Exception:
+            pass
+    h = hashlib.sha256(text.encode()).digest()
+    vec = [struct.unpack('f', h[i:i+4])[0] for i in range(0, min(64, len(h)-3), 4)]
+    vec = vec * (_EMBEDDING_DIM // len(vec) + 1)
+    vec = vec[:_EMBEDDING_DIM]
+    norm = np.linalg.norm(vec)
+    return (np.array(vec) / norm).tolist() if norm > 0 else vec
+
+
+def _vector_conn():
+    import psycopg2
+    if not _DATABASE_URL:
+        raise ValueError("DATABASE_URL not set")
+    conn = psycopg2.connect(_DATABASE_URL)
+    conn.autocommit = True
+    return conn
+
+
+def _vec_table() -> str:
+    safe = re.sub(r'[^a-zA-Z0-9_]', '_', _VECTOR_COLLECTION)
+    return f"vec_{safe}"
+
+
+def _ensure_vector_table():
+    conn = _vector_conn()
+    cur = conn.cursor()
+    cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    tbl = _vec_table()
+    cur.execute(f"""
+        CREATE TABLE IF NOT EXISTS {tbl} (
+            id TEXT PRIMARY KEY,
+            text TEXT NOT NULL,
+            metadata JSONB DEFAULT '{{}}',
+            embedding vector({_EMBEDDING_DIM}),
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+    """)
+    cur.execute(f"CREATE INDEX IF NOT EXISTS {tbl}_idx ON {tbl} USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)")
+    cur.close()
+
+
+def _save_to_vector(entry: dict) -> bool:
+    if not _DATABASE_URL:
+        return False
+    try:
+        _ensure_vector_table()
+        tbl = _vec_table()
+        text = f"{' '.join(entry.get('error_types', []))} {entry.get('error_message', '')} {entry.get('command', '')}"
+        emb = _embed_text(text)
+        emb_str = "[" + ",".join(str(v) for v in emb) + "]"
+        doc_id = entry.get("timestamp", datetime.now().isoformat())
+        meta = json.dumps({
+            "command": entry.get("command", ""),
+            "fixes": entry.get("fixes", []),
+            "error_types": entry.get("error_types", []),
+            "project": entry.get("project", ""),
+        })
+        conn = _vector_conn()
+        cur = conn.cursor()
+        cur.execute(f"""
+            INSERT INTO {tbl} (id, text, metadata, embedding)
+            VALUES (%s, %s, %s::jsonb, %s::vector)
+            ON CONFLICT (id) DO UPDATE
+            SET text=EXCLUDED.text, metadata=EXCLUDED.metadata, embedding=EXCLUDED.embedding
+        """, (doc_id, text, meta, emb_str))
+        cur.close()
+        return True
+    except Exception:
+        return False
+
+
+def _vector_search_kb(query: str, limit: int = 5, min_score: float = 0.0) -> list[dict]:
+    if not _DATABASE_URL:
+        return []
+    try:
+        _ensure_vector_table()
+        tbl = _vec_table()
+        qvec = _embed_text(query)
+        emb_str = "[" + ",".join(str(v) for v in qvec) + "]"
+        conn = _vector_conn()
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT id, text, metadata, 1 - (embedding <=> %s::vector) AS score
+            FROM {tbl}
+            WHERE 1 - (embedding <=> %s::vector) >= %s
+            ORDER BY score DESC
+            LIMIT %s
+        """, (emb_str, emb_str, min_score, limit))
+        rows = cur.fetchall()
+        cur.close()
+        results = []
+        for row in rows:
+            meta = row[2] if isinstance(row[2], dict) else json.loads(row[2]) if row[2] else {}
+            results.append({
+                "id": row[0],
+                "text": (meta.get("error_types", []) or ["?"])[0] + ": " + (row[1] or "")[:200],
+                "score": round(float(row[3]), 4),
+                "metadata": meta,
+            })
+        return results
+    except Exception:
+        return []
+
+
+# ── Trend analysis ───────────────────────────────────────────────────
+
+def _kb_trends(days: int = 30) -> dict:
+    import time
+    _ERROR_KB_DIR.mkdir(parents=True, exist_ok=True)
+    cutoff = time.time() - days * 86400
+    entries = []
+    for f in _ERROR_KB_DIR.glob("error_*.json"):
+        try:
+            with open(f, "r", encoding="utf-8") as fh:
+                e = json.load(fh)
+            ts_str = e.get("timestamp", "")
+            if ts_str:
+                try:
+                    dt = datetime.fromisoformat(ts_str)
+                    if dt.timestamp() < cutoff:
+                        continue
+                except Exception:
+                    pass
+            entries.append(e)
+        except Exception:
+            pass
+
+    if not entries:
+        return {"total": 0, "period_days": days, "by_type": {}, "by_date": {}, "by_project": {}, "fix_rate": 0.0}
+
+    by_type: dict[str, int] = {}
+    by_project: dict[str, int] = {}
+    by_date: dict[str, int] = {}
+    total_fixed = 0
+
+    for e in entries:
+        for et in e.get("error_types", []):
+            by_type[et] = by_type.get(et, 0) + 1
+        proj = e.get("project", "")
+        if proj:
+            by_project[proj] = by_project.get(proj, 0) + 1
+        ts = e.get("timestamp", "")
+        if ts:
+            day = ts[:10]
+            by_date[day] = by_date.get(day, 0) + 1
+        if e.get("fixes"):
+            total_fixed += 1
+
+    return {
+        "total": len(entries),
+        "period_days": days,
+        "by_type": dict(sorted(by_type.items(), key=lambda x: -x[1])),
+        "by_project": dict(sorted(by_project.items(), key=lambda x: -x[1])),
+        "by_date": dict(sorted(by_date.items())),
+        "fix_rate": round(total_fixed / len(entries), 3) if entries else 0.0,
     }
 
 
@@ -596,7 +810,9 @@ async def autofix_save_error(
 
 @mcp.tool(
     name="autofix_search_kb",
-    description="Cari error serupa di knowledge base (error_kb/). Berguna sebagai referensi cepat."
+    description="Cari error serupa di knowledge base (error_kb/)."
+    " Menggunakan vector search (semantic) jika DATABASE_URL terkonfigurasi,"
+    " fallback keyword search jika tidak."
 )
 async def autofix_search_kb(query: str, limit: int = 5) -> str:
     results = _search_kb(query, limit=limit)
@@ -611,9 +827,12 @@ async def autofix_search_kb(query: str, limit: int = 5) -> str:
         etypes = ", ".join(e.get("error_types", []))
         fixes = ", ".join(e.get("fixes", [])) or "—"
         proj = e.get("project", "?")
+        source = e.get("_source", "keyword")
+        score = e.get("_score", "")
+        score_str = f" (score: {score})" if score else ""
         out.append(
             f"{i}. [{ts}] {cmd}\n"
-            f"   Types: {etypes}\n"
+            f"   Types: {etypes} [{source}{score_str}]\n"
             f"   Error: {emsg}\n"
             f"   Fixes: {fixes}\n"
             f"   Project: {proj}\n"
@@ -642,6 +861,50 @@ async def autofix_kb_stats() -> str:
     out.append("Top Projects:")
     for proj, count in stats["by_project"].items():
         out.append(f"  {proj}: {count}x")
+    return "\n".join(out)
+
+
+@mcp.tool(
+    name="autofix_kb_trends",
+    description="Multi-session error trend dashboard. Lihat frekuensi error per-tipe, per-project, per-hari,"
+    " dan fix success rate dalam periode tertentu."
+)
+async def autofix_kb_trends(days: int = 30, top_n: int = 10) -> str:
+    trends = _kb_trends(days=days)
+    total = trends["total"]
+    if total == 0:
+        return f"(no errors in the last {days} days)"
+
+    out = [
+        f"── Error Trends (last {days}d) ──",
+        f"Total errors: {total}",
+        f"Fix rate    : {trends['fix_rate']*100:.1f}%",
+        f"Period     : {trends['period_days']} days\n",
+        "By Error Type:",
+    ]
+
+    for et, cnt in list(trends["by_type"].items())[:top_n]:
+        bar = "█" * min(cnt, 30)
+        out.append(f"  {et:35s} {bar} {cnt}")
+    out.append("")
+
+    if trends["by_project"]:
+        out.append("By Project:")
+        for proj, cnt in list(trends["by_project"].items())[:top_n]:
+            bar = "█" * min(cnt, 30)
+            out.append(f"  {proj:35s} {bar} {cnt}")
+        out.append("")
+
+    if trends["by_date"]:
+        out.append("By Date:")
+        dates = list(trends["by_date"].items())
+        # Show last 14 days or all
+        for day, cnt in dates[-14:]:
+            bar = "█" * min(cnt, 20)
+            out.append(f"  {day} {bar} {cnt}")
+        out.append("")
+
+    out.append(f"(use vector search — set DATABASE_URL for semantic similarity)")
     return "\n".join(out)
 
 
