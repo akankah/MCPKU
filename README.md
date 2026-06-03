@@ -3,7 +3,7 @@
   <img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
 </picture>
 
-**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 15 MCP
+**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 16 MCP
 servers that gives AI agents the ability to read, write, execute, debug, fix,
 and commit code autonomously.
 
@@ -16,7 +16,7 @@ AI Model
 MCPKU Runtime
     │  orchestrates: shell → git → web → browser → diagnostics → autofix
     ▼
-15 MCP Servers
+16 MCP Servers
     │  each a self-contained stdio process
     ▼
 Your System / Repo / DB / Browser / Logs
@@ -160,7 +160,7 @@ Supported auto-fix strategies:
 
 ---
 
-## 15 MCP Servers
+## 16 MCP Servers
 
 Each server is a single self-contained Python file. Enable only what you need.
 
@@ -173,6 +173,7 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `git`         | `mcp_git.py`          | Status, diff, log, commit, branch, merge, rebase, stash, tag, blame       |
 | `github`      | `mcp_github.py`       | ~65 tools: repos, issues, PRs, releases, gists, workflows, alerts        |
 | `web`         | `mcp_web.py`          | URL fetch + web search (DDG/Firecrawl) + Stack Overflow (API) + npm/PyPI/MDN/crates.io/DevDocs |
+| `context7`    | (npm `@upstash/context7-mcp`) | Up-to-date library docs fetcher — prevents outdated API/syntax from training data cutoff |
 | `vector`      | `mcp_vector.py`       | Postgres + `pgvector` + OpenAI embeddings, cosine similarity search       |
 | `postgres`    | `mcp_postgres.py`     | Read-only SQL with retry+backoff and connection pool                      |
 | `sqlite`      | `mcp_sqlite.py`       | Read/write queries, schema introspection, identifier-safe PRAGMA          |

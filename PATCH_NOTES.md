@@ -162,3 +162,20 @@ Semua perubahan berdasarkan review kode aktual. Setiap fix disertai alasan dan l
 | Cepat        | 7.5/10  | 8.5/10  | hapus SELECT 1 overhead, thread pool untuk semua DB ops |
 | Aman         | 4/10    | 6.5/10  | bash arg-level policy, flushdb 2-step, PRAGMA injection fix |
 | Maintainable | 5/10    | 5/10    | belum ada tests/types â€” di luar scope patch ini |
+
+
+---
+
+## \[2026-06-03\] Add Context7 MCP
+
+**Add:** Context7 (npm @upstash/context7-mcp) sebagai MCP ke-16.
+
+**Alasan:** MCP-mu yang lain (mcp_web.py, mcp_github.py) bisa fetch URL tapi **gak punya spesialisasi docs library up-to-date**. Context7 didesain khusus buat narik dokumentasi library versi terbaru — penting biar AI gak kasih syntax yang udah deprecated.
+
+**Files changed:**
+- C:\Users\r\.config\opencode\opencode.jsonc — tambah entry context7
+- E:\MCPKU\opencode.jsonc — sync backup
+- E:\MCPKU\README.md — update 15 ? 16 MCP, tambah row Context7
+
+**Cara kerja:** 
+px -y @upstash/context7-mcp (stdio transport, no API key required). Package auto-downloaded saat first call.
