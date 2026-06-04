@@ -151,6 +151,112 @@ Semua terjadi otomatis tanpa kamu intervensi.
 
 ---
 
+## 11. Parallel Research Orchestrator (mcp_research)
+
+`mcp_research` adalah MCP server ke-17 yang menjalankan **9+ source paralel** dengan confidence scoring dalam 1 call. Ganti ritual "search 1-by-1" jadi single call.
+
+**4 tools tersedia:**
+
+| Tool | Sumber | Timeout | Use case |
+|---|---|---|---|
+| `query(q, err?)` | 9 (mdn, so, npm, pypi, crates, mcp, diagnostics, error_kb, memory) | 6s/task | Default: general lookup |
+| `quick(q)` | 2 (mdn + so) | 4s/task | Reference cepat, low-stakes |
+| `deep(q, err?)` | 10 (+ web, devdocs) | 8s/task | Error serius, butuh cross-validate |
+| `stream(q, err?)` | 5 (as-completed) | 15s total | Stream hasil pertama → kedua → ... |
+
+**Contoh pakai `query()`:**
+
+```
+> "Cara fix asyncio.gather hang di Python"
+
+MCPKU panggil:
+  mcp_research.query(
+    question="asyncio.gather hang event loop",
+    error_text="RuntimeError: Event loop is blocked"
+  )
+
+Hasil (dalam ~6 detik):
+  ✅ 9/9 sources responded
+  📊 Confidence: 72/100 (medium)
+  📌 Top 3: stackoverflow, mdn, error_kb
+  💡 Verdict: "Medium confidence (72/100). 4 sources agree.
+            Apply with minor verification."
+  🛠  Fix: wrap sync calls in asyncio.to_thread
+```
+
+**Contoh pakai `stream()` (real-time):**
+
+```
+> mcp_research.stream("playwright cmdk dropdown", "only 5 models per page")
+
+Stream chunks as they arrive:
+  [t=0.4s] [stack overflow w=0.90] ── "use page.keyboard.press + ..."
+  [t=1.2s] [mdn w=0.95] ── "React controlled input requires ..."
+  [t=2.8s] [error_kb w=0.95] ── "no prior error in KB"
+  [t=3.1s] [memory w=0.75] ── "no related memory"
+  ─── EARLY CONFIDENCE: 60/100 (medium) from 4 sources ───
+```
+
+**Confidence scoring:**
+- coverage 0-30 (seberapa banyak source return)
+- agreement 0-30 (seberapa mirip jawaban)
+- weight 0-20 (total source weight)
+- bonus 0-20 (error_kb + diagnostics match)
+- total 0-100
+- verdict: high(75+)/medium(50+)/low(25+)/very_low(<25)
+
+**Source weights** (otomatis):
+```
+mdn = error_kb = 0.95    # official docs + KB
+stackoverflow = 0.90     # community
+github = devdocs = diagnostics = 0.85
+pypi = npm = crates = 0.80
+memory = 0.75
+web = 0.50               # generic web lowest
+```
+
+---
+
+## 12. Parallel Batching Pattern (kunci performa)
+
+Sejak v17, 4 server (autofix, diagnostics, think, memory) punya instruksi "PARALLEL ORCHESTRATION" di deskripsinya. Intinya: **jangan 1-by-1, kumpulkan semua call independen dalam 1 pesan**.
+
+**❌ LAMA (sequential, ~30s):**
+```
+1. mcp_diagnostics.classify_error(err)          [5s]
+2. mcp_web.search_stackoverflow(q)              [4s]
+3. mcp_web.search_mdn(q)                        [3s]
+4. mcp_research.error_kb(q)                     [2s]
+─────────────────────────────────────────────────
+Total: 14s sequential
+```
+
+**✅ CEPAT (parallel batch, ~6s):**
+```
+┌─ mcp_diagnostics.classify_error(err)  [5s] ─┐
+├─ mcp_web.search_stackoverflow(q)      [4s] ─┤
+├─ mcp_web.search_mdn(q)                [3s] ─┼─ all in 1 message
+├─ mcp_research.error_kb(q)             [2s] ─┘
+─────────────────────────────────────────────────
+Total: max(5,4,3,2) = 5s
+```
+
+**Pattern di OpenCode prompt:**
+```
+"Diagnosa error ini + cari solusi paralel:
+ - mcp_diagnostics classify
+ - mcp_web search SO + MDN
+ - mcp_research query
+ Jalankan SEMUA dalam 1 batch, jangan tunggu satu-satu."
+```
+
+**Asyncio gotcha yg sudah difix:**
+- `asyncio.wait_for(gather(...))` cancel semua kalau 1 lambat → pakai per-task wait_for
+- `asyncio.to_thread(sync_fn)` cancel await tapi thread tetap jalan (acceptable)
+- `mcp_cache` Redis socket timeout 30s kalau Redis down → fix `socket_connect_timeout=1`
+
+---
+
 ## Bonus: Kombinasi referral tools
 
 Prompt yang paling maksimal pakai query multi-source:
