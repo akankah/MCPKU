@@ -130,6 +130,12 @@
       "type": "local",
       "command": ["npx", "-y", "@upstash/context7-mcp"],
       "enabled": true
+    },
+    // research: Parallel research orchestrator. Runs 6 web sources + diagnostics + memory in parallel, returns ranked consensus.
+    "research": {
+      "type": "local",
+      "command": ["python", "E:/MCPKU/mcp_research.py"],
+      "enabled": true
     }
   }
 }

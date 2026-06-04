@@ -19,6 +19,17 @@ The tool tracks repeated action verbs across thoughts in the same
 session. If 2+ thoughts in a row use retry/try/maybe patterns
 without progress, the tool returns a HARD WARNING telling you to
 stop and call websearch.
+
+PARALLEL ORCHESTRATION (recommended for complex problems):
+new_session can be called IN PARALLEL with other MCP tools in the same batch:
+  parallel([
+    think.new_session(reasoning="..."),
+    diagnostics.parse_traceback(error),
+    memory.search_nodes(query),
+    mcp_research.query(query)
+  ])
+This is the most efficient way to approach complex debugging — one round-trip,
+multiple sources of truth, then cross-check the results.
 """)
 
 # Session-isolated storage — tidak ada lagi global THOUGHTS yang shared

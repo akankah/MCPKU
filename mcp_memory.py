@@ -59,6 +59,13 @@ Memory tool reference (use freely):
   - delete_* — clean up
 
 JSONL persistence. UTF-8 (with BOM-safe utf-8-sig read).
+
+PARALLEL CROSS-CHECK (recommended for debugging):
+When search_nodes returns useful entities, call IN PARALLEL:
+  - diagnostics.classify_error(error)        → verify error type matches past fix
+  - autofix.autofix_run(failing_command)     → attempt auto-fix with this past pattern
+  - mcp_research.query(query)                → 6 web sources + cross-validation in one shot
+If past fix matches current error → high confidence. If mismatch → present both.
 """)
 
 migrated = False

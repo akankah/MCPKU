@@ -52,7 +52,14 @@ mcp = FastMCP(
         "3. If explain_error cannot map the error to a known fix strategy → call websearch.\n"
         "Skip websearch ONLY for: standard well-known errors (ImportError, "
         "ModuleNotFoundError, FileNotFoundError, IndentationError, SyntaxError) "
-        "where the fix is unambiguous and library-version-independent."
+        "where the fix is unambiguous and library-version-independent.\n\n"
+        "PARALLEL CROSS-VALIDATION (mandatory for UNKNOWN errors):\n"
+        "After classify_error returns UNKNOWN, call these IN PARALLEL in the same batch:\n"
+        "  - autofix.autofix_run(command_that_failed)  → auto-fix attempt\n"
+        "  - memory.search_nodes('<error_keyword>')    → past similar errors\n"
+        "  - mcp_research.query(query)                 → 6 web sources + autofix in parallel\n"
+        "Then cross-check: do all 3 sources agree on the root cause? If yes, fix is high-confidence. "
+        "If no, present the conflict to the user."
     ),
 )
 

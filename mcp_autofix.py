@@ -39,7 +39,20 @@ mcp = FastMCP(
         "this server will parse the error, classify it, apply the correct fix "
         "(pip install, npm install, etc.), and retry. You MUST use this instead of "
         "manually debugging. Only manual debugging if autofix_run fails after all "
-        "retries."
+        "retries.\n\n"
+        "PARALLEL ORCHESTRATION (mandatory for non-trivial errors):\n"
+        "When autofix_run returns an UNKNOWN error or low-confidence fix, "
+        "you MUST call the following tools IN PARALLEL within the same tool batch "
+        "(one round-trip, not sequential):\n"
+        "  - diagnostics.classify_error(error_text)  → confirm error type\n"
+        "  - diagnostics.explain_error(error_text)   → get fix explanation\n"
+        "  - memory.search_nodes('<error_keyword>')  → check past similar errors\n"
+        "  - think.new_session(reasoning='verify autofix result')  → record verification step\n"
+        "  - mcp_research(query=...)                 → dedicated parallel orchestrator (calls 6 web sources + diagnostics + memory in one shot)\n"
+        "After parallel results return, cross-check: if 3+ sources agree on the fix, "
+        "apply it. If sources conflict, return conflict to user.\n\n"
+        "Use mcp_research.query() for ONE-SHOT cross-validation when you want autofix + "
+        "diagnostics + memory + 6 web sources called in parallel and ranked automatically."
     ),
 )
 

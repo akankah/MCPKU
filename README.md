@@ -3,7 +3,7 @@
   <img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
 </picture>
 
-**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 16 MCP
+**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 17 MCP
 servers that gives AI agents the ability to read, write, execute, debug, fix,
 and commit code autonomously.
 
@@ -192,7 +192,7 @@ Supported auto-fix strategies:
 
 ---
 
-## 16 MCP Servers
+## 17 MCP Servers
 
 Each server is a single self-contained Python file. Enable only what you need.
 
@@ -214,6 +214,7 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
 | `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output          |
 | `autofix`     | `mcp_autofix.py`      | Closed-loop debugging + parallel search (web/GitHub/SO) + error knowledge base (error_kb/ + pgvector) + trend dashboard |
+| `research`    | `mcp_research.py`     | Parallel research orchestrator: `query`/`quick`/`deep` — runs 6 web sources + diagnostics + memory via `asyncio.gather`, returns ranked consensus with cross-check verdict |
 
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by
 `postgres`, `vector`, `web`). Not a standalone server.
@@ -319,6 +320,71 @@ Trade-off:
 
 `error_kb/` is a directory where `autofix` saves failed errors as JSON files
 for cross-session reference. Auto-created on first error.
+
+---
+
+## Parallel Research Orchestrator (mcp_research)
+
+The 17th server closes the orchestration gap: instead of the model calling
+`autofix` + `diagnostics` + `memory` + `web search` sequentially, it makes
+ONE call to `research.query()` and gets a ranked consensus from 8 parallel
+sources.
+
+| Tool | Speed | Sources | Use when |
+|---|---|---|---|
+| `quick(question)` | ~3s | web + stackoverflow | fast sanity check |
+| `query(question, error_text=None)` | ~5s | 5 web + diagnostics + memory | unknown error, multi-source research |
+| `deep(question, error_text=None)` | ~8s | 8 web + diagnostics + memory | critical, 3+ sources must agree |
+
+### How it works
+
+```python
+# Instead of 5 sequential calls:
+search_web(q)        # 2s
+search_stackover(q)  # 2s
+classify_error(e)    # 1s
+search_nodes(q)      # 0.5s
+mdn(q)               # 2s
+# Total: 7.5s
+
+# Make 1 call:
+research.query(q, error_text=e)
+# Runs all 5 in parallel via asyncio.gather
+# Total: 2s (max of all, not sum)
+# Returns: ranked + cross-checked consensus
+```
+
+### Cross-check verdict
+
+The output includes a `─── CROSS-CHECK ───` block with explicit signal:
+- ✅ Diagnostics classified: ... + Memory returned N matching entities
+- ⚠️ Diagnostics: UNKNOWN error type. Web sources should be authoritative.
+- ⚠️ No sources returned content. Refine query and retry.
+
+If 3+ sources agree on a fix, confidence is high. If sources conflict,
+the conflict is surfaced to the user.
+
+### Server instructions also enable parallel batching
+
+The 4 core servers (`autofix`, `diagnostics`, `memory`, `think`) now include
+instructions telling the model to call them **in parallel** within a single
+tool batch. The MCP protocol supports parallel tool calls natively — the
+model just needs to be told to use them.
+
+```json
+// Bad: sequential (slow)
+result1 = autofix_run(cmd)
+result2 = classify_error(err)
+result3 = search_nodes(q)
+
+// Good: parallel (one round-trip)
+parallel([
+  autofix_run(cmd),
+  classify_error(err),
+  search_nodes(q),
+  research.query(q, err)
+])
+```
 
 ---
 
