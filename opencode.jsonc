@@ -1,7 +1,7 @@
 {
   "$schema": "https://opencode.ai/config.json",
 
-  // MCPKU — 15 stdio MCP servers from E:\MCPKU
+  // MCPKU — 16 stdio MCP servers from E:\MCPKU
   // All use `python <file>.py`. Path resolved by the opencode parent process
   // (which on Windows is the same shell that launched opencode).
   //

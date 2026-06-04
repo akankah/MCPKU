@@ -311,7 +311,8 @@ config at `~/.config/opencode/opencode.jsonc`. The original file stays in
     "memory":     { "type": "local", "command": ["python", "E:/MCPKU/mcp_memory.py"],     "enabled": true },
     "browser":    { "type": "local", "command": ["python", "E:/MCPKU/mcp_browser.py"],    "enabled": true },
     "diagnostics":{"type": "local", "command": ["python", "E:/MCPKU/mcp_diagnostics.py"], "enabled": true },
-    "autofix":    { "type": "local", "command": ["python", "E:/MCPKU/mcp_autofix.py"],    "enabled": true }
+    "autofix":    { "type": "local", "command": ["python", "E:/MCPKU/mcp_autofix.py"],    "enabled": true },
+    "context7":   { "type": "local", "command": ["npx", "-y", "@upstash/context7-mcp"],    "enabled": true }
   }
 }
 ```
@@ -338,7 +339,8 @@ current directory.
     "memory":     { "command": "python", "args": ["E:/MCPKU/mcp_memory.py"] },
     "browser":    { "command": "python", "args": ["E:/MCPKU/mcp_browser.py"] },
     "diagnostics":{"command": "python", "args": ["E:/MCPKU/mcp_diagnostics.py"] },
-    "autofix":    { "command": "python", "args": ["E:/MCPKU/mcp_autofix.py"] }
+    "autofix":    { "command": "python", "args": ["E:/MCPKU/mcp_autofix.py"] },
+    "context7":   { "command": "npx",   "args": ["-y", "@upstash/context7-mcp"] }
   }
 }
 ```
@@ -368,7 +370,7 @@ MCPKU Server  ──── stdio ────→  Python process
     │                           ├── mcp_filesystem.py  (file I/O)
     │                           ├── mcp_diagnostics.py (error parsing)
     │                           ├── mcp_autofix.py     (auto-fix loop)
-    │                           └── ... (11 more)
+    │                           └── ... (15 more — see table below)
     │
     └──→ Returns structured result → AI interprets → next action
 ```
@@ -402,16 +404,16 @@ or browser dependency). Runs in ~4 seconds.
 
 | Module | Tests | What's covered |
 |---|---|---|
-| `test_diagnostics.py` | 33 | Error classification, traceback parsing (Python/Node/Rust), language detection, history |
+| `test_diagnostics.py` | 39 | Error classification, traceback parsing (Python/Node/Rust), language detection, history |
 | `test_bash.py` | 15 | Command allowlist, argument denylist, git ACL, injection blocking |
 | `test_autofix.py` | 29 | Fix handlers, module extraction, async run loop with mocked shell |
 | `test_sqlite.py` | 13 | Identifier validation, CRUD operations |
 | `test_vector.py` | 9 | Fallback embeddings, collection name sanitization |
 | `test_postgres.py` | 4 | Retry with exponential backoff |
-| `test_autofallback.py` | 6 | Knowledge-graph persistence: read_graph, search by name/content, open_nodes, add_observations, create+delete entity round-trip, UTF-8 BOM handling |
 | `test_think.py` | 10 | Per-session chain-of-thought + **stuck-pattern detector** (triggers websearch demand after 2 retry thoughts) |
 | `test_verify_setup.py` | 10 | JSONC comment stripping, server path validation, expected server count, dispatcher |
-| `test_*` (5 more) | 29 | Git flag protection, memory persistence, timezone, HTML parsing, filesystem paths, Redis flush tokens |
+| `test_autofallback.py` | manual | Knowledge-graph smoke test (run directly: `python tests/test_autofallback.py`) |
+| `test_*` (6 more) | 23 | Git flag protection, memory persistence, timezone, HTML parsing, filesystem paths, Redis flush tokens |
 
 ---
 
@@ -437,7 +439,7 @@ or browser dependency). Runs in ~4 seconds.
 
 | Term | Meaning |
 |---|---|
-| **MCPKU Runtime** | The orchestration layer of 15 coordinated servers |
+| **MCPKU Runtime** | The orchestration layer of 16 coordinated servers |
 | **Autonomous Debugging Engine** | The diagnostics + autofix pipeline that closes the debug loop |
 | **Closed-loop debugging** | Run → detect → fix → retry → commit without human intervention |
 | **Fix strategy** | A handler function that maps an error type to an executable fix command |
