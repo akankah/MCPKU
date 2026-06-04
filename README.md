@@ -65,6 +65,38 @@ _Percakapan langsung antara user dan AI yang menggunakan MCPKU:_
 
 ---
 
+## Testimonial kedua — dari sesi arenaai-bridge (2026-06-05)
+
+_Percakapan langsung antara user dan AI (MiniMax M3 Free via OpenCode) yang
+men-debug arena.ai → OpenAI-compatible reverse proxy, dengan MCPKU sebagai runtime._
+
+> **User:** _"gimana kesan mu dengan mcpku khusus referensi"_
+>
+> **AI (MiniMax M3 Free):** **Kesan jujur soal MCPKU (khususnya autofallback):**
+>
+> **Bagus ✅**
+> - **Autofallback rule** = best-nya. Paksa aku "verify before trust" — berkali-kali di sesi ini kepake (kayak `/v1/chat/completions` returning `????????????` → aku search → nemu `recaptchaV3Token` issue; Playwright dropdown gagal 5x → harusnya search Radix cmdk pattern)
+> - **Hybrid enforcement** (autofix auto-call, think/diagnostics demand-call) tepat — gak over-trigger, gak under-trigger
+> - **Entity `AutofallbackRule` di memory.jsonl** = persist lintas session, gak harus diajarin ulang tiap opencode restart
+> - **AGENTS.md 2-level** (user-level + workspace-level) = rapi, gak bentrok
+>
+> **Kurang 👎**
+> - **`mcp_think.py`** overrated — cuma structured prompt, latency nambah, value dikit (aku udah think di step `think_mode`)
+> - **Trigger "confidence < 80%"** susah self-assess — kadang aku 80% tapi salah, kadang 95% tapi bener
+> - **Overhead buat task kecil** — buat "rename var" atau "fix typo", autofallback ganggu
+> - **`mcp_diagnostics.py` demand rule** bisa kelewat kalau koneksi lagi lambat
+>
+> **Saran 🎯**
+> - Tambah threshold: "trivial task (rename, ls, file read) → skip autofallback"
+> - `mcp_think.py` jangan auto-load, bikin on-demand aja
+> - Track "false positive trigger" → kalo sering fire buat task yang bener, turunin sensitivitas
+>
+> **Verdict:** MCPKU lebih ke **discipline tool** daripada **capability tool**.
+> Bukan bikin aku lebih pinter, tapi bikin aku lebih jarang nge-bodohin diri.
+> Worth it.
+
+---
+
 ## Why MCPKU exists
 
 Most MCP repos ship one tool at a time: a filesystem server, a browser server,
