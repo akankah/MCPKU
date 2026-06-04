@@ -1,4 +1,5 @@
 import uuid
+import re
 from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
@@ -6,6 +7,18 @@ mcp = FastMCP("sequential-thinking", instructions="""
 Sequential thinking tool for structured reasoning.
 Use when you need to break down complex problems step by step.
 Each call records a thought step. Use session_id untuk isolasi antar sesi.
+
+INTEGRATION WITH AUTOFALLBACK RULE:
+This tool helps you reason, but cannot search the internet for you.
+BEFORE recording a thought about an unknown/fast-changing topic,
+YOU (the model) must call websearch/webfetch first. This tool will
+detect when you are about to skip that step and warn you.
+
+STUCK-PATTERN DETECTION (built-in):
+The tool tracks repeated action verbs across thoughts in the same
+session. If 2+ thoughts in a row use retry/try/maybe patterns
+without progress, the tool returns a HARD WARNING telling you to
+stop and call websearch.
 """)
 
 # Session-isolated storage — tidak ada lagi global THOUGHTS yang shared
@@ -18,12 +31,60 @@ def _get_session(session_id: str) -> list[dict]:
     return _sessions[session_id]
 
 
+# Phrases that suggest the model is about to repeat the same failed approach
+# without seeking external information. Matched case-insensitive.
+_STUCK_PATTERNS = re.compile(
+    r"\b(let me try|coba lagi|try again|maybe this will|workaround|"
+    r"hopefully|perhaps|seharusnya harusnya|trying again|"
+    r"let me attempt|mungkin|coba (pakai|ubah|cek) lagi)\b",
+    re.IGNORECASE,
+)
+
+# Phrases that suggest progress (new info, search result, file read, fix verified)
+_PROGRESS_PATTERNS = re.compile(
+    r"\b(found|menemukan|fixed|working|search result|websearch said|"
+    r"the doc says|menurut sumber|berdasarkan|fixed by|"
+    r"solved|according to|docs?\s+confirm)\b",
+    re.IGNORECASE,
+)
+
+
+def _detect_stuck(thoughts: list[dict]) -> tuple[bool, str]:
+    """Return (is_stuck, hint_message).
+
+    A session is 'stuck' when the last 2+ thoughts contain stuck-pattern
+    phrases without any progress-pattern in between.
+    """
+    if len(thoughts) < 2:
+        return (False, "")
+
+    recent = thoughts[-3:]  # last 3 thoughts
+    stuck_count = sum(1 for t in recent if _STUCK_PATTERNS.search(t["thought"]))
+    progress_count = sum(1 for t in recent if _PROGRESS_PATTERNS.search(t["thought"]))
+
+    if stuck_count >= 2 and progress_count == 0:
+        return (
+            True,
+            "\n\n!!! AUTOFALLBACK TRIGGERED !!!\n"
+            "You have repeated retry/try patterns in the last "
+            f"{stuck_count} thoughts without progress. "
+            "STOP. Call websearch('how to fix this specific problem') "
+            "or webfetch(<error message URL>) BEFORE the next think().\n"
+            "Skipping this wastes the user's time.",
+        )
+    return (False, "")
+
+
 @mcp.tool(
     name="think",
     description=(
         "Rekam langkah pemikiran untuk reasoning bertahap. "
         "Gunakan session_id unik per task agar tidak tercampur antar sesi. "
-        "Kosongkan session_id untuk auto-generate."
+        "Kosongkan session_id untuk auto-generate.\n\n"
+        "AUTOFALLBACK: this tool tracks stuck patterns. If you record "
+        "2+ retry/try thoughts without progress, it will REFUSE to "
+        "continue and demand a websearch call first. Use that as your "
+        "external signal that you are looping."
     )
 )
 async def think(
@@ -41,10 +102,12 @@ async def think(
     entry = {"step": step, "thought": thought.strip()}
     thoughts.append(entry)
 
+    is_stuck, stuck_hint = _detect_stuck(thoughts)
     history = "\n".join(f"Step {t['step']}: {t['thought']}" for t in thoughts)
     return (
         f"[session: {sid}] Thought recorded as step {step}.\n\n"
         f"Current thought chain:\n{history}"
+        f"{stuck_hint}"
     )
 
 
