@@ -9,6 +9,14 @@ mcp = FastMCP("memory", instructions="""
 Knowledge graph memory with entities, relations, and observations.
 Data is persisted in JSONL format. Use create_entities/add_observations
 to store information, search_nodes/open_nodes to retrieve it.
+
+IMPORTANT — Session-start behavior:
+At the start of every session, BEFORE responding to the first user message,
+call search_nodes("AutofallbackRule") (or open_nodes(["AutofallbackRule"])
+if you already know it exists) to load the user's active reasoning rules.
+Apply the loaded rules (triggers, skip conditions, anti-patterns) to your
+subsequent reasoning in this session. This is mandatory — the user expects
+the rule to be active by default.
 """)
 
 migrated = False
