@@ -1,6 +1,7 @@
 import os, re, html, json
 from urllib.parse import quote_plus, urlencode
 from mcp.server.fastmcp import FastMCP
+import asyncio
 import requests
 from mcp_cache import cache_get, cache_set
 
@@ -121,12 +122,14 @@ async def search_web(query: str, max_results: int = 5) -> str:
     # Fallback: Firecrawl
     if FIRECRAWL_API_KEY:
         try:
-            r = requests.post(
-                "https://api.firecrawl.dev/v1/search",
-                json={"query": query},
-                headers={"Authorization": f"Bearer {FIRECRAWL_API_KEY}", "Content-Type": "application/json"},
-                timeout=15,
-            )
+            def _firecrawl_call():
+                return requests.post(
+                    "https://api.firecrawl.dev/v1/search",
+                    json={"query": query},
+                    headers={"Authorization": f"Bearer {FIRECRAWL_API_KEY}", "Content-Type": "application/json"},
+                    timeout=15,
+                )
+            r = await asyncio.to_thread(_firecrawl_call)
             if r.status_code != 200:
                 return f"(search failed: HTTP {r.status_code})"
             data = r.json()
@@ -218,7 +221,7 @@ async def search_stackoverflow(
     if tags:
         params["tagged"] = tags
 
-    data = _stackex_get("/search/advanced", params)
+    data = await asyncio.to_thread(_stackex_get, "/search/advanced", params)
     if not data:
         return "(Stack Exchange API error or no response)"
 
@@ -329,11 +332,13 @@ async def search_npm(query: str, limit: int = 5, detail: bool = False) -> str:
         return cached
 
     try:
-        r = requests.get(
-            "https://registry.npmjs.org/-/v1/search",
-            params={"text": query, "size": min(limit, 20)},
-            timeout=10,
-        )
+        def _npm_call():
+            return requests.get(
+                "https://registry.npmjs.org/-/v1/search",
+                params={"text": query, "size": min(limit, 20)},
+                timeout=10,
+            )
+        r = await asyncio.to_thread(_npm_call)
         if r.status_code != 200:
             return f"(npm search failed: HTTP {r.status_code})"
         data = r.json()
@@ -380,11 +385,13 @@ async def search_pypi(query: str, limit: int = 5) -> str:
 
     try:
         # Try exact package lookup first
-        r = requests.get(
-            f"https://pypi.org/pypi/{quote_plus(query)}/json",
-            headers={"User-Agent": "Mozilla/5.0"},
-            timeout=10,
-        )
+        def _pypi_call():
+            return requests.get(
+                f"https://pypi.org/pypi/{quote_plus(query)}/json",
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=10,
+            )
+        r = await asyncio.to_thread(_pypi_call)
         if r.status_code == 200:
             data = r.json()
             info = data.get("info", {})
@@ -408,11 +415,13 @@ async def search_pypi(query: str, limit: int = 5) -> str:
             return result
 
         # Try the /simple/ index for prefix matching
-        r2 = requests.get(
-            f"https://pypi.org/simple/{quote_plus(query)}/",
-            headers={"User-Agent": "Mozilla/5.0"},
-            timeout=10,
-        )
+        def _pypi_simple_call():
+            return requests.get(
+                f"https://pypi.org/simple/{quote_plus(query)}/",
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=10,
+            )
+        r2 = await asyncio.to_thread(_pypi_simple_call)
         if r2.status_code == 200:
             links = re.findall(rf'href="[^"]*{re.escape(query)}[^"]*"', r2.text, re.IGNORECASE)
             if links:
@@ -426,11 +435,13 @@ async def search_pypi(query: str, limit: int = 5) -> str:
     # Fallback: try a broad search via simple index prefix
     try:
         first_letter = query[0].lower() if query else "a"
-        r3 = requests.get(
-            f"https://pypi.org/simple/",
-            headers={"User-Agent": "Mozilla/5.0"},
-            timeout=15,
-        )
+        def _pypi_simple_broad():
+            return requests.get(
+                f"https://pypi.org/simple/",
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=15,
+            )
+        r3 = await asyncio.to_thread(_pypi_simple_broad)
         if r3.status_code == 200:
             names = re.findall(rf'<a[^>]*href="[^"]*"[^>]*>\s*{re.escape(query.lower())}[^<]*\s*</a>', r3.text)
             if names:
@@ -440,11 +451,13 @@ async def search_pypi(query: str, limit: int = 5) -> str:
                 if prefix_matches:
                     out = []
                     for href, name in prefix_matches:
-                        ver_r = requests.get(
-                            f"https://pypi.org/pypi/{quote_plus(name)}/json",
-                            headers={"User-Agent": "Mozilla/5.0"},
-                            timeout=5,
-                        )
+                        def _pypi_ver(n=name):
+                            return requests.get(
+                                f"https://pypi.org/pypi/{quote_plus(n)}/json",
+                                headers={"User-Agent": "Mozilla/5.0"},
+                                timeout=5,
+                            )
+                        ver_r = await asyncio.to_thread(_pypi_ver)
                         if ver_r.status_code == 200:
                             ver_data = ver_r.json().get("info", {})
                             ver = ver_data.get("version", "?")
@@ -476,12 +489,14 @@ async def search_crates(query: str, limit: int = 5) -> str:
         return cached
 
     try:
-        r = requests.get(
-            "https://crates.io/api/v1/crates",
-            params={"q": query, "per_page": min(limit, 20)},
-            headers={"User-Agent": "MCPKU/1.0"},
-            timeout=10,
-        )
+        def _crates_call():
+            return requests.get(
+                "https://crates.io/api/v1/crates",
+                params={"q": query, "per_page": min(limit, 20)},
+                headers={"User-Agent": "MCPKU/1.0"},
+                timeout=10,
+            )
+        r = await asyncio.to_thread(_crates_call)
         if r.status_code != 200:
             return f"(crates.io search failed: HTTP {r.status_code})"
         data = r.json()
@@ -528,12 +543,14 @@ async def search_mdn(query: str, limit: int = 5, locale: str = "en-US") -> str:
         return cached
 
     try:
-        r = requests.get(
-            "https://developer.mozilla.org/api/v1/search",
-            params={"q": query, "locale": locale},
-            headers={"User-Agent": "Mozilla/5.0"},
-            timeout=10,
-        )
+        def _mdn_call():
+            return requests.get(
+                "https://developer.mozilla.org/api/v1/search",
+                params={"q": query, "locale": locale},
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=10,
+            )
+        r = await asyncio.to_thread(_mdn_call)
         if r.status_code != 200:
             return f"(MDN search failed: HTTP {r.status_code})"
         data = r.json()
@@ -570,11 +587,13 @@ async def search_devdocs(query: str = "", doc_filter: str = "", limit: int = 5) 
 
     # Fetch available docs list
     try:
-        r = requests.get(
-            "https://devdocs.io/docs.json",
-            headers={"User-Agent": "Mozilla/5.0"},
-            timeout=10,
-        )
+        def _devdocs_call():
+            return requests.get(
+                "https://devdocs.io/docs.json",
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=10,
+            )
+        r = await asyncio.to_thread(_devdocs_call)
         if r.status_code != 200:
             return f"(DevDocs failed: HTTP {r.status_code})"
         all_docs = r.json()

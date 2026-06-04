@@ -24,10 +24,11 @@ def _get_redis():
     if _cache is None:
         try:
             import redis as rd
-            _cache = rd.from_url(REDIS_URL, decode_responses=True)
-        except ImportError:
-            _cache = False
-        except Exception:
+            # socket_timeout prevents 30s hang when Redis is down
+            _cache = rd.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=1, socket_timeout=1)
+            # Test connection immediately
+            _cache.ping()
+        except (ImportError, Exception):
             _cache = False
     return _cache if _cache is not False else None
 

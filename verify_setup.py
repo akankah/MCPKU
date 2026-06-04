@@ -151,7 +151,8 @@ def cmd_check():
     # Check provider section is intact
     providers = cfg.get("provider", {})
     if "lmarena" in providers:
-        print(f"[OK]   lmarena provider configured (9 models)")
+        lmarena_models = list(providers["lmarena"].get("models", {}).keys())
+        print(f"[OK]   lmarena provider configured ({len(lmarena_models)} models: {', '.join(lmarena_models[:6])})")
     if "litlellm" in providers:
         print(f"[OK]   litlellm provider configured")
 

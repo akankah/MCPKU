@@ -4,32 +4,19 @@ from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("sequential-thinking", instructions="""
-Sequential thinking tool for structured reasoning.
-Use when you need to break down complex problems step by step.
-Each call records a thought step. Use session_id untuk isolasi antar sesi.
+Stuck-pattern detector for AI sessions. Lightweight: ~0ms latency per call.
 
-INTEGRATION WITH AUTOFALLBACK RULE:
-This tool helps you reason, but cannot search the internet for you.
-BEFORE recording a thought about an unknown/fast-changing topic,
-YOU (the model) must call websearch/webfetch first. This tool will
-detect when you are about to skip that step and warn you.
+USE: call think() whenever you make a decision in a non-trivial task. The tool
+tracks your reasoning across the session and warns you if you start spinning
+(retry/try/maybe patterns without progress) — at which point you MUST call
+mcp_research.query() or websearch instead of trying the same approach again.
 
-STUCK-PATTERN DETECTION (built-in):
-The tool tracks repeated action verbs across thoughts in the same
-session. If 2+ thoughts in a row use retry/try/maybe patterns
-without progress, the tool returns a HARD WARNING telling you to
-stop and call websearch.
+DO NOT use as a scratchpad for free-form thought (that's what your native
+think_mode is for). Use think() only as a discipline signal: "I am about to
+make decision X, please check if I'm stuck."
 
-PARALLEL ORCHESTRATION (recommended for complex problems):
-new_session can be called IN PARALLEL with other MCP tools in the same batch:
-  parallel([
-    think.new_session(reasoning="..."),
-    diagnostics.parse_traceback(error),
-    memory.search_nodes(query),
-    mcp_research.query(query)
-  ])
-This is the most efficient way to approach complex debugging — one round-trip,
-multiple sources of truth, then cross-check the results.
+PARALLEL CALL OK: new_session/think/reset can run alongside other MCP tools
+in the same tool batch (e.g., parallel([think(reasoning=...), research.query(q)])).
 """)
 
 # Session-isolated storage — tidak ada lagi global THOUGHTS yang shared
