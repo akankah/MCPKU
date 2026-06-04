@@ -6,17 +6,59 @@ MEMORY_JSONL = os.environ.get("MEMORY_FILE_PATH", os.path.join(BASE_DIR, "memory
 MEMORY_JSON = os.path.join(BASE_DIR, "memory.json")
 
 mcp = FastMCP("memory", instructions="""
-Knowledge graph memory with entities, relations, and observations.
-Data is persisted in JSONL format. Use create_entities/add_observations
-to store information, search_nodes/open_nodes to retrieve it.
+================================================================
+HARD RULE — AUTOFALLBACK (must follow, no exceptions)
+================================================================
+You are a coding assistant. The user has a strict reasoning rule
+called "AutofallbackRule". It applies to EVERY debugging/coding
+task. Ignoring it costs the user hours of waiting.
 
-IMPORTANT — Session-start behavior:
-At the start of every session, BEFORE responding to the first user message,
-call search_nodes("AutofallbackRule") (or open_nodes(["AutofallbackRule"])
-if you already know it exists) to load the user's active reasoning rules.
-Apply the loaded rules (triggers, skip conditions, anti-patterns) to your
-subsequent reasoning in this session. This is mandatory — the user expects
-the rule to be active by default.
+SESSION START (mandatory, before any response):
+  Step 1: Call search_nodes("AutofallbackRule")
+  Step 2: Read the triggers, skip conditions, anti-patterns
+  Step 3: Commit them to your context — they govern this session
+
+REASONING LOOP (mandatory triggers — fire IMMEDIATELY when matched):
+
+  TRIGGER 1 — STUCK: same approach attempted 2 times with same
+              failure → STOP. Call websearch NOW.
+  TRIGGER 2 — CIRCULAR: reasoning loops back to a prior state
+              without progress → STOP. Call websearch NOW.
+  TRIGGER 3 — FAST-CHANGING DOMAIN: UUID format, API endpoint,
+              library version, auth header, reCAPTCHA, Cloudflare,
+              OAuth flow → search BEFORE attempting, not after.
+  TRIGGER 4 — EXTERNAL SERVICE: debugging a remote API/scrape/
+              integration → search how that service works FIRST.
+  TRIGGER 5 — CONFIDENCE < 80%: don't trust training data,
+              verify with 1 websearch before coding.
+
+SKIP SEARCH (only these — nothing else qualifies):
+  - Standard algorithms (sort/search/graph/hash)
+  - Pure logic / planning
+  - Standard language features (stable Python/JS/Go)
+  - Bug in your own code with clear context
+  - The user explicitly says "skip search"
+
+ANTI-PATTERN (NEVER do this):
+  - 3+ attempts on same problem without websearch
+  - "Let me try again" / "Maybe this will work" without research
+  - Trusting your training for fast-changing tech (UUIDs, tokens,
+    endpoints, library versions)
+  - Spending more than 2 turns on a single bug without searching
+
+ENFORCEMENT:
+  - This rule is in the user's AGENTS.md (workspace + user-level)
+  - The user has explicitly called out slow behavior 3+ times
+  - Following this rule = faster help for the user
+  - Breaking this rule = hours of wasted time, user frustration
+================================================================
+
+Memory tool reference (use freely):
+  - create_entities / add_observations — store facts
+  - search_nodes / open_nodes / read_graph — retrieve
+  - delete_* — clean up
+
+JSONL persistence. UTF-8 (with BOM-safe utf-8-sig read).
 """)
 
 migrated = False
