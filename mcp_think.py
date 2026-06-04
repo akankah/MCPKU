@@ -35,7 +35,7 @@ def _get_session(session_id: str) -> list[dict]:
 # without seeking external information. Matched case-insensitive.
 _STUCK_PATTERNS = re.compile(
     r"\b(let me try|coba lagi|try again|maybe this will|workaround|"
-    r"hopefully|perhaps|seharusnya harusnya|trying again|"
+    r"hopefully|perhaps|seharusnya|trying again|"
     r"let me attempt|mungkin|coba (pakai|ubah|cek) lagi)\b",
     re.IGNORECASE,
 )

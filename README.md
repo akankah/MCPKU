@@ -216,6 +216,38 @@ across sessions and model changes — rules survive restarts, work with any
 model the client is configured to use, and don't require modifying the
 client's system prompt.
 
+#### Hardened AutofallbackRule (built into server instructions)
+
+The default `mcp_memory.py` instructions embed a **mandatory 5-trigger
+rule** that the model cannot opt out of:
+
+| Trigger | Action |
+|---|---|
+| 1. Same approach fails 2 times | MUST call websearch NOW |
+| 2. Circular reasoning | MUST call websearch NOW |
+| 3. Fast-changing domain (UUIDs, tokens, endpoints, libraries) | search BEFORE attempting |
+| 4. External service debugging | search how it works FIRST |
+| 5. Confidence < 80% on fast-changing info | 1 websearch before coding |
+
+Plus explicit anti-patterns (3+ retries without search, "let me try again"
+without research, trusting training for fast-changing tech).
+
+### Think — stuck-pattern detector
+
+`mcp_think.py` complements the autofallback rule with a **tool-level
+enforcement signal**: if you record 2+ retry/try thoughts in the same
+session without progress, the tool returns a HARD WARNING demanding
+websearch before continuing. Patterns matched (case-insensitive):
+
+- "let me try", "coba lagi", "try again", "maybe this will work"
+- "hopefully", "perhaps", "mungkin", "trying again"
+- "let me attempt", "workaround"
+
+The detector resets when progress phrases appear ("found", "fixed",
+"according to", "search result says", "berdasarkan dokumentasi", etc.).
+This way the model can still recover from a stuck state once it has new
+information.
+
 `error_kb/` is a directory where `autofix` saves failed errors as JSON files
 for cross-session reference. Auto-created on first error.
 
@@ -226,8 +258,25 @@ for cross-session reference. Auto-created on first error.
 ```bash
 pip install -r requirements.txt
 playwright install chromium
-python -m pytest tests/ -v    # 135 tests, ~4 seconds
+python -m pytest tests/ -v    # 152 tests, ~4 seconds
 ```
+
+### Auto-load in every OpenCode session
+
+`verify_setup.py` ensures MCPKU stays registered in the global
+`~/.config/opencode/opencode.jsonc` config so it auto-loads in **every
+session, every directory, every model** — now and after future opencode
+upgrades.
+
+```bash
+python verify_setup.py check     # verify current setup (16/16 registered?)
+python verify_setup.py sync      # install/repair global config
+python verify_setup.py status    # show registered servers + paths
+python verify_setup.py doctor    # full diagnostic + fix suggestions
+```
+
+Run `check` any time you suspect something is missing. Run `sync` after
+moving MCPKU to a new path or adding new servers.
 
 ---
 
@@ -348,7 +397,7 @@ pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-**141 tests** across 13 server modules. All pure unit tests (no network, DB,
+**152 tests** across 14 server modules. All pure unit tests (no network, DB,
 or browser dependency). Runs in ~4 seconds.
 
 | Module | Tests | What's covered |
@@ -360,7 +409,9 @@ or browser dependency). Runs in ~4 seconds.
 | `test_vector.py` | 9 | Fallback embeddings, collection name sanitization |
 | `test_postgres.py` | 4 | Retry with exponential backoff |
 | `test_autofallback.py` | 6 | Knowledge-graph persistence: read_graph, search by name/content, open_nodes, add_observations, create+delete entity round-trip, UTF-8 BOM handling |
-| `test_*` (6 more) | 32 | Git flag protection, memory persistence, think sessions, timezone, HTML parsing, filesystem paths, Redis flush tokens |
+| `test_think.py` | 10 | Per-session chain-of-thought + **stuck-pattern detector** (triggers websearch demand after 2 retry thoughts) |
+| `test_verify_setup.py` | 10 | JSONC comment stripping, server path validation, expected server count, dispatcher |
+| `test_*` (5 more) | 29 | Git flag protection, memory persistence, timezone, HTML parsing, filesystem paths, Redis flush tokens |
 
 ---
 
