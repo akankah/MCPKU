@@ -248,6 +248,43 @@ The detector resets when progress phrases appear ("found", "fixed",
 This way the model can still recover from a stuck state once it has new
 information.
 
+### Diagnostics — demand rule for unknown errors
+
+`mcp_diagnostics.py` carries its own **3-trigger demand rule** in server
+instructions (separate from `memory`'s 5 triggers), because the model often
+wants to skip search for errors that "look familiar":
+
+| Trigger | Action |
+|---|---|
+| 1. `classify_error` returns UNKNOWN / rare / version-specific error | MUST call websearch first |
+| 2. `parse_traceback` shows library/version mismatch (AttributeError on a method you remember differently) | websearch BEFORE suggesting fix |
+| 3. `explain_error` cannot map the error to a known fix strategy | websearch |
+
+**Skip websearch** for standard well-known errors where the fix is
+unambiguous and library-version-independent: `ImportError`,
+`ModuleNotFoundError`, `FileNotFoundError`, `IndentationError`,
+`SyntaxError`. For these, the fix is the same today as 2 years ago —
+no point paying for a search.
+
+### Autofix — auto-calls web search (the only server that does)
+
+All other servers use **demand** mode (model is told to call websearch
+when triggered, but can still skip). `mcp_autofix.py` is the **only
+server that auto-invokes web search** as part of its own tool response:
+`autofix_run` calls `search_web`, `search_stackoverflow`, and
+`search_issues` in parallel after the initial fix attempt, then returns
+all results inside the same tool response. The model cannot skip this
+step — the references are already in the output it sees.
+
+Trade-off:
+
+- **Auto-call** (`autofix`) — adds 2–5s latency per error, but model
+  cannot skip. Most reliable.
+- **Demand** (`think`, `memory`, `diagnostics`) — zero latency cost,
+  but the model decides whether to follow through. `think` has a
+  double-lock (prompt-level instruction + tool-level stuck detector) as
+  backup.
+
 `error_kb/` is a directory where `autofix` saves failed errors as JSON files
 for cross-session reference. Auto-created on first error.
 

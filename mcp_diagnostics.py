@@ -42,7 +42,17 @@ mcp = FastMCP(
         "Also supports reading log files (read_log_tail), scanning entire log "
         "folders (scan_project_errors), running commands with stderr capture "
         "(watch_stderr), and providing fix explanations (explain_error). "
-        "Track error history with get_error_history."
+        "Track error history with get_error_history.\n\n"
+        "AUTOFALLBACK RULE (mandatory):\n"
+        "1. If classify_error returns an UNKNOWN / rare error type or version-specific "
+        "message you cannot recognize from training data → you MUST call websearch "
+        "('python <error_type> 2025 fix' or '<package> <error>') BEFORE suggesting a fix.\n"
+        "2. If parse_traceback shows a library/module version mismatch (e.g. "
+        "AttributeError on a method you remember differently) → call websearch FIRST.\n"
+        "3. If explain_error cannot map the error to a known fix strategy → call websearch.\n"
+        "Skip websearch ONLY for: standard well-known errors (ImportError, "
+        "ModuleNotFoundError, FileNotFoundError, IndentationError, SyntaxError) "
+        "where the fix is unambiguous and library-version-independent."
     ),
 )
 
