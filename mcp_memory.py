@@ -39,7 +39,7 @@ def _load() -> dict:
     graph = {"entities": [], "relations": []}
     if not os.path.exists(MEMORY_JSONL): return graph
     try:
-        with open(MEMORY_JSONL, "r", encoding="utf-8") as f:
+        with open(MEMORY_JSONL, "r", encoding="utf-8-sig") as f:
             for line in f:
                 line = line.strip()
                 if not line: continue

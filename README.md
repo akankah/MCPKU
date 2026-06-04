@@ -318,7 +318,7 @@ pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-**135 tests** across 13 server modules. All pure unit tests (no network, DB,
+**141 tests** across 13 server modules. All pure unit tests (no network, DB,
 or browser dependency). Runs in ~4 seconds.
 
 | Module | Tests | What's covered |
@@ -329,6 +329,7 @@ or browser dependency). Runs in ~4 seconds.
 | `test_sqlite.py` | 13 | Identifier validation, CRUD operations |
 | `test_vector.py` | 9 | Fallback embeddings, collection name sanitization |
 | `test_postgres.py` | 4 | Retry with exponential backoff |
+| `test_autofallback.py` | 6 | Knowledge-graph persistence: read_graph, search by name/content, open_nodes, add_observations, create+delete entity round-trip, UTF-8 BOM handling |
 | `test_*` (6 more) | 32 | Git flag protection, memory persistence, think sessions, timezone, HTML parsing, filesystem paths, Redis flush tokens |
 
 ---
