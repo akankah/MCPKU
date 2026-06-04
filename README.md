@@ -186,6 +186,36 @@ Each server is a single self-contained Python file. Enable only what you need.
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by
 `postgres`, `vector`, `web`). Not a standalone server.
 
+### Memory — auto-load user rules on session start
+
+`mcp_memory.py` stores entities in `memory.jsonl` and exposes them via
+`search_nodes` / `open_nodes` / `create_entities` / `add_observations`.
+Server instructions tell the model to call `search_nodes("AutofallbackRule")`
+at the start of every session (before responding to the first user message),
+so user-defined reasoning rules apply by default without manual invocation.
+
+Typical pattern:
+
+```python
+# 1. Once: store your active rule
+create_entities([{
+    "name": "AutofallbackRule",
+    "entityType": "preference",
+    "observations": [
+        "[2026-XX-XX] When in doubt, verify. Use web search when...",
+        "[2026-XX-XX] Skip search for: standard algorithms, pure logic...",
+    ]
+}])
+
+# 2. Every new session: MCP server instructions auto-trigger this
+search_nodes("AutofallbackRule")   # → returns your active rule
+```
+
+This makes the knowledge graph act as a **persistent, queryable rule store**
+across sessions and model changes — rules survive restarts, work with any
+model the client is configured to use, and don't require modifying the
+client's system prompt.
+
 `error_kb/` is a directory where `autofix` saves failed errors as JSON files
 for cross-session reference. Auto-created on first error.
 
