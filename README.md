@@ -236,7 +236,7 @@ without accessing the user's home directory.
 The current rule set is **aggressive internet-first**:
 
 - `think` tool called → **search internet first**, don't think in isolation
-- Lag > 20 seconds → **stop and search**, don't keep waiting
+- Lag > 10 seconds → **stop and search**, don't keep waiting
 - Error / failure → **search immediately**, don't attempt self-fix first
 - Analysis / reasoning → **find internet references first**
 - First failure → **search**, don't retry without a reference
