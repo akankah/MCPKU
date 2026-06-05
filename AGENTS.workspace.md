@@ -66,13 +66,15 @@ Rules yang auto-loaded oleh OpenCode untuk SEMUA project (di mana pun lokasinya)
 ### Panduan pilih sumber (kapan pakai apa)
 | Masalah | Sumber pertama |
 |---|---|
-| Error runtime klasik (TypeError, import, syntax) | AI + MDN + Stack Overflow |
-| API/endpoint library baru (UUID, header, version) | Dokumentasi resmi + GitHub Issues |
-| Framework baru (Next.js 15, React 19, MCP) | Discord + GitHub Discussions + AI |
-| Algoritma/data structure | LeetCode + AI |
-| Deployment, infra (Vercel, Supabase) | Discord vendor + AI |
-| Library NPM/Python update | Context7 + NPM/PyPI + changelog |
-| Bug di kode sendiri | AI dulu, lalu cek GitHub Issues kalau aneh |
+| Error runtime klasik (TypeError, import, syntax) | [MDN](https://developer.mozilla.org/) + [Stack Overflow](https://stackoverflow.com/) + AI |
+| API/endpoint library baru (UUID, header, version) | [Dokumentasi resmi framework](https://devdocs.io/) + [GitHub Issues](https://github.com/search?q=is%3Aissue&type=issues) |
+| Framework baru (Next.js 15, React 19, MCP) | [Next.js Discord](https://discord.gg/nextjs) / [Reactiflux](https://www.reactiflux.com/) + [GitHub Discussions](https://github.com/search?q=is%3Adiscussion&type=discussions) + AI |
+| Algoritma/data structure | [LeetCode](https://leetcode.com/discuss/) + AI |
+| Deployment, infra (Vercel, Supabase) | [Vercel Discord](https://discord.gg/vercel) / [Supabase Discord](https://discord.gg/supabase) + AI |
+| Library NPM/Python update | [Context7](https://context7.com/) + [NPM](https://www.npmjs.com/) / [PyPI](https://pypi.org/) + changelog |
+| Bug di kode sendiri | AI dulu, lalu [GitHub Issues](https://github.com/search?q=is%3Aissue&type=issues) kalau aneh |
+
+> **Daftar lengkap URL** lihat [`URLS.md`](../MCPKU/URLS.md) di MCPKU — skip searching, langsung `web_fetch_url`.
 
 ### Anti-pattern referensi
 - Nanya AI tanpa verify → **dilarang**, AI sering ngaco untuk API version baru

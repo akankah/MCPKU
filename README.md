@@ -248,6 +248,9 @@ The current rule set is **aggressive internet-first**:
   GitHub Discussions/Issues + Discord maintainers → Stack Overflow (classic) →
   LeetCode/HackerRank (algorithm practice). Use the **cheat sheet table** in
   AGENTS.md to pick the fastest source per problem type.
+- **Quick links** — see [`URLS.md`](./URLS.md) for all curated reference URLs
+  (MDN, framework docs, package registries, Discord communities, etc.) —
+  skip searching for the source and `web_fetch_url` directly.
 
 ### Memory — auto-load user rules on session start
 
