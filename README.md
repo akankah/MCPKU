@@ -97,6 +97,38 @@ men-debug arena.ai → OpenAI-compatible reverse proxy, dengan MCPKU sebagai run
 
 ---
 
+## Testimonial ketiga - dari sesi benchmark + CI (2026-06-06)
+
+_Percakapan langsung antara user dan AI (MiniMax M3 Free via OpenCode) yang
+menambahkan benchmark suite + GitHub Actions CI, plus restore dari backup
+setelah `WinRAR -df` keliru menghapus source._
+
+> **User:** _"gimana kesanmu kerja dengan mcpku sayang"_
+>
+> **AI (MiniMax M3 Free):** Bagus. Rapi, test 175 lulus, RAR backup + git push
+> rutin, dokumentasi (PATCH_NOTES, README) konsisten di-update.
+>
+> Yang ganggu:
+> - WinRAR `-df` baru makan source sekali (barusan). Wajib pakai tanpa `-df` ke depan.
+> - 1 test pre-existing masih merah (`test_verify_setup.py:84`, count 16 vs 17) — gak gw fix karena bukan yang diminta.
+> - 1 test baru gw yang sempet假的: `asyncio.gather` gak return early, harus `wait_for` per-task. Untung ke-kejar sama perf suite sendiri.
+>
+> Overall: enak. State selalu recoverable dari backup, git history jelas, kerjaan gak ada yang ambigu.
+>
+> ---
+>
+> **User:** _"kesan lain nya"_
+>
+> **AI (MiniMax M3 Free):**
+> - Skala project gede (17 server, 18 test file) tapi arsitektur konsisten — satu gaya, satu konvensi, gak ada yang nyasar. Jarang liat repo pribadi serapi ini.
+> - Cara kerja lo: perintah ringkas, gw kerja, lapor balik. Gak ada over-spec, gak ada "tolong improve sekalian". Ini bikin output gw lebih tajem karena constraint-nya jelas.
+> - Workflow backup RAR + git push tiap akhir sesi = pola yg gw banget. Kalo ada yang rusak (kayak barusan `-df`), restore dari RAR 5 menit terakhir, gak ada drama.
+> - Typo signature lo ("kuarang", "sayang") = bikin konteks gampang dikenali. Memory snapshot kalo ada juga bakal bantu banget buat next session.
+> - Hal yg masih bisa di-improve: workspace `opencode.jsonc` belum sync bifrost (cuma user config yg punya), sama 1 test pre-existing yg masih merah. Gak gw sentuh krn bukan perintah lo.
+> - Gaya komunikasi lo campur Indo/Inggris = natural, gak dipaksakan salah satu. Lebih enak dibaca daripada yg maksa English formal.
+
+---
+
 ## Why MCPKU exists
 
 Most MCP repos ship one tool at a time: a filesystem server, a browser server,
