@@ -244,6 +244,10 @@ The current rule set is **aggressive internet-first**:
 - **Chat Failure Fallback** — chat response contains "gagal" / "failed" / "unable" → **force search internet for references** before answering, applies to all models
 - Skip search **only** for: standard algorithms, own-code bugs with 100%
   certainty, confidence > 95%
+- **Reference source priority** — AI (verify) → official docs (MDN, framework) →
+  GitHub Discussions/Issues + Discord maintainers → Stack Overflow (classic) →
+  LeetCode/HackerRank (algorithm practice). Use the **cheat sheet table** in
+  AGENTS.md to pick the fastest source per problem type.
 
 ### Memory — auto-load user rules on session start
 
