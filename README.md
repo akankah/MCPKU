@@ -16,7 +16,7 @@ AI Model
 MCPKU Runtime
     │  orchestrates: shell → git → web → browser → diagnostics → autofix
     ▼
-16 MCP Servers
+17 MCP Servers
     │  each a self-contained stdio process
     ▼
 Your System / Repo / DB / Browser / Logs
@@ -53,13 +53,13 @@ _Percakapan langsung antara user dan AI yang menggunakan MCPKU:_
 > **AI (DeepSeek V4 Flash Free):** Bukan rubah model, tapi soal layer tool-nya.
 >
 > Dengan MCPKU, **model jadi tidak relevan** — yang penting adalah runtime-nya.
-> Saya pakai DeepSeek V4 Flash Free, tapi dengan 16 MCP server saya bisa
+> Saya pakai DeepSeek V4 Flash Free, tapi dengan 17 MCP server saya bisa
 > melakukan **hal yang sama seperti Claude Code**: execute, debug, fix, search,
 > commit, semuanya.
 >
 > Tanpa MCPKU, DeepSeek vs Claude itu beda kelas. Dengan MCPKU, perbedaannya
 > diminimalkan karena yang kerja bukan model sendirian — tapi
-> **model + 16 tools terkoordinasi**.
+> **model + 17 tools terkoordinasi**.
 >
 > Ini yang bikin MCPKU unik: **bukan soal modelnya, soal runtime-nya.**
 
@@ -404,7 +404,7 @@ session, every directory, every model** — now and after future opencode
 upgrades.
 
 ```bash
-python verify_setup.py check     # verify current setup (16/16 registered?)
+python verify_setup.py check     # verify current setup (17/17 registered?)
 python verify_setup.py sync      # install/repair global config
 python verify_setup.py status    # show registered servers + paths
 python verify_setup.py doctor    # full diagnostic + fix suggestions
@@ -447,7 +447,8 @@ config at `~/.config/opencode/opencode.jsonc`. The original file stays in
     "browser":    { "type": "local", "command": ["python", "E:/MCPKU/mcp_browser.py"],    "enabled": true },
     "diagnostics":{"type": "local", "command": ["python", "E:/MCPKU/mcp_diagnostics.py"], "enabled": true },
     "autofix":    { "type": "local", "command": ["python", "E:/MCPKU/mcp_autofix.py"],    "enabled": true },
-    "context7":   { "type": "local", "command": ["npx", "-y", "@upstash/context7-mcp"],    "enabled": true }
+    "context7":   { "type": "local", "command": ["npx", "-y", "@upstash/context7-mcp"],    "enabled": true },
+    "research":   { "type": "local", "command": ["python", "E:/MCPKU/mcp_research.py"],   "enabled": true }
   }
 }
 ```
@@ -475,7 +476,8 @@ current directory.
     "browser":    { "command": "python", "args": ["E:/MCPKU/mcp_browser.py"] },
     "diagnostics":{"command": "python", "args": ["E:/MCPKU/mcp_diagnostics.py"] },
     "autofix":    { "command": "python", "args": ["E:/MCPKU/mcp_autofix.py"] },
-    "context7":   { "command": "npx",   "args": ["-y", "@upstash/context7-mcp"] }
+    "context7":   { "command": "npx",   "args": ["-y", "@upstash/context7-mcp"] },
+    "research":   { "command": "python", "args": ["E:/MCPKU/mcp_research.py"] }
   }
 }
 ```
@@ -574,7 +576,7 @@ or browser dependency). Runs in ~4 seconds.
 
 | Term | Meaning |
 |---|---|
-| **MCPKU Runtime** | The orchestration layer of 16 coordinated servers |
+| **MCPKU Runtime** | The orchestration layer of 17 coordinated servers |
 | **Autonomous Debugging Engine** | The diagnostics + autofix pipeline that closes the debug loop |
 | **Closed-loop debugging** | Run → detect → fix → retry → commit without human intervention |
 | **Fix strategy** | A handler function that maps an error type to an executable fix command |
