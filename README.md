@@ -240,6 +240,7 @@ The current rule set is **aggressive internet-first**:
 - Error / failure → **search immediately**, don't attempt self-fix first
 - Analysis / reasoning → **find internet references first**
 - First failure → **search**, don't retry without a reference
+- **Code Error Fallback** — code fails to run / compile error → **search internet for fix before retrying**, no trial-and-error
 - Skip search **only** for: standard algorithms, own-code bugs with 100%
   certainty, confidence > 95%
 

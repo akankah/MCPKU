@@ -17,6 +17,10 @@ Rules yang auto-loaded oleh OpenCode untuk SEMUA project (di mana pun lokasinya)
 - **API key/library update** (reCAPTCHA, Cloudflare, NPM) → search dulu
 - **Gagal 1x aja** → langsung search, jangan coba ulang tanpa referensi
 
+### Code Error Fallback — WAJIB
+- **Kode error / gagal run** → langsung search referensi internet, jangan coba ulang tanpa referensi
+- **Compile/runtime error di kode yg ditulis AI** → search error + fix sebelum ngulang
+
 ### Skip search — ONLY these:
 - Algoritma standar (sort, search, graph, hash)
 - Bug di kode sendiri yang konteksnya 100% jelas
