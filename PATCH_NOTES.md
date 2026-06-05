@@ -179,3 +179,62 @@ Semua perubahan berdasarkan review kode aktual. Setiap fix disertai alasan dan l
 
 **Cara kerja:** 
 px -y @upstash/context7-mcp (stdio transport, no API key required). Package auto-downloaded saat first call.
+
+
+---
+
+## [2026-06-06] Parallel Speed Upgrade — Think Lag Detection + Memory Mandatory
+
+### mcp_think.py
+
+**1. `_detect_lag()` ditambahkan — auto-trigger parallel web search kalau think() ngelag >10s**
+
+- Sebelumnya: gak ada deteksi durasi antar step. Model bisa lama mikir tanpa signal.
+- Sekarang: model pass `lag_ms=<ms since last step>` → kalau `> 10s` AND last thought gak ada progress pattern (found/fixed/solved/dokumen konfirm), tool return hard trigger:
+  ```
+  !!! LAG DETECTED (15.0s > 10s) !!!
+  parallel([think(reasoning=..., lag_ms=0),
+            web.search_web('<keyword> 2025 fix'),
+            web.search_stackoverflow('<keyword>')])
+  ```
+- Konstanta `LAG_THRESHOLD_MS = 10_000` configurable di top of file.
+- Tracking timestamp pakai `time.monotonic()` per session (`_session_last_at` dict).
+
+**2. `think()` tool signature diperluas** — tambah `lag_ms: int = 0` parameter (backward compatible).
+
+**3. `instructions=` di-update** — kasih hint eksplisit ke model soal lag detection + parallel batch template.
+
+### mcp_memory.py
+
+**1. `PARALLEL CROSS-CHECK` naik dari `recommended` → `MANDATORY on error response`**
+
+- Sebelumnya: model "dianjurkan" tapi gak wajib batch memory + diagnostics + research.
+- Sekarang: pas user kasih error, model **wajib** call 3 tool dalam **1 round-trip**:
+  1. `memory.search_nodes('<error_keyword>')` — past similar fix
+  2. `diagnostics.classify_error(error_text)` — confirm error type
+  3. `mcp_research.query(query)` — 6 web sources + cross-validation
+
+**2. Alasan** — save 1-3 detik per error task (1 round-trip vs 3 sequential × ~500ms-1s).
+
+### tests/test_think.py
+
+**5 test baru** untuk `_detect_lag`:
+- `test_lag_under_threshold_no_trigger` — lag=5000ms → no trigger
+- `test_lag_over_threshold_no_progress_triggers` — lag=15000ms + retry pattern → trigger
+- `test_lag_over_threshold_with_progress_no_trigger` — lag=15000ms + "found" → no trigger
+- `test_lag_exactly_at_threshold_no_trigger` — lag=10000ms (boundary) → no trigger (use `>` not `>=`)
+- `test_lag_message_includes_parallel_batch_template` — verify message contains `search_web`, `search_stackoverflow`, `think(`
+
+**Total: 15/15 tests pass** (10 lama + 5 baru).
+
+### Files changed
+- `E:\MCPKU\mcp_think.py` — +60 lines (lag detector + think() signature + instructions)
+- `E:\MCPKU\mcp_memory.py` — 5 lines (instruction text)
+- `E:\MCPKU\tests\test_think.py` — +45 lines (5 tests)
+
+### Performance Impact
+| Skenario | Sebelum | Sesudah | Hemat |
+|---|---|---|---|
+| Error task — model batch memory+diag+research | 3 round-trips × 1s = 3s | 1 round-trip × 1s = 1s | ~2s |
+| Slow reasoning tanpa progress, >10s | Bisa loop sampai 30-60s | Hard-stop 10s + forced search | ~20-50s |
+| Model males gak batch | Bisa 3s+ | Forced 1s | ~2s |

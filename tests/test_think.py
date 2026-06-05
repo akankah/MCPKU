@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, r"E:\MCPKU")
 
 import pytest
-from mcp_think import _get_session, _detect_stuck
+from mcp_think import _get_session, _detect_stuck, _detect_lag
 
 # Import _sessions directly to clear between tests
 from mcp_think import _sessions
@@ -87,3 +87,37 @@ class TestStuckPatternDetector:
         ]
         is_stuck, msg = _detect_stuck(thoughts)
         assert is_stuck is False
+
+
+class TestLagDetector:
+    """Verify _detect_lag triggers parallel web search demand when think() lags >10s."""
+
+    def test_lag_under_threshold_no_trigger(self):
+        thoughts = [{"step": 1, "thought": "let me try again"}]
+        is_lag, msg = _detect_lag(5000, thoughts)
+        assert is_lag is False
+        assert msg == ""
+
+    def test_lag_over_threshold_no_progress_triggers(self):
+        thoughts = [{"step": 1, "thought": "let me try editing line 5"}]
+        is_lag, msg = _detect_lag(15_000, thoughts)
+        assert is_lag is True
+        assert "LAG DETECTED" in msg
+        assert "parallel" in msg.lower() or "PARALLEL" in msg
+
+    def test_lag_over_threshold_with_progress_no_trigger(self):
+        thoughts = [{"step": 1, "thought": "found the docs, applying fix"}]
+        is_lag, msg = _detect_lag(15_000, thoughts)
+        assert is_lag is False
+
+    def test_lag_exactly_at_threshold_no_trigger(self):
+        thoughts = [{"step": 1, "thought": "let me try again"}]
+        is_lag, _ = _detect_lag(10_000, thoughts)
+        assert is_lag is False
+
+    def test_lag_message_includes_parallel_batch_template(self):
+        thoughts = [{"step": 1, "thought": "let me try"}]
+        _, msg = _detect_lag(20_000, thoughts)
+        assert "search_web" in msg
+        assert "search_stackoverflow" in msg
+        assert "think(" in msg

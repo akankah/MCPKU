@@ -60,12 +60,15 @@ Memory tool reference (use freely):
 
 JSONL persistence. UTF-8 (with BOM-safe utf-8-sig read).
 
-PARALLEL CROSS-CHECK (recommended for debugging):
-When search_nodes returns useful entities, call IN PARALLEL:
-  - diagnostics.classify_error(error)        → verify error type matches past fix
-  - autofix.autofix_run(failing_command)     → attempt auto-fix with this past pattern
-  - mcp_research.query(query)                → 6 web sources + cross-validation in one shot
-If past fix matches current error → high confidence. If mismatch → present both.
+PARALLEL CROSS-CHECK (MANDATORY on error response):
+When the user gives you an error AND you have not yet verified the fix,
+you MUST call these 3 tools in ONE round-trip (parallel batch, not sequential):
+  1. memory.search_nodes('<error_keyword>')    → past similar fix
+  2. diagnostics.classify_error(error_text)    → confirm error type
+  3. mcp_research.query(query)                 → 6 web sources + cross-validation in one shot
+Do NOT call them one-by-one across multiple turns. Do NOT skip even if
+"the error looks obvious" — the 3-way cross-check IS the speed win.
+If past fix matches current error → high confidence, apply. If mismatch → present both to user.
 """)
 
 migrated = False

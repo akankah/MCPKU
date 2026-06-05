@@ -404,6 +404,11 @@ instructions telling the model to call them **in parallel** within a single
 tool batch. The MCP protocol supports parallel tool calls natively — the
 model just needs to be told to use them.
 
+As of 2026-06-06:
+- `autofix` and `diagnostics` — **MANDATORY** parallel orchestration on UNKNOWN errors
+- `memory` — **MANDATORY** parallel cross-check on error response (3-way: memory + diagnostics + research)
+- `think` — **LAG DETECTION**: pass `lag_ms=<ms>`; if `> 10s` without progress, tool demands a parallel web search batch
+
 ```json
 // Bad: sequential (slow)
 result1 = autofix_run(cmd)
@@ -417,6 +422,13 @@ parallel([
   search_nodes(q),
   research.query(q, err)
 ])
+
+// Good: lag-triggered parallel web search (think > 10s without progress)
+parallel([
+  think(reasoning="searching for <error>", lag_ms=0),
+  web.search_web("<error> 2025 fix"),
+  web.search_stackoverflow("<error>"),
+])
 ```
 
 ---
@@ -426,7 +438,7 @@ parallel([
 ```bash
 pip install -r requirements.txt
 playwright install chromium
-python -m pytest tests/ -v    # 152 tests, ~4 seconds
+python -m pytest tests/ -v    # 157 tests, ~4 seconds
 ```
 
 ### Auto-load in every OpenCode session
