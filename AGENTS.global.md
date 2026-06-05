@@ -8,7 +8,7 @@ Rules yang auto-loaded oleh OpenCode untuk SEMUA project (di mana pun lokasinya)
 
 ### WAJIB internet (websearch / research / webfetch) — JANGAN skip:
 - **`think` tool dipanggil** → sebelum mikir, cari referensi internet dulu
-- **Lag > 20 detik** → stop, langsung search, jangan nunggu
+- **Lag > 10 detik** → stop, langsung search, jangan nunggu
 - **Error / failure** → langsung search error, jangan coba fix sendiri
 - **Analisa / reasoning** → cari referensi internet sebagai basis analisa
 - **Sintaks cepat berubah** (UUID, header, endpoint, library) → search dulu
@@ -32,7 +32,7 @@ Rules yang auto-loaded oleh OpenCode untuk SEMUA project (di mana pun lokasinya)
 - Trial-and-error pakai model knowledge untuk hal yang bisa di-search dalam 1 query
 - Nunggu 2-3x failure sebelum search
 - Asumsi "knowledge cutoff terbaru" tanpa verify
-- Mikir sendiri >20 detik tanpa web search
+- Mikir sendiri >10 detik tanpa web search
 
 ---
 
