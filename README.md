@@ -219,6 +219,30 @@ Each server is a single self-contained Python file. Enable only what you need.
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by
 `postgres`, `vector`, `web`). Not a standalone server.
 
+### AGENTS.md — opencode rules reference (included in repo)
+
+Two reference copies of the opencode autofallback rules are shipped in the repo:
+
+| File | Source | Purpose |
+|---|---|---|
+| `AGENTS.global.md` | `~/.config/opencode/AGENTS.md` | User-level rules active in **every** project |
+| `AGENTS.workspace.md` | `E:\AGENTS.md` | Workspace-level rules (applies to `E:\*`) |
+
+These are **informational snapshots** — the actual active rules live at the
+paths above and are auto-loaded by opencode on every session start. The copies
+here let contributors see what behavioral rules the AI is operating under
+without accessing the user's home directory.
+
+The current rule set is **aggressive internet-first**:
+
+- `think` tool called → **search internet first**, don't think in isolation
+- Lag > 20 seconds → **stop and search**, don't keep waiting
+- Error / failure → **search immediately**, don't attempt self-fix first
+- Analysis / reasoning → **find internet references first**
+- First failure → **search**, don't retry without a reference
+- Skip search **only** for: standard algorithms, own-code bugs with 100%
+  certainty, confidence > 95%
+
 ### Memory — auto-load user rules on session start
 
 `mcp_memory.py` stores entities in `memory.jsonl` and exposes them via
