@@ -438,7 +438,7 @@ parallel([
 ```bash
 pip install -r requirements.txt
 playwright install chromium
-python -m pytest tests/ -v    # 157 tests, ~4 seconds
+python -m pytest tests/ -v    # 168 tests, ~5 seconds (incl. 11 bifrost integration tests, auto-skip if server offline)
 ```
 
 ### Auto-load in every OpenCode session

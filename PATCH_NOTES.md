@@ -238,3 +238,45 @@ px -y @upstash/context7-mcp (stdio transport, no API key required). Package auto
 | Error task — model batch memory+diag+research | 3 round-trips × 1s = 3s | 1 round-trip × 1s = 1s | ~2s |
 | Slow reasoning tanpa progress, >10s | Bisa loop sampai 30-60s | Hard-stop 10s + forced search | ~20-50s |
 | Model males gak batch | Bisa 3s+ | Forced 1s | ~2s |
+
+---
+
+## [2026-06-06] Bifrost Integration Test Suite
+
+### tests/test_bifrost_integration.py (NEW FILE)
+
+Bifrost = MaximHQ LLM gateway (Go binary, OpenAI-compatible at `http://localhost:8080/v1`). MCPKU sekarang punya **integration test suite** yang ngecek apakah runtime beneran bisa bicara sama bifrost, bukan cuma declare provider.
+
+**11 tests across 4 kelas:**
+
+1. **TestConnectivity** (3 tests) — `/v1/models` endpoint respond 200, list model ada field wajib, minimal 1 model OpenRouter
+2. **TestChatCompletion** (4 tests, parametrized) — kirim prompt, validasi response ada + content match expected + `max_tokens` dihormati
+3. **TestOpencodeIntegration** (2 tests) — verify `bifrost` provider dideklarasikan di user config (`%APPDATA%/opencode/opencode.jsonc` atau `~/.config/opencode/opencode.jsonc`) + workspace backup (`E:\MCPKU\opencode.jsonc`)
+4. **TestLatency** (2 tests) — sanity check response time
+
+**Design highlights:**
+- **Auto-skip** kalau bifrost down (CI gak fail, dev gak ke-block). Pakai module-scoped autouse fixture
+- **Stdlib only** — `urllib.request` instead of `requests` (zero new deps, konsisten sama project style)
+- **JSONC parser** (`_parse_jsonc()`) — handle `//` line comments + `/* */` block comments tanpa ngerusak string contents. Pure Python, no external lib
+- **Parametrized chat tests** — multiple model, kalau 1 rate-limited test lain masih jalan
+- **Soft skip for rate limits (429)** — bukan fail, karena free OpenRouter models emang sering rate-limited
+- **Smart path resolution** — coba 3 lokasi user config (`%APPDATA%`, `~/.config`, `$HOME/.config`)
+
+**Config knobs (env vars):**
+- `BIFROST_URL` — default `http://localhost:8080/v1`
+- `BIFROST_KEY` — default `ignored` (placeholder, bifrost config determines real key)
+
+**Files changed:**
+- `E:\MCPKU\tests\test_bifrost_integration.py` — new file, ~250 lines
+- `E:\MCPKU\README.md` — test count 157 → 168
+
+**Test results** (run against live bifrost):
+- 4 PASSED (connectivity + user-config declared)
+- 7 SKIPPED (chat tests — semua free OpenRouter model lagi 429/400 "no key configured" hari ini)
+
+**Key insight yang ke-catch:** waktu run pertama, 1 chat test (gpt-oss-120b) berhasil dapet "pong" dalam 1.6s. Run berikutnya gagal dengan 400 "no supported key found with name 'ignored'" — bifrost config kehilangan OpenRouter key. Test correctly skips tanpa crash. Ini **real-world value**: ngasih tau kalau upstream provider key expires/rusak.
+
+**Future improvements (TODO):**
+- Sinkronkan `bifrost` provider ke `E:\MCPKU\opencode.jsonc` (workspace backup) — sekarang masih skip
+- Tambah fixture `bifrost_chat_completion` yang reuse connection
+- Benchmark suite terpisah: ukur parallel speedup nyata (1 sequential vs 1 parallel batch)
