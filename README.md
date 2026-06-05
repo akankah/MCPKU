@@ -241,6 +241,7 @@ The current rule set is **aggressive internet-first**:
 - Analysis / reasoning → **find internet references first**
 - First failure → **search**, don't retry without a reference
 - **Code Error Fallback** — code fails to run / compile error → **search internet for fix before retrying**, no trial-and-error
+- **Chat Failure Fallback** — chat response contains "gagal" / "failed" / "unable" → **force search internet for references** before answering, applies to all models
 - Skip search **only** for: standard algorithms, own-code bugs with 100%
   certainty, confidence > 95%
 

@@ -20,6 +20,8 @@ Rules yang auto-loaded oleh OpenCode untuk SEMUA project (di mana pun lokasinya)
 ### Code Error Fallback — WAJIB
 - **Kode error / gagal run** → langsung search referensi internet, jangan coba ulang tanpa referensi
 - **Compile/runtime error di kode yg ditulis AI** → search error + fix sebelum ngulang
+- **Chat response mengandung "gagal" / "failed" / "tidak bisa" / "unable"** → force search internet untuk referensi, jangan jawab asal
+- **Semua model** kena rule ini — bukan cuma model tertentu, semua dipaksa
 
 ### Skip search — ONLY these:
 - Algoritma standar (sort, search, graph, hash)
