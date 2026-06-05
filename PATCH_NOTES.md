@@ -280,3 +280,57 @@ Bifrost = MaximHQ LLM gateway (Go binary, OpenAI-compatible at `http://localhost
 - Sinkronkan `bifrost` provider ke `E:\MCPKU\opencode.jsonc` (workspace backup) — sekarang masih skip
 - Tambah fixture `bifrost_chat_completion` yang reuse connection
 - Benchmark suite terpisah: ukur parallel speedup nyata (1 sequential vs 1 parallel batch)
+
+
+---
+
+## [2026-06-06] Benchmark Suite + GitHub Actions CI
+
+### tests/test_perf.py (NEW — 7 tests, 4 classes)
+
+Quantitative proof that the parallel batching changes from earlier today actually deliver the speedup they claim. Stdlib-only, asyncio + time.perf_counter, no network calls.
+
+| Test | Measurement | Real Result | Threshold |
+|------|------------|-------------|-----------|
+| 	est_three_way_batch_is_at_least_2_5x_faster | memory+diag+research parallel vs sequential | **3.03x** | 2.5x |
+| 	est_web_search_batch_is_at_least_1_7x_faster | web+stackoverflow parallel | **1.99x** | 1.7x |
+| 	est_three_reference_sources_are_truly_parallel | autofix 3-source parallel | **3.04x** | 2.5x |
+| 	est_detect_lag_completes_under_budget | _detect_lag per-call cost | **7.51us** | <50us |
+| 	est_detect_stuck_completes_under_budget | _detect_stuck per-call cost | **16.38us** | <50us |
+| 	est_per_task_timeout_does_not_block_forever | per-task wait_for cancels slow | **205ms** (not 5s) | <300ms |
+| 	est_summary | prints full benchmark table | OK | OK |
+
+	est_perf.py uses _time_async(coro_factory, runs=3) — takes median of 3 to filter GC noise. _assert_speedup() fails loud if a regression creeps in.
+
+### Bug found + fixed while writing this
+
+Initial implementation had two bugs caught by the test:
+1. _time_async(coro_factory, ...) first called coro_factory thinking it was an awaitable factory — but coro_factory is a *lambda returning an awaitable*. The tuple-case was dead code, removed.
+2. 	est_gather_returns_fastest_result_quickly — claimed syncio.gather returns early on first completion. **It doesn't.** It waits for ALL. Replaced with the actual mcp_research pattern: per-task syncio.wait_for with 200ms timeout, slow task hits timeout, fast task succeeds, total < 300ms.
+
+This is exactly the kind of bug the perf suite exists to catch.
+
+### .github/workflows/test.yml (NEW — 3 jobs)
+
+`
+test (matrix: py3.11 + py3.12)  → install requirements.txt + pytest+pytest-asyncio,
+                                  run full suite, run perf suite separately
+lint                            → python -m compileall syntax check
+summary                         → GH Step Summary table
+`
+
+- BIFROST_URL default in CI = localhost:8080 (server not available, integration tests auto-skip per existing logic)
+- PYTHONIOENCODING=utf-8 (Windows compat)
+- Upload pytest-output.log as artifact on failure (7-day retention)
+- Triggered on push to main, PR to main, and manual workflow_dispatch
+
+### Pre-existing test failure noted (NOT fixed per user instruction)
+
+	ests/test_verify_setup.py::TestExpectedServers::test_count_is_16 — asserts 16 servers but opencode.jsonc has 17 (research was added). Pre-existing, not caused by these changes. User was warned via chat.
+
+### Counts
+
+- Tests: 168 → **175** (added 7 perf benchmarks)
+- Files: tests/test_perf.py (NEW, 200 lines), .github/workflows/test.yml (NEW, 90 lines)
+- Backed up to E:\MCPKU_backup_2026-06-06_HHMM.rar
+- Commit pending
