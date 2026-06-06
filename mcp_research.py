@@ -35,6 +35,7 @@ from mcp_web import (
     search_mdn,
     search_crates,
     search_devdocs,
+    search_readthedocs,
 )
 from mcp_diagnostics import classify_error
 from mcp_memory import search_nodes
@@ -334,6 +335,7 @@ async def query(question: str, error_text: Optional[str] = None) -> str:
         "web":            search_web(keywords, max_results=3),
         "stackoverflow":  search_stackoverflow(keywords, max_results=3),
         "mdn":            search_mdn(keywords, limit=2),
+        "readthedocs":    search_readthedocs(keywords, limit=2) if lang == "python" else _noop("not python"),
         "pypi":           search_pypi(keywords, limit=2) if lang == "python" else _noop("not python"),
         "npm":            search_npm(keywords, limit=2) if lang == "javascript" else _noop("not js"),
         "crates":         search_crates(keywords, limit=2) if lang == "rust" else _noop("not rust"),

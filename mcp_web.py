@@ -533,10 +533,14 @@ async def search_crates(query: str, limit: int = 5) -> str:
 # ---------------------------------------------------------------------------
 
 @mcp.tool(
-    name="search_mdn",
-    description="Cari dokumentasi web di MDN (Mozilla Developer Network). Returns title, summary, link."
+    name="search_readthedocs",
+    description="Cari dokumentasi library Python di ReadTheDocs. Sangat akurat untuk dokumentasi library Python."
 )
-async def search_mdn(query: str, limit: int = 5, locale: str = "en-US") -> str:
+async def search_readthedocs(query: str, limit: int = 5) -> str:
+    # Menggunakan Google Search terbatas pada domain readthedocs.io
+    query = f"site:readthedocs.io {query}"
+    return await search_web(query, max_results=limit)
+
     cache_key = f"mcp:web:mdn:search:{query}:{limit}:{locale}"
     cached = cache_get(cache_key)
     if cached is not None:
