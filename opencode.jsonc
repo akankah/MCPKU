@@ -46,7 +46,8 @@
       "command": ["python", "E:/MCPKU/mcp_filesystem.py"],
       "enabled": true,
       "env": {
-        "MCP_EXTRA_ALLOWED_DIR": "E:/MCPKU"
+        "MCP_EXTRA_ALLOWED_DIR": "E:/MCPKU",
+        "MCP_FS_ALLOW_ALL": "1"
       }
     },
     "memory": {
