@@ -13,6 +13,7 @@ Owner: akankah. All MCPs use stdlib + small deps. Single-file modules.
 - API syntax / header / endpoint / library version unknown → websearch
 - Reasoning circular / stuck 2+ retries → websearch the question
 - Unknown library or framework → websearch the docs before guessing
+- **Mandatory Logging:** Setiap kali alat riset otomatis dipicu, agen WAJIB mencatat ringkasan aktivitas ke `E:\MCPKU\RESEARCH_STATS.md` di akhir sesi.
 
 This rule overrides the model default of "think more." The 10s budget is non-negotiable.
 
