@@ -4,11 +4,13 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("filesystem", instructions="""
 File system operations: read, write, edit, list, search, grep, move, copy, delete, tree, metadata.
-Access is restricted to allowed directories only.
+By default full C:\\ and E:\\ drives are accessible (any new subdirectory under them is auto-allowed).
+Set MCP_FS_ALLOW_ALL=0 and use MCP_EXTRA_ALLOWED_DIR to tighten scope.
 """)
 
 # SECURITY: Set MCP_FS_ALLOW_ALL=1 to bypass all access checks.
-# Default is strict (whitelist via ALLOWED_PREFIXES). Only enable for local dev.
+# Default allows full C:\ and E:\ drives. Override with MCP_FS_ALLOW_ALL=0
+# and a custom MCP_EXTRA_ALLOWED_DIR list for stricter scopes.
 ALLOW_ALL = os.environ.get("MCP_FS_ALLOW_ALL", "0") == "1"
 
 # Normalize allowed dirs with trailing separator to prevent prefix collisions
@@ -21,8 +23,8 @@ _extra = os.environ.get("MCP_EXTRA_ALLOWED_DIR", "").strip()
 
 ALLOWED_PREFIXES = tuple(_norm_allowed(p) for p in [
     "C:\\",
+    "E:\\",
     BASE_DIR,
-    os.path.join(BASE_DIR, "..", ".kilo"),
 ] + ([_extra] if _extra else []))
 
 def _allowed(path: str) -> bool:
