@@ -253,17 +253,29 @@ Each server is a single self-contained Python file. Enable only what you need.
 
 ### AGENTS.md — opencode rules reference (included in repo)
 
-Two reference copies of the opencode autofallback rules are shipped in the repo:
+Three rule files govern AI behavior in this repo:
 
 | File | Source | Purpose |
 |---|---|---|
+| `AGENTS.md` | `E:\MCPKU\AGENTS.md` (project) | Project-level rules auto-loaded when working in this directory |
 | `AGENTS.global.md` | `~/.config/opencode/AGENTS.md` | User-level rules active in **every** project |
 | `AGENTS.workspace.md` | `E:\AGENTS.md` | Workspace-level rules (applies to `E:\*`) |
 
-These are **informational snapshots** — the actual active rules live at the
-paths above and are auto-loaded by opencode on every session start. The copies
-here let contributors see what behavioral rules the AI is operating under
-without accessing the user's home directory.
+The project-level `AGENTS.md` is loaded by opencode whenever a session is
+started inside `E:\MCPKU\**`, so the autofallback rule applies even to
+fresh sessions without explicit user instruction.
+
+The full rule is **also baked into every autofallback-critical MCP server's
+`instructions` field** so the model sees it whenever it considers using
+those tools:
+
+| Server | Rule embedded in instructions |
+|---|---|
+| `mcp_memory.py` | Full 5-trigger HARD RULE (session-start `search_nodes` + 5 mandatory triggers) |
+| `mcp_think.py` | 10s LAG DETECTION — returns PARALLEL WEB SEARCH trigger when reasoning stalls |
+| `mcp_diagnostics.py` | 3-trigger demand rule for UNKNOWN / version-mismatch errors |
+| `mcp_autofix.py` | Short reminder + parallel orchestration mandate |
+| `mcp_research.py` | Short reminder + "use query() when reasoning stalls" |
 
 The current rule set is **aggressive internet-first**:
 
