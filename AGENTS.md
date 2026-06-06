@@ -14,6 +14,7 @@ Owner: akankah. All MCPs use stdlib + small deps. Single-file modules.
 - Reasoning circular / stuck 2+ retries → websearch the question
 - Unknown library or framework → websearch the docs before guessing
 - **Mandatory Logging:** Setiap kali alat riset otomatis dipicu, agen WAJIB mencatat ringkasan aktivitas ke `E:\MCPKU\RESEARCH_STATS.md` di akhir sesi.
+- **MCP Docs Priority:** Jika pertanyaan berkaitan dengan *Schema* atau *Tool Definition* protokol MCP, WAJIB `web_fetch_url` langsung ke [https://modelcontextprotocol.io/docs](https://modelcontextprotocol.io/docs) sebelum melakukan riset umum.
 
 This rule overrides the model default of "think more." The 10s budget is non-negotiable.
 
