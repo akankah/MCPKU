@@ -578,27 +578,40 @@ whatever you need.
 
 ---
 
-## Lock — protect MCPKU from model edits
+## Lock with approval — model must ask before editing MCPKU
 
-`opencode.jsonc` ships with a 23-rule `permission` block that hardens the
-runtime once MCPKU reaches a stable release. The model (and any subagent) can
-**read** anything, but mutating tools on `E:\MCPKU` are denied.
+`opencode.jsonc` ships with a 23-rule `permission` block that gates mutations
+on `E:\MCPKU`. The model (and any subagent) can **read** anything freely, but
+mutating tools must request approval first.
 
-### What is blocked (any tool, any path inside `E:\MCPKU`)
+### What requires approval (path inside `E:\MCPKU`)
 
-| Layer | Tool | Why |
-|-------|------|-----|
-| Built-in | `edit`, `write` | file mutation |
-| `mcp_filesystem` | `write_file`, `append_file`, `edit_file`, `create_file`, `create_directory`, `move_file`, `delete_file`, `copy_file` | covers all filesystem mutations the model could reach via MCP |
-| `mcp_bash` | `run_command` | **deny total** (not pattern) — `cd`-chain, env-vars, relative paths cannot bypass |
-| `mcp_autofix` | `run`, `save_error` | can auto-commit + run shell |
-| `mcp_git` | `commit`, `add`, `checkout`, `reset`, `stash`, `merge`, `rebase`, `create_branch`, `tag`, `clone` | prevents history rewrite / branch thrashing |
+| Layer | Tool | Action |
+|-------|------|--------|
+| Built-in | `edit`, `write` | `ask` — opencode prompts you before running |
+| `mcp_filesystem` | `write_file`, `append_file`, `edit_file`, `create_file`, `create_directory`, `move_file`, `delete_file`, `copy_file` | `ask` per file operation |
+| `mcp_bash` | `run_command` | `ask` only when command string contains `E:/MCPKU` or `E:\MCPKU`; non-MCPKU commands pass through |
+| `mcp_git` | `commit`, `add`, `checkout`, `reset`, `stash`, `merge`, `rebase`, `create_branch`, `tag`, `clone` | `ask` per git operation |
+| `mcp_autofix` | `run`, `save_error` | `deny` — auto-execute by design, would defeat the tool to ask |
 
-### What still works inside `E:\MCPKU`
+### What still works inside `E:\MCPKU` without prompts
 
 - All **read** tools (`read_file`, `grep_files`, `search_files`, `list_directory`)
 - Git **read-only** (`status`, `log`, `diff`, `show`, `blame`, `branch list`)
 - Non-file MCPs (`context7`, `github`, `redis`, `postgres`, `sqlite`, `web`, `time`, `memory`, `think`, `diagnostics`, `research`)
+- `mcp_bash` commands that do not touch `E:\MCPKU` (e.g. `ls`, `pytest`, `pip install`)
+
+### How the prompt looks
+
+When the model wants to mutate, opencode shows a confirmation like:
+
+```
+[mcp_filesystem] write_file path=E:/MCPKU/mcp_x.py
+Allow? (y/n/always):
+```
+
+Answer `y` once for that call, or `always` to whitelist that exact tool/path
+pattern for the rest of the session.
 
 ### Active in two scopes
 
@@ -609,17 +622,13 @@ The same `permission` block lives in:
 
 Precedence: project > user > system, so the rule is always loaded.
 
-### Disable the lock (for development)
+### Tighter lock (deny instead of ask)
 
-Comment out the `"permission": { ... }` block in `opencode.jsonc` and restart
-opencode. Or scope it to a single agent via the `agent` key.
+Change any `"ask"` to `"deny"` in the `permission` block. Useful when you want
+MCPKU truly read-only (e.g. for benchmarks). Restart opencode after editing.
 
 ```jsonc
-{
-  "agent": {
-    "build": { "permission": { "edit": "allow" } }
-  }
-}
+"edit": { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" }
 ```
 
 ---

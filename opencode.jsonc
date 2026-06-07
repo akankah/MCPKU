@@ -13,34 +13,34 @@
   // Secrets below are placeholders. Set real values locally — DO NOT commit.
   // opencode interpolates ${ENV_VAR} inside env values, so prefer that form.
 
-  // ===== LOCK TOTAL: E:\MCPKU sudah final, larang SEMUA bentuk mutasi =====
-  // Aturan: last matching pattern wins. Tulis deny TERAKHIR agar menang atas "*": "allow".
-  // Path pakai kedua varian (slash/backslash) karena beda tool normalisasi beda.
-  // mcp_bash_run_command di-deny TOTAL (bukan pattern) — relative-path/env-var/cd-chain tidak bisa bypass.
+  // ===== LOCK with approval: E:\MCPKU edits harus minta ijin dulu =====
+  // Aturan: last matching wins. Path pakai kedua varian (slash/backslash) karena beda tool normalisasi beda.
+  // mcp_bash path-based: allow default, ASK kalau command menyentuh E:\MCPKU.
+  // mcp_autofix_run/save_error tetap DENY (auto-execute by design).
   "permission": {
-    "edit":             { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "write":            { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_filesystem_write_file":      { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_filesystem_append_file":     { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_filesystem_edit_file":       { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_filesystem_create_file":     { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_filesystem_create_directory":{ "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_filesystem_move_file":       { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_filesystem_delete_file":     { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_filesystem_copy_file":       { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_bash_run_command":           "deny",
+    "edit":             { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "write":            { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_filesystem_write_file":      { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_filesystem_append_file":     { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_filesystem_edit_file":       { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_filesystem_create_file":     { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_filesystem_create_directory":{ "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_filesystem_move_file":       { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_filesystem_delete_file":     { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_filesystem_copy_file":       { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_bash_run_command":           { "*": "allow", "*E:/MCPKU*": "ask", "*E:\\MCPKU*": "ask" },
     "mcp_autofix_run":                "deny",
     "mcp_autofix_save_error":         "deny",
-    "mcp_git_git_commit":             { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_git_git_add":                { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_git_git_checkout":           { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_git_git_reset":              { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_git_git_stash":              { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_git_git_merge":              { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_git_git_rebase":             { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_git_git_create_branch":      { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_git_git_tag":                { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" },
-    "mcp_git_git_clone":              { "*": "allow", "E:/MCPKU/**": "deny", "E:\\MCPKU\\**": "deny" }
+    "mcp_git_git_commit":             { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_git_git_add":                { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_git_git_checkout":           { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_git_git_reset":              { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_git_git_stash":              { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_git_git_merge":              { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_git_git_rebase":             { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_git_git_create_branch":      { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_git_git_tag":                { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" },
+    "mcp_git_git_clone":              { "*": "allow", "E:/MCPKU/**": "ask", "E:\\MCPKU\\**": "ask" }
   },
 
   "mcp": {
