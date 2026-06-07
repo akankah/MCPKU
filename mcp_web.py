@@ -541,6 +541,11 @@ async def search_readthedocs(query: str, limit: int = 5) -> str:
     query = f"site:readthedocs.io {query}"
     return await search_web(query, max_results=limit)
 
+@mcp.tool(
+    name="search_mdn",
+    description="Cari dokumentasi web di MDN (Mozilla Developer Network). Returns title, summary, link."
+)
+async def search_mdn(query: str, limit: int = 5, locale: str = "en-US") -> str:
     cache_key = f"mcp:web:mdn:search:{query}:{limit}:{locale}"
     cached = cache_get(cache_key)
     if cached is not None:

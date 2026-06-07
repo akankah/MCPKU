@@ -578,6 +578,52 @@ whatever you need.
 
 ---
 
+## Lock — protect MCPKU from model edits
+
+`opencode.jsonc` ships with a 23-rule `permission` block that hardens the
+runtime once MCPKU reaches a stable release. The model (and any subagent) can
+**read** anything, but mutating tools on `E:\MCPKU` are denied.
+
+### What is blocked (any tool, any path inside `E:\MCPKU`)
+
+| Layer | Tool | Why |
+|-------|------|-----|
+| Built-in | `edit`, `write` | file mutation |
+| `mcp_filesystem` | `write_file`, `append_file`, `edit_file`, `create_file`, `create_directory`, `move_file`, `delete_file`, `copy_file` | covers all filesystem mutations the model could reach via MCP |
+| `mcp_bash` | `run_command` | **deny total** (not pattern) — `cd`-chain, env-vars, relative paths cannot bypass |
+| `mcp_autofix` | `run`, `save_error` | can auto-commit + run shell |
+| `mcp_git` | `commit`, `add`, `checkout`, `reset`, `stash`, `merge`, `rebase`, `create_branch`, `tag`, `clone` | prevents history rewrite / branch thrashing |
+
+### What still works inside `E:\MCPKU`
+
+- All **read** tools (`read_file`, `grep_files`, `search_files`, `list_directory`)
+- Git **read-only** (`status`, `log`, `diff`, `show`, `blame`, `branch list`)
+- Non-file MCPs (`context7`, `github`, `redis`, `postgres`, `sqlite`, `web`, `time`, `memory`, `think`, `diagnostics`, `research`)
+
+### Active in two scopes
+
+The same `permission` block lives in:
+
+- `E:\MCPKU\opencode.jsonc` — project-level (active when opencode CWD is `E:\MCPKU`)
+- `~/.config/opencode/opencode.jsonc` — user-level (active from any directory)
+
+Precedence: project > user > system, so the rule is always loaded.
+
+### Disable the lock (for development)
+
+Comment out the `"permission": { ... }` block in `opencode.jsonc` and restart
+opencode. Or scope it to a single agent via the `agent` key.
+
+```jsonc
+{
+  "agent": {
+    "build": { "permission": { "edit": "allow" } }
+  }
+}
+```
+
+---
+
 ## Architecture
 
 Each server is a single file with a `mcp.run(transport="stdio")` entrypoint,
