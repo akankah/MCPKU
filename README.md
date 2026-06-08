@@ -761,6 +761,15 @@ Instruksi ini berlaku untuk seluruh sesi pengembangan di repositori E:\MCPKU.
 
 ---
 
+## Roadmap: Next-Gen Agentic Capabilities
+
+Kami sedang mengembangkan MCPKU dari *orchestrator* menjadi *Agentic OS* dengan fokus pada:
+1. **Critique Loop (Verification Layer):** Task-level validation (self-critique) untuk memastikan hasil eksekusi sesuai standar (misal: verifikasi file size, konten, atau exit status).
+2. **Human-in-the-Loop:** *Safety checkpoints* opsional pada task berisiko tinggi yang mengharuskan persetujuan manual user sebelum lanjut.
+3. **Productivity Dashboard:** Monitoring otomatis (`workflow_stats`) untuk mengukur efektivitas agen dan jumlah waktu yang dihemat lewat auto-fix.
+
+---
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
