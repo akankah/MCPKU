@@ -260,6 +260,7 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
 | `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output          |
 | `autofix`     | `mcp_autofix.py`      | Closed-loop debugging + parallel search (web/GitHub/SO) + error knowledge base (error_kb/ + pgvector) + trend dashboard |
+| `workflow`    | `mcp_workflow.py`     | Autonomous workflow orchestrator (DAG execution, task self-healing, state tracking) |
 | `research`    | `mcp_research.py`     | Parallel research orchestrator: `query`/`quick`/`deep` — runs 6 web sources + diagnostics + memory via `asyncio.gather`, returns ranked consensus with cross-check verdict |
 
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by

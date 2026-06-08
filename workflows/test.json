@@ -1,0 +1,6 @@
+{
+  "steps": [
+    { "name": "List files", "command": "dir" },
+    { "name": "Check python version", "command": "python --version" }
+  ]
+}
