@@ -17,24 +17,25 @@ mcp = FastMCP("workflow")
 
 @mcp.tool(
     name="workflow_run",
-    description="Run a defined workflow from the workflows/ directory."
+    description="Run a defined workflow from a specific directory."
 )
-async def workflow_run(workflow_id: str, workflow_name: str) -> str:
+async def workflow_run(workflow_id: str, workflow_name: str, workflow_dir: str) -> str:
     """
     Args:
-        workflow_id: Unique ID for this execution session.
-        workflow_name: Name of the workflow file in workflows/ (e.g., 'deepsearch')
+        workflow_id: Unique ID for this execution.
+        workflow_name: Name of the workflow (without .json extension).
+        workflow_dir: The directory containing the workflow JSON file.
     """
-    workflow_path = Path(__file__).parent / "workflows" / f"{workflow_name}.json"
+    workflow_path = Path(workflow_dir) / f"{workflow_name}.json"
     if not workflow_path.exists():
-        return f"Error: Workflow '{workflow_name}' not found."
+        return f"Error: Workflow '{workflow_name}.json' not found in {workflow_dir}"
     
     with open(workflow_path, "r") as f:
         workflow = json.load(f)
     
-    # Load history for resume
+    # Load history for resume (check state in target_dir)
     completed_steps = set()
-    state_file = Path.cwd() / "workflow_state.jsonl"
+    state_file = Path(workflow_dir) / "workflow_state.jsonl"
     if state_file.exists():
         with open(state_file, "r") as f:
             for line in f:
@@ -61,7 +62,8 @@ async def workflow_run(workflow_id: str, workflow_name: str) -> str:
         await state_update(workflow_id, step_id, "in_progress")
         
         results.append(f"── Executing: {task_name} ──")
-        output = await autofix_run(command=cmd, workdir=str(Path.cwd()))
+        # Use target workflow_dir as working dir for autofix
+        output = await autofix_run(command=cmd, workdir=workflow_dir)
         results.append(output)
         
         # Check success
@@ -69,7 +71,6 @@ async def workflow_run(workflow_id: str, workflow_name: str) -> str:
             await state_update(workflow_id, step_id, "completed", verification="Success")
         else:
             await state_update(workflow_id, step_id, "failed", error_info=output[-500:])
-            # If failed, break to prevent cascading errors
             results.append("⚠️ Task failed, halting workflow.")
             break
         
