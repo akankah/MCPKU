@@ -385,6 +385,35 @@ change untuk existing user.
 **Files changed:** `mcp_autofix.py` (resolver + 5 call sites), `README.md`
 (Error KB section + env var row), `PATCH_NOTES.md` (this entry).
 
+---
+
+## [2026-06-08] Workflow Orchestrator (mcp_workflow.py + mcp_planner.py)
+
+**Problem:** MCPKU hanya *reactive* (auto-fix saat error terjadi), belum bisa men-generate rencana kerja *proactive* berdasarkan goal. Perlu engine untuk *task planning*, *state tracking*, dan *execution*.
+
+**Fix:**
+1.  **`mcp_planner.py` (The Planning Brain):** 
+    - Tool `plan_generate(goal, name)` untuk generate JSON DAG (Task Graph).
+    - Integrasi `mcp_memory` untuk *reuse* template workflow lama via `search_nodes`.
+    - Auto-save plan ke `workflows/<name>.json`.
+2.  **`mcp_state.py` (The State Board):**
+    - "Black Box Recorder" untuk track status per-step (`in_progress`, `completed`, `failed`).
+    - Simpan setiap status ke `workflow_state.jsonl` (JSONL).
+3.  **`mcp_workflow.py` (The Orchestrator):**
+    - Mengintegrasikan Planner dan State.
+    - Menjalankan workflow dengan *self-healing* (`autofix_run`).
+    - **Auto-Resume**: Jika crash, workflow otomatis *skip* langkah yang statusnya `completed` di `workflow_state.jsonl`.
+
+**Verified:**
+- `test.json` berhasil di-run dan auto-skip langkah pertama saat crash di langkah kedua.
+- README diperbarui (tambah entry server `workflow`, `state`, `planner`).
+- `opencode.jsonc` diperbarui (tambah server `planner`).
+- Commit `868f121` feat(workflow) berhasil dipush.
+
+**Files changed:**
+- `mcp_workflow.py` (NEW), `mcp_planner.py` (NEW), `mcp_state.py` (NEW), `workflows/test.json` (NEW)
+- `opencode.jsonc` (reg server `planner`), `README.md`, `PATCH_NOTES.md`
+
 **Not changed:** vector search flow (`_save_to_vector` / `_vector_search_kb`)
 tetap pakai collection global `vec_error_kb` — kalau perlu per-project
 vector juga, ticket terpisah (butuh schema migration di pgvector).

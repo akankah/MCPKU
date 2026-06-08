@@ -156,7 +156,11 @@
       "command": ["python", "E:/MCPKU/mcp_autofix.py"],
       "enabled": true
     },
-    // context7: Up-to-date library docs fetcher (external npm package).
+    "planner": {
+      "type": "local",
+      "command": ["python", "E:/MCPKU/mcp_planner.py"],
+      "enabled": true
+    },
     "context7": {
       "type": "local",
       "command": ["npx", "-y", "@upstash/context7-mcp"],
