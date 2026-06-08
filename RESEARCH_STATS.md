@@ -20,3 +20,37 @@
 | 2026-06-07 | Update README test stats (stale from pre-research era) | Edit 2 spot di README: line 485 (Quick start) 175 tests ~6s → ~23s, line 683 (Tests section) 152 tests/14 modules/~4s → 164 passed+11 skipped/17 modules/~23s. Skip commit 4 untracked `error_kb/*.json` (per AGENTS.md: NEVER commit error_kb/). Commit `doc: update README test counts` + push OK. | ~10s (1 grep + 2 edit + 1 commit + 1 push) | Note: 4 error_kb file baru muncul di CWD (timestamp 12:38 & 12:43 WIB) — indikasi ada MCP run yang error hari ini, di-save otomatis. Tidak di-commit sesuai aturan. |
 
 | 2026-06-07 | User minta naikkan timeout context7 (workaround untuk hang di awal sesi) | Edit 2 config (project + global): tambah `"timeout": 30000` di MCP context7 (default 5000ms). Commit `chore(context7): raise MCP timeout from 5s to 30s` + push OK. | ~3s (2 edit + 1 commit + 1 push) | Note: butuh restart opencode agar perubahan生效. Tidak apply ke README karena sifatnya konfigurasi runtime, bukan dokumentasi. |
+
+| 2026-06-07 | Aktifkan MCPKU di Claude Code (user bilang "claude desktop" tapi Desktop ga ke-install) | Cek: `%APPDATA%\Claude`, `%LOCALAPPDATA%\Claude` — tidak ada. Yang ada: Claude Code CLI v2.1.165 di PATH + Claude Cowork (VM-based, beda produk, di `C:\ProgramData\Claude\Logs\coworkd`, log terakhir 6/6/2026 status `API reachability: UNREACHABLE`). User konfirmasi pakai Code CLI. Edit `C:\Users\r\.claude\settings.json`: preserve env block (ANTHROPIC_BASE_URL/MODEL/API_KEY/TOOL_SEARCH) + tambah mcpServers 17 server (mirroring opencode.jsonc). Env per-server: SQLITE_DB_PATH, LOCAL_TIMEZONE, MCP_EXTRA_ALLOWED_DIR, MCP_FS_ALLOW_ALL, MEMORY_FILE_PATH, REDIS_URL. context7 timeout=30000ms. API key global (FIRECRAWL/STACKEX/GITHUB/DATABASE/OPENAI) diharapkan inherit dari system env. File di $HOME, tidak masuk repo. | ~30s (1 search sistem + 1 read + 1 write + 1 validate) | Lock permission dari opencode.jsonc TIDAK apply di Claude Code (Code tidak punya permission system). MCPKU files akan bisa di-edit bebas kalau pakai Code — beda dengan opencode. |
+
+| 2026-06-07 | Aktifkan MCPKU di Claude Desktop | Cari config: `%APPDATA%\Claude\claude_desktop_config.json` tidak ada (salah lokasi). Yang benar: `C:\Users\r\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\claude_desktop_config.json` (AppX/WindowsApps pattern, Roaming\LocalCache). Config sudah ada dengan 17 server + `preferences.coworkWebSearchEnabled: true`. Sync 2 hal yang ketinggalan dari opencode.jsonc: (1) filesystem tambah `MCP_FS_ALLOW_ALL: "1"`, (2) context7 tambah `timeout: 30000`. Catatan: API keys (FIRECRAWL/STACKEX/GITHUB/DATABASE/OPENAI) masih empty string `""` di Desktop config — bisa di-fill manual atau hapus agar inherit dari system env. Tidak restart Desktop (perlu konfirmasi user — 4 claude.exe proses jalan). File di $HOME/AppData, tidak masuk repo. | ~10s (cari + read + 2 edit + 1 validate) | Koreksi: Claude Desktop SUDAH terinstall di WindowsApps (sebelumnya saya bilang tidak ada — salah). |
+
+| 2026-06-07 | Aktifkan MCPKU di Kilo Code CLI v7.3.16 | Kilo npm `@kilocode/cli` ada di `C:\Users\r\AppData\Roaming\npm\kilo`. Config path (kilo.jsonc, sama format opencode): `C:\Users\r\.config\kilo\kilo.jsonc`. Default punya 3 MCP npm (filesystem/postgres/github, semua disabled). Tambah 17 MCPKU server. 3 duplicate-name (filesystem, postgres, github) di-prefix `mcpku_` agar tidak collision dengan npm default. Env block per-server: SQLITE, TIME, FILESYSTEM, MEMORY, REDIS, POSTGRES, VECTOR (mirroring opencode.jsonc). context7 timeout=30000ms. JSON valid via json5. Tidak apply lock permission (kilo existing permission.bash sudah 288+ allow pattern — clash). File di $HOME/.config, tidak masuk repo. | ~30s (2 cari + 1 read + 1 edit + 1 validate) | Note: kilo pakai config format yang sama persis dengan opencode (`$schema: opencode.ai/config.json`) — duplikasi config. Pertimbangkan sync script antara kilo.jsonc ↔ opencode.jsonc. |
+
+| 2026-06-08 | Fix `E:\deepresearch` pipeline: 19→32 confidence, 0/6→4/6 chapters pass | Debug: env loading order (Serper/Firecrawl mati karena import-time vs runtime), `_extract_keywords` regex `{2,}`→`{1,}` (hilangkan "AI" dari query), SO query pakai `question` bukan `keywords` (0 results untuk bisnis Indonesia), `n_active` hitungan (termasuk memory/error strings → coverage tertekan), coverage boost tidak aktif karena `n_active>4`. Fix: load_dotenv sebelum import, regex `{1,}`, SO pakai `question[:80]`, `n_active` exclude `startswith("(")`, boost unconditional untuk single-source, stagger 3s per chapter untuk hindari Serper rate limit, DDG pakai `duckduckgo_search` library. Sources: DDG dead (402), Firecrawl dead (credits expired), Stack Overflow 0 for business topics. Hanya Serper (Google) yang berfungsi. | ~30 search/read/edit + 8 pipeline runs | Serper satu-satunya sumber yang berfungsi untuk topik bisnis Indonesia. Confidence maksimum ~32/100 dengan single source. Perlu sumber kedua (Bing/Google CSE) untuk meningkatkan >50. |
+
+## 2026-06-08 — Integrasi dzhng/deep-research (Iterative LLM Pipeline)
+
+**Aktivitas:**
+- Membaca source code dzhng/deep-research (TypeScript, <500 LoC)
+- Membuat `src/llm_client.py` — multi-provider LLM client (OpenRouter → Groq fallback)
+- Membuat `src/deep_research_llm.py` — Python port of dzhng iterative pattern (4 learnings, 10 URLs per run)
+- Memodifikasi `main.py` — add `--mode iterative|chapter` flag
+- Memodifikasi `webui.py` — add mode toggle (radio button UI)
+
+**Hasil test (breadth=2, depth=1):**
+- 2 search queries generated by LLM
+- 5 URLs each via Serper
+- 4 learnings extracted by LLM
+- Report: ~4900 chars, Indonesian, structured
+- Time: ~19s untuk depth=1
+
+**Perubahan signifikan:**
+- `llm_client.py` rewritten: multi-provider chain (OpenRouter 402 → Groq free tier works)
+- `main.py` refactored: fungsi `_run_chapter_mode()` dan `_run_iterative_mode()` terpisah
+- `webui.py` updated: mode selector, dynamic params, adaptive render
+
+**Next:**
+- Test breadth=3, depth=2 untuk report lebih dalam
+- Jika Groq rate-limited, tambah Gemini fallback (key ada di .env)
+- Deploy web UI dan test dari browser

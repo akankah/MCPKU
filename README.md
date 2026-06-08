@@ -202,6 +202,20 @@ Failed errors are automatically saved to `error_kb/` as JSON files. On subsequen
 runs, `autofix_run` checks the KB for similar past errors before searching the
 web — so recurring issues get faster fixes over time.
 
+**Per-project storage** (since 2026-06-08): the KB directory is now resolved
+relative to the current working directory (CWD) at the time of the call —
+`<cwd>/error_kb/` is auto-created on first use. This means each project keeps
+its own error history, and `MCPKU`'s repo does not get bloated with debug data
+from other repos. Override options:
+
+- `autofix_run(command, workdir="E:/foo")` → saves to `E:/foo/error_kb/`
+- `autofix_save_error(..., project="E:/foo")` → saves to `E:/foo/error_kb/`
+- `autofix_search_kb` / `autofix_kb_stats` / `autofix_kb_trends` all read
+  from CWD's `error_kb/` (use the opencode session CWD to scope queries)
+- `ERROR_KB_DIR=/path` env var → force a single global KB dir
+- `AUTOFIX_STATELESS=1` → disable KB persistence entirely (return to default
+  fallback path from `ERROR_KB_DIR` or MCPKU root)
+
 **Vector search** (optional): jika `DATABASE_URL` (Postgres + pgvector) tersedia,
 errors juga di-embed dan disimpan di tabel `vec_error_kb` untuk semantic
 similarity search. Jauh lebih akurat daripada keyword matching.
@@ -395,8 +409,10 @@ Trade-off:
   double-lock (prompt-level instruction + tool-level stuck detector) as
   backup.
 
-`error_kb/` is a directory where `autofix` saves failed errors as JSON files
-for cross-session reference. Auto-created on first error.
+`error_kb/` is a per-project directory where `autofix` saves failed errors as
+JSON files for cross-session reference. Stored at `<cwd>/error_kb/` of the
+calling project (auto-created on first error) — keeps each project's error
+history isolated and avoids bloating the MCPKU repo with foreign debug data.
 
 ---
 
@@ -708,6 +724,7 @@ tests with no network, DB, or browser dependency. Runs in ~23 seconds.
 | `VECTOR_EMBEDDING_DIM` | `autofix`, `vector` | `1536` | Embedding dimension (pgvector) |
 | `DISABLE_DUCKDUCKGO=1` | `mcp_web.py` | — | Force Firecrawl only |
 | `AUTOFIX_STATELESS=1` | `autofix`, `diagnostics` | `0` | Skip in-memory history |
+| `ERROR_KB_DIR` | `autofix` | `<cwd>/error_kb/` | Force global KB dir (overrides per-project CWD resolution) |
 | `OPENAI_API_KEY` | `mcp_vector.py` | — | Embeddings (falls back to local hash) |
 | `DATABASE_URL` | `mcp_postgres.py`, `mcp_vector.py` | — | Standard libpq URL |
 | `REDIS_URL` | `mcp_redis.py`, `mcp_cache.py` | `redis://localhost:6379/0` | For caching & Redis server |

@@ -63,7 +63,14 @@ mcp = FastMCP(
 MAX_RETRIES_DEFAULT = 3
 
 _STATELESS = os.environ.get("AUTOFIX_STATELESS", "0") == "1"
-_ERROR_KB_DIR = Path(os.environ.get("ERROR_KB_DIR", Path(__file__).parent / "error_kb"))
+_ERROR_KB_DEFAULT = Path(os.environ.get("ERROR_KB_DIR", Path(__file__).parent / "error_kb"))
+
+
+def _resolve_kb_dir(cwd: str = "") -> Path:
+    if _STATELESS:
+        return _ERROR_KB_DEFAULT
+    base = Path(cwd).resolve() if cwd else Path.cwd()
+    return base / "error_kb"
 
 # ── Fix handlers ─────────────────────────────────────────────────────────────
 # Each handler takes (error_types, error_text, cwd) and returns
@@ -290,12 +297,13 @@ async def _search_references(error_text: str, error_types: list[str]) -> str:
 
 # ── Error Knowledge Base ─────────────────────────────────────────────
 
-def _save_to_kb(entry: dict) -> str:
-    _ERROR_KB_DIR.mkdir(parents=True, exist_ok=True)
+def _save_to_kb(entry: dict, cwd: str = "") -> str:
+    kb_dir = _resolve_kb_dir(cwd) if cwd else _resolve_kb_dir()
+    kb_dir.mkdir(parents=True, exist_ok=True)
     ts = entry.get("timestamp", datetime.now().isoformat())
     safe_ts = ts.replace(":", "-").replace(".", "-")
     fname = f"error_{safe_ts}.json"
-    fpath = _ERROR_KB_DIR / fname
+    fpath = kb_dir / fname
     try:
         with open(fpath, "w", encoding="utf-8") as f:
             json.dump(entry, f, indent=2, ensure_ascii=False)
@@ -310,10 +318,10 @@ def _save_to_kb(entry: dict) -> str:
 
 
 def _search_kb_file(query: str, limit: int = 5) -> list[dict]:
-    _ERROR_KB_DIR.mkdir(parents=True, exist_ok=True)
+    _resolve_kb_dir().mkdir(parents=True, exist_ok=True)
     q_lower = query.lower()
     results = []
-    files = sorted(_ERROR_KB_DIR.glob("error_*.json"), reverse=True)
+    files = sorted(_resolve_kb_dir().glob("error_*.json"), reverse=True)
     for f in files:
         try:
             with open(f, "r", encoding="utf-8") as fh:
@@ -362,11 +370,11 @@ def _search_kb(query: str, limit: int = 5) -> list[dict]:
 
 
 def _kb_stats() -> dict:
-    _ERROR_KB_DIR.mkdir(parents=True, exist_ok=True)
+    _resolve_kb_dir().mkdir(parents=True, exist_ok=True)
     total = 0
     by_type: dict[str, int] = {}
     by_project: dict[str, int] = {}
-    for f in _ERROR_KB_DIR.glob("error_*.json"):
+    for f in _resolve_kb_dir().glob("error_*.json"):
         total += 1
         try:
             with open(f, "r", encoding="utf-8") as fh:
@@ -516,10 +524,10 @@ def _vector_search_kb(query: str, limit: int = 5, min_score: float = 0.0) -> lis
 
 def _kb_trends(days: int = 30) -> dict:
     import time
-    _ERROR_KB_DIR.mkdir(parents=True, exist_ok=True)
+    _resolve_kb_dir().mkdir(parents=True, exist_ok=True)
     cutoff = time.time() - days * 86400
     entries = []
-    for f in _ERROR_KB_DIR.glob("error_*.json"):
+    for f in _resolve_kb_dir().glob("error_*.json"):
         try:
             with open(f, "r", encoding="utf-8") as fh:
                 e = json.load(fh)
@@ -751,7 +759,7 @@ async def autofix_run(
             "error_text_tail": error_text[:1000],
             "project": cwd,
         }
-        saved_path = _save_to_kb(kb_entry)
+        saved_path = _save_to_kb(kb_entry, cwd=cwd)
         lines.append(f"\n💾 Error saved to knowledge base: {saved_path}")
 
     # Show stderr tail
@@ -821,7 +829,7 @@ async def autofix_save_error(
         "error_text_tail": context[:1000] or error_message[:1000],
         "project": project or os.getcwd(),
     }
-    path = _save_to_kb(entry)
+    path = _save_to_kb(entry, cwd=project or os.getcwd())
     return f"✅ Error saved to knowledge base: {path}"
 
 
