@@ -22,7 +22,7 @@ EXPECTED_SERVERS = {
     "bash", "think", "sqlite", "time", "filesystem", "memory",
     "git", "web", "github", "redis", "postgres", "vector",
     "browser", "diagnostics", "autofix", "context7", "research",
-    "agent",
+    "agent", "planner",
 }
 
 
@@ -259,6 +259,10 @@ def cmd_status():
         ).stdout.strip()
         if v:
             print(f"\n  MCPKU version: {v}")
+    except FileNotFoundError:
+        pass
+    except subprocess.TimeoutExpired:
+        print("\n  (git version check timed out)")
     except Exception:
         pass
 

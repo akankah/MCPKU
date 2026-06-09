@@ -23,7 +23,8 @@ Your System / Repo / DB / Browser / Logs
 ```
 
 > Status: personal project · Tested on Windows / Python 3.11+ ·
-> [PATCH_NOTES.md](PATCH_NOTES.md) · [MIT License](LICENSE)
+> [PATCH_NOTES.md](PATCH_NOTES.md) · [MIT License](LICENSE) ·
+> [![CI](https://github.com/akankah/MCPKU/actions/workflows/test.yml/badge.svg)](https://github.com/akankah/MCPKU/actions/workflows/test.yml)
 
 ---
 
@@ -238,33 +239,34 @@ Supported auto-fix strategies:
 
 ---
 
-## 18 MCP Servers
+## 21 MCP Servers
 
 Each server is a single self-contained Python file. Enable only what you need.
 
 | Server        | File                  | What it gives you                                                         |
 |---------------|-----------------------|---------------------------------------------------------------------------|
 | `bash`        | `mcp_bash.py`         | Sandboxed shell with command+argument denylist and git-subcommand ACL     |
-| `think`       | `mcp_think.py`        | Per-session chain-of-thought scratchpad (`new_session`, `think`, `reset`) |
+| `think`       | `mcp_think.py`        | Per-session chain-of-thought + stuck-pattern detector + lag detector      |
 | `time`        | `mcp_time.py`         | Current time, timezone conversion, IANA timezone listing                  |
 | `filesystem`  | `mcp_filesystem.py`   | Read/write/search/diff inside an allowlisted directory tree               |
 | `git`         | `mcp_git.py`          | Status, diff, log, commit, branch, merge, rebase, stash, tag, blame       |
-| `github`      | `mcp_github.py`       | ~65 tools: repos, issues, PRs, releases, gists, workflows, alerts        |
-| `web`         | `mcp_web.py`          | URL fetch + web search (DDG/Firecrawl) + Stack Overflow (API) + npm/PyPI/MDN/crates.io/DevDocs |
-| `context7`    | (npm `@upstash/context7-mcp`) | Up-to-date library docs fetcher — prevents outdated API/syntax from training data cutoff |
-| `vector`      | `mcp_vector.py`       | Postgres + `pgvector` + OpenAI embeddings, cosine similarity search       |
+| `github`      | `mcp_github.py`       | 68 tools: repos, issues, PRs, releases, gists, workflows, alerts, labels |
+| `web`         | `mcp_web.py`          | URL fetch + web search (DDG/Firecrawl) + Stack Overflow + npm/PyPI/MDN/crates/DevDocs |
+| `context7`    | (npm `@upstash/context7-mcp`) | Up-to-date library docs — prevents stale API/syntax from training cutoff |
+| `vector`      | `mcp_vector.py`       | Postgres + pgvector + OpenAI embeddings, cosine similarity search          |
 | `postgres`    | `mcp_postgres.py`     | Read-only SQL with retry+backoff and connection pool                      |
 | `sqlite`      | `mcp_sqlite.py`       | Read/write queries, schema introspection, identifier-safe PRAGMA          |
 | `redis`       | `mcp_redis.py`        | Strings, lists, sets, hashes, TTL, FLUSHDB with 2-step confirmation       |
 | `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
-| `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (snapshot, click, fill, screenshot)      |
-| `diagnostics` | `mcp_diagnostics.py`  | Auto-parse, classify, and explain errors from any command output          |
-| `autofix`     | `mcp_autofix.py`      | Closed-loop debugging + parallel search (web/GitHub/SO) + error knowledge base (error_kb/ + pgvector) + trend dashboard |
-| `workflow`    | `mcp_workflow.py`     | Autonomous workflow orchestrator (DAG execution, task self-healing, state tracking, resume support) |
-| `state`       | `mcp_state.py`        | Workflow execution status tracker (Black Box Recorder, resume support) |
-| `planner`     | `mcp_planner.py`      | AI-driven task graph generator (integrates with Memory, portable path support) |
-| `research`    | `mcp_research.py`     | Semantic consensus engine: `query`/`quick`/`deep` — runs 6 web sources + diagnostics + memory via `asyncio.gather`, uses embedding-based cosine similarity for source agreement, returns structured JSON with 0-100 confidence score |
-| `agent`       | `agentku_buat_chat.py`| Autonomous orchestration agent: uses `planner/` + `mcp_manifest.py` (140 tools, 12 categories) for dynamic tool discovery, DAG-based execution with parallel task groups |
+| `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (fetch, screenshot)                      |
+| `diagnostics` | `mcp_diagnostics.py`  | Parse, classify, explain errors from any command output (Py/JS/Rust/Go)  |
+| `autofix`     | `mcp_autofix.py`      | Closed-loop debug: auto-fix + parallel search (web/GitHub/SO) + error KB |
+| `workflow`    | `mcp_workflow.py`     | DAG workflow orchestrator with state tracking and resume support          |
+| `state`       | `mcp_state.py`        | Workflow execution status tracker (JSONL-based Black Box Recorder)        |
+| `planner`     | `mcp_planner.py`      | AI-driven DAG task graph generator (planner/ package)                     |
+| `research`    | `mcp_research.py`     | Semantic consensus engine: query/quick/deep with embedding-based agreement|
+| `manifest`    | `mcp_manifest.py`     | Central tool metadata registry (140+ tools, 12 categories)                |
+| `agent`       | `agentku_buat_chat.py`| Autonomous agent: planner + manifest for dynamic tool discovery           |
 
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by
 `postgres`, `vector`, `web`). Not a standalone server.
@@ -531,7 +533,7 @@ parallel([
 ```bash
 pip install -r requirements.txt
 playwright install chromium
-python -m pytest tests/ -v    # 175 tests (164 passed + 11 skipped), ~23 seconds (incl. 11 bifrost integration + 7 perf benchmark tests)
+python -m pytest tests/ -v    # 288 tests, ~24 seconds
 ```
 
 ### Auto-load in every OpenCode session
@@ -729,21 +731,34 @@ pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-**175 tests** across 18 server modules (164 passed + 11 skipped). Pure unit
-tests with no network, DB, or browser dependency. Runs in ~23 seconds.
+**288 tests** across 24 server modules. Pure unit tests with no network, DB,
+or browser dependency. Runs in ~24 seconds.
 
 | Module | Tests | What's covered |
 |---|---|---|
-| `test_diagnostics.py` | 39 | Error classification, traceback parsing (Python/Node/Rust), language detection, history |
+| `test_diagnostics.py` | 39 | Error classification, traceback parsing, language detection, history |
 | `test_bash.py` | 15 | Command allowlist, argument denylist, git ACL, injection blocking |
 | `test_autofix.py` | 29 | Fix handlers, module extraction, async run loop with mocked shell |
 | `test_sqlite.py` | 13 | Identifier validation, CRUD operations |
 | `test_vector.py` | 9 | Fallback embeddings, collection name sanitization |
 | `test_postgres.py` | 4 | Retry with exponential backoff |
-| `test_think.py` | 15 | Per-session chain-of-thought + **stuck-pattern detector** (triggers websearch demand after 2 retry thoughts) + semantic repetition detection + lag detector |
-| `test_verify_setup.py` | 10 | JSONC comment stripping, server path validation, expected server count (18), dispatcher |
-| `test_autofallback.py` | manual | Knowledge-graph smoke test (run directly: `python tests/test_autofallback.py`) |
-| `test_*` (6 more) | 23 | Git flag protection, memory persistence, timezone, HTML parsing, filesystem paths, Redis flush tokens |
+| `test_think.py` | 15 | Chain-of-thought + stuck-pattern detector + lag detector |
+| `test_verify_setup.py` | 10 | JSONC stripping, path validation, dispatcher |
+| `test_research.py` | 26 | Cosine similarity, lexical overlap, keyword extraction, language detection, JSON parsing |
+| `test_web.py` | 5 | HTML-to-text conversion |
+| `test_workflow.py` | 11 | Schema, refs, state loading, event append |
+| `test_github.py` | 21 | HTTP helpers, _api, tool integration with mocked HTTP |
+| `test_browser.py` | 6 | URL normalization, error handling, text truncation |
+| `test_memory.py` | 3 | Graph save/reload with observations |
+| `test_redis.py` | 3 | Flush token generation, expiry, validation |
+| `test_git.py` | 5 | Flag protection |
+| `test_time.py` | 4 | Timezone resolution |
+| `test_filesystem.py` | 3 | Path normalization, allowlist checking |
+| `test_perf.py` | 7 | Benchmark: parallel batching, lag detector overhead, timeout safety |
+| `test_autofallback.py` | 7 | Memory autofallback with mocked knowledge graph |
+| `test_manifest.py` | 20 | ToolEntry dataclass, TOOL_MANIFEST integrity, category helpers |
+| `test_state.py` | 11 | Workflow state init/update with tempfile isolation |
+| `test_cache.py` | 17 | Key normalization, Redis abstraction, silent degradation |
 
 ---
 

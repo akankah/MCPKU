@@ -8,3 +8,8 @@ __pycache__/
 .venv/
 venv/
 *.rar
+error_kb/
+memory.jsonl
+workflow_state.jsonl
+output/
+.pytest_cache/

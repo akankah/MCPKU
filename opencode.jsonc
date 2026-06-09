@@ -40,7 +40,7 @@
       "name": "Free Zhipu AI",
       "options": {
         "baseURL": "https://open.bigmodel.cn/api/paas/v4",
-        "apiKey": "6cd523bc88ce4633965dce0bd811a24d.jhnyjKZLoKpI8usr"
+        "apiKey": "${ZHIPUAI_API_KEY}"
       },
       "models": {
         "glm-4-flash": {}  // free
@@ -69,7 +69,7 @@
       "name": "Free Mistral",
       "options": {
         "baseURL": "https://api.mistral.ai/v1",
-        "apiKey": "dtxJfZU9j7MOJ76gIigzB8WARGN7Vdbj"
+        "apiKey": "${MISTRAL_API_KEY}"
       },
       "models": {
         "open-mistral-7b": {},
@@ -100,7 +100,7 @@
       "name": "Free NVIDIA NIM",
       "options": {
         "baseURL": "https://integrate.api.nvidia.com/v1",
-        "apiKey": "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"
+        "apiKey": "${NVIDIA_API_KEY}"
       },
       "models": {
         "nvidia/nemotron-3-ultra-550b-a55b": {},
@@ -119,7 +119,7 @@
       "name": "Free Kilo Gateway",
       "options": {
         "baseURL": "https://api.kilo.ai/api/gateway",
-        "apiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbnYiOiJwcm9kdWN0aW9uIiwia2lsb1VzZXJJZCI6IjVmNDQ4MDMxLTEzMTUtNGYzZi1hMjZjLTQ5YjQyMDk0MDk1NiIsImFwaVRva2VuUGVwcGVyIjpudWxsLCJ2ZXJzaW9uIjozLCJpYXQiOjE3ODA5NDY5MzcsImV4cCI6MTkzODYyNjkzN30.VvXTMn7_O8JGW43m8MPwvCMOj0bxevDeh-M6wOrCalg"
+        "apiKey": "${KILO_API_KEY}"
       },
       "models": {
         "stepfun/step-3.7-flash:free": {},
@@ -136,7 +136,7 @@
       "options": {
         "baseURL": "https://llm.kimchi.dev/openai/v1",
         "litellmProxy": true,
-        "apiKey": "castai_v1_a4396886a858db82555f2819e2b1c6faea2ed73e0e61d1d1e2f4a3d99610f5f1_3e6089f2"
+        "apiKey": "${KIMCHI_API_KEY}"
       },
       "models": {
         "kimi-k2.6": {},
@@ -193,8 +193,9 @@
   //   playwright install chromium
   //   # mcp_cache is a local module shipped in this repo, no install needed
   //
-  // Secrets below are placeholders. Set real values locally — DO NOT commit.
-  // opencode interpolates ${ENV_VAR} inside env values, so prefer that form.
+  // 🔴 CRITICAL: All API keys use ${ENV_VAR} interpolation.
+  // NEVER put literal key values here — they will be committed to git.
+  // Set real values in shell env or .env file.
 
   // ===== LOCK with approval: E:\MCPKU edits harus minta ijin dulu =====
   // Aturan: last matching wins. Path pakai kedua varian (slash/backslash) karena beda tool normalisasi beda.

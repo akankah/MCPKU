@@ -80,5 +80,5 @@ class TestExpectedServers:
         assert "autofix" in verify_setup.EXPECTED_SERVERS
         assert "diagnostics" in verify_setup.EXPECTED_SERVERS
 
-    def test_count_is_18(self):
-        assert len(verify_setup.EXPECTED_SERVERS) == 18
+    def test_count_is_19(self):
+        assert len(verify_setup.EXPECTED_SERVERS) == 19

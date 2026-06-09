@@ -12,11 +12,13 @@ Depends on: mcp_diagnostics.py (for parse/classify functions)
 """
 
 import asyncio
+import hashlib
 import json
 import os
 import re
-import sys
 import shlex
+import struct
+import time
 from pathlib import Path
 from datetime import datetime
 from mcp.server.fastmcp import FastMCP
@@ -30,6 +32,7 @@ from mcp_diagnostics import (
 )
 from mcp_web import search_web, search_stackoverflow
 from mcp_github import search_issues
+from error_data import FIX_SUGGESTIONS, FIX_STRATEGIES_DESC
 
 mcp = FastMCP(
     "autofix",
@@ -153,59 +156,7 @@ FIX_HANDLERS: dict[str, callable] = {
     "Python.IndentationError": _h_black_format,
 }
 
-FIX_STRATEGIES_DESC = {
-    "Python.ImportError": "pip install <package> (auto-extract)",
-    "Python.ModuleNotFoundError": "pip install <package> (auto-extract)",
-    "JS.ModuleNotFound": "npm install <package> (auto-extract)",
-    "Python.FileNotFound": "mkdir parent directory (auto-extract path)",
-    "JS.ENOENT": "mkdir parent directory (auto-extract path)",
-    "JS.EADDRINUSE": "netstat + taskkill / lsof -ti:PORT | kill (auto-extract port)",
-    "Go.BuildError": "go mod tidy",
-    "Python.IndentationError": "black <file> (auto-extract file from traceback)",
-}
-
-FIX_SUGGESTIONS = {
-    "Python.ImportError": "Missing Python package. Use pip install <package>.",
-    "Python.ModuleNotFoundError": "Missing Python module. Use pip install <package>.",
-    "JS.ModuleNotFound": "Missing npm package. Use npm install <package>.",
-    "Python.SyntaxError": "Check for missing brackets, colons, or indentation.",
-    "Python.IndentationError": "Fix indentation — mix of tabs/spaces.",
-    "Python.NameError": "Check variable/function name for typos.",
-    "Python.TypeError": "Check types — use type() or isinstance().",
-    "Python.AttributeError": "Check attribute name or None object.",
-    "Python.FileNotFound": "Check file path and current working directory.",
-    "Python.KeyError": "Use dict.get(key) instead of dict[key].",
-    "Python.IndexError": "Check list length before accessing index.",
-    "Python.ValueError": "Check input value and type conversion.",
-    "Python.RuntimeError": "Generic runtime error — read full traceback.",
-    "Python.RecursionError": "Add base case or switch to iteration.",
-    "Python.MemoryError": "Reduce data in memory or process in batches.",
-    "Python.PermissionError": "Run as admin or check file permissions.",
-    "Python.TimeoutError": "Increase timeout or optimize operation.",
-    "Python.AssertionError": "Check asserted condition.",
-    "Python.ZeroDivision": "Add denominator check.",
-    "JS.ReferenceError": "Check variable declaration (let/const/var).",
-    "JS.TypeError": "Check for undefined/null before access.",
-    "JS.SyntaxError": "Check brackets, commas, or keywords.",
-    "JS.UnhandledRejection": "Add .catch() or async/await try block.",
-    "JS.ENOENT": "Check file path.",
-    "JS.EACCES": "Check permissions.",
-    "JS.EADDRINUSE": "Change port or kill existing process.",
-    "Rust.Panic": "Read panic message for location and cause.",
-    "Rust.CompileError": "Check error code at doc.rust-lang.org.",
-    "Rust.BorrowError": "Fix ownership and lifetimes.",
-    "Go.Panic": "Read stack trace for panic location.",
-    "Go.BuildError": "Check line/column in error message.",
-    "DB.ConnectionError": "Ensure DB is running and connection string is correct.",
-    "DB.Syntax": "Check SQL syntax and quotes.",
-    "DB.UniqueViolation": "Use INSERT OR IGNORE or upsert.",
-    "DB.ForeignKey": "Ensure parent data exists.",
-    "General.Timeout": "Increase timeout, optimize, or check network.",
-    "General.OOM": "Reduce RAM usage or use streaming.",
-    "General.SegFault": "Check null/invalid memory access.",
-    "General.Permission": "Check permissions or run with higher privileges.",
-    "General.NetworkError": "Check internet, firewall, and server status.",
-}
+# FIX_STRATEGIES_DESC and FIX_SUGGESTIONS imported from error_data
 
 
 def _build_fix_commands(error_types: list[str], error_text: str, cwd: str = "") -> list[tuple[str, str]]:
@@ -402,36 +353,36 @@ _DATABASE_URL = os.environ.get("DATABASE_URL", "")
 _EMBEDDING_DIM = int(os.environ.get("VECTOR_EMBEDDING_DIM", "1536"))
 
 
-def _embed_text(text: str) -> list[float]:
-    """Embed text using OpenAI (if key available) or deterministic hash fallback."""
-    import hashlib, struct, numpy as np
+def _embed_text(text: str) -> list[float] | None:
+    """Embed text using OpenAI API. Returns None if API key is missing or call fails."""
     api_key = os.environ.get("OPENAI_API_KEY", "")
-    if api_key:
-        try:
-            from openai import OpenAI
-            client = OpenAI(api_key=api_key)
-            r = client.embeddings.create(
-                model=os.environ.get("VECTOR_EMBEDDING_MODEL", "text-embedding-3-small"),
-                input=[text],
-            )
-            return r.data[0].embedding
-        except Exception:
-            pass
-    h = hashlib.sha256(text.encode()).digest()
-    vec = [struct.unpack('f', h[i:i+4])[0] for i in range(0, min(64, len(h)-3), 4)]
-    vec = vec * (_EMBEDDING_DIM // len(vec) + 1)
-    vec = vec[:_EMBEDDING_DIM]
-    norm = np.linalg.norm(vec)
-    return (np.array(vec) / norm).tolist() if norm > 0 else vec
+    if not api_key:
+        return None
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        r = client.embeddings.create(
+            model=os.environ.get("VECTOR_EMBEDDING_MODEL", "text-embedding-3-small"),
+            input=[text],
+        )
+        return r.data[0].embedding
+    except Exception:
+        return None
+
+
+_VECTOR_CONN = None
+_VECTOR_TABLE_INIT = False
 
 
 def _vector_conn():
-    import psycopg2
-    if not _DATABASE_URL:
-        raise ValueError("DATABASE_URL not set")
-    conn = psycopg2.connect(_DATABASE_URL)
-    conn.autocommit = True
-    return conn
+    global _VECTOR_CONN
+    if _VECTOR_CONN is None:
+        import psycopg2
+        if not _DATABASE_URL:
+            raise ValueError("DATABASE_URL not set")
+        _VECTOR_CONN = psycopg2.connect(_DATABASE_URL)
+        _VECTOR_CONN.autocommit = True
+    return _VECTOR_CONN
 
 
 def _vec_table() -> str:
@@ -440,6 +391,9 @@ def _vec_table() -> str:
 
 
 def _ensure_vector_table():
+    global _VECTOR_TABLE_INIT
+    if _VECTOR_TABLE_INIT:
+        return
     conn = _vector_conn()
     cur = conn.cursor()
     cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
@@ -455,17 +409,20 @@ def _ensure_vector_table():
     """)
     cur.execute(f"CREATE INDEX IF NOT EXISTS {tbl}_idx ON {tbl} USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)")
     cur.close()
+    _VECTOR_TABLE_INIT = True
 
 
 def _save_to_vector(entry: dict) -> bool:
     if not _DATABASE_URL:
         return False
     try:
-        _ensure_vector_table()
-        tbl = _vec_table()
         text = f"{' '.join(entry.get('error_types', []))} {entry.get('error_message', '')} {entry.get('command', '')}"
         emb = _embed_text(text)
+        if emb is None:
+            return False
         emb_str = "[" + ",".join(str(v) for v in emb) + "]"
+        _ensure_vector_table()
+        tbl = _vec_table()
         doc_id = entry.get("timestamp", datetime.now().isoformat())
         meta = json.dumps({
             "command": entry.get("command", ""),
@@ -491,10 +448,12 @@ def _vector_search_kb(query: str, limit: int = 5, min_score: float = 0.0) -> lis
     if not _DATABASE_URL:
         return []
     try:
+        qvec = _embed_text(query)
+        if qvec is None:
+            return []
+        emb_str = "[" + ",".join(str(v) for v in qvec) + "]"
         _ensure_vector_table()
         tbl = _vec_table()
-        qvec = _embed_text(query)
-        emb_str = "[" + ",".join(str(v) for v in qvec) + "]"
         conn = _vector_conn()
         cur = conn.cursor()
         cur.execute(f"""
@@ -523,7 +482,6 @@ def _vector_search_kb(query: str, limit: int = 5, min_score: float = 0.0) -> lis
 # ── Trend analysis ───────────────────────────────────────────────────
 
 def _kb_trends(days: int = 30) -> dict:
-    import time
     _resolve_kb_dir().mkdir(parents=True, exist_ok=True)
     cutoff = time.time() - days * 86400
     entries = []
@@ -608,11 +566,21 @@ async def autofix_run(
         f"Max retries: {max_retries}",
     ]
 
-    # Safety check
-    dangerous = ["rm -rf", "format ", "shutdown", "del /f", ":(){", ">("]
-    for d in dangerous:
-        if d.lower() in command.lower():
-            return f"(blocked: command contains dangerous pattern '{d}')"
+    # Safety check — regex with word boundaries, covers more variants
+    _DANGEROUS_PATTERNS = [
+        (r'\brm\s+-[rf]+\b', "rm -rf recursive delete"),
+        (r'\bRemove-Item\b.*-Recurse', "PowerShell recursive delete"),
+        (r'\brd\s+/[sS]\s+/[qQ]\b', "rd /s /q recursive delete"),
+        (r'\b(shutdown|Stop-Computer)\b', "system shutdown"),
+        (r'\b(del|erase|Remove-Item)\b.*/([fs]|Force)', "forced file delete"),
+        (r'format\s+\w:', "drive format"),
+        (r':\(\)\s*\{|:\(\)\s*\|', "bash fork bomb"),
+        (r'>\s*/dev/\w+', "destructive redirect"),
+        (r'\b(dd|mkfs|fdisk)\b', "disk write command"),
+    ]
+    for pattern, desc in _DANGEROUS_PATTERNS:
+        if re.search(pattern, command, re.IGNORECASE):
+            return f"(blocked: command contains dangerous pattern '{desc}')"
 
     attempt = 0
     applied_fixes = []
@@ -633,12 +601,13 @@ async def autofix_run(
             if stderr.strip():
                 lines.append(f"\n[stderr]\n{stderr[:1000]}")
 
-            # Auto-commit if requested
+            # Auto-commit if requested (only tracked files, no untracked)
             if auto_commit and applied_fixes:
                 msg = commit_message or f"autofix: {', '.join(applied_fixes)}"
+                safe_msg = shlex.quote(msg)
                 try:
                     git_proc = await _run_shell(
-                        f'git add -A && git commit -m "{msg}"',
+                        f'git commit -a -m {safe_msg}',
                         cwd=cwd, timeout=30
                     )
                     if git_proc["success"]:

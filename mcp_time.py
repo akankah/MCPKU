@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, available_timezones
@@ -85,8 +86,6 @@ async def list_timezones(query: str = None) -> str:
     if len(tzones) > 50:
         return f"Found {len(tzones)} timezones (showing first 50):\n" + "\n".join(tzones[:50])
     return "\n".join(tzones)
-
-import json
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

@@ -26,66 +26,40 @@ def _headers():
         h["Authorization"] = f"Bearer {GITHUB_TOKEN}"
     return h
 
-def _get(path, params=None):
+def _api(method: str, path: str, **kwargs) -> dict:
+    """Generic GitHub API caller. method: get/post/patch/put/delete."""
     url = f"{API_BASE}{path}"
+    req_kwargs = {"headers": _headers(), "timeout": 15}
+    if method in ("post", "patch", "put") and "data" in kwargs:
+        req_kwargs["json"] = kwargs.pop("data")
+    if "params" in kwargs:
+        req_kwargs["params"] = kwargs.pop("params")
     try:
-        r = requests.get(url, headers=_headers(), params=params, timeout=15)
+        r = requests.request(method, url, **req_kwargs)
         r.raise_for_status()
+        if method == "delete" and r.status_code == 204:
+            return {"deleted": True}
         return r.json()
     except requests.exceptions.HTTPError as e:
         body = e.response.text[:300]
         return {"error": f"HTTP {e.response.status_code}: {body}"}
     except Exception as e:
         return {"error": str(e)}
+
+def _get(path, params=None):
+    return _api("get", path, params=params)
 
 def _post(path, data=None):
-    url = f"{API_BASE}{path}"
-    try:
-        r = requests.post(url, headers=_headers(), json=data, timeout=15)
-        r.raise_for_status()
-        return r.json()
-    except requests.exceptions.HTTPError as e:
-        body = e.response.text[:300]
-        return {"error": f"HTTP {e.response.status_code}: {body}"}
-    except Exception as e:
-        return {"error": str(e)}
+    return _api("post", path, data=data)
 
 def _patch(path, data):
-    url = f"{API_BASE}{path}"
-    try:
-        r = requests.patch(url, headers=_headers(), json=data, timeout=15)
-        r.raise_for_status()
-        return r.json()
-    except requests.exceptions.HTTPError as e:
-        body = e.response.text[:300]
-        return {"error": f"HTTP {e.response.status_code}: {body}"}
-    except Exception as e:
-        return {"error": str(e)}
+    return _api("patch", path, data=data)
 
 def _put(path, data=None):
-    url = f"{API_BASE}{path}"
-    try:
-        r = requests.put(url, headers=_headers(), json=data, timeout=15)
-        r.raise_for_status()
-        return r.json()
-    except requests.exceptions.HTTPError as e:
-        body = e.response.text[:300]
-        return {"error": f"HTTP {e.response.status_code}: {body}"}
-    except Exception as e:
-        return {"error": str(e)}
+    return _api("put", path, data=data)
 
 def _delete(path):
-    url = f"{API_BASE}{path}"
-    try:
-        r = requests.delete(url, headers=_headers(), timeout=15)
-        if r.status_code != 204:
-            return r.json()
-        return {"deleted": True}
-    except requests.exceptions.HTTPError as e:
-        body = e.response.text[:300]
-        return {"error": f"HTTP {e.response.status_code}: {body}"}
-    except Exception as e:
-        return {"error": str(e)}
+    return _api("delete", path)
 
 def _format_repo(r):
     return (

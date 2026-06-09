@@ -178,7 +178,8 @@ def _extract_keywords(text: str, max_words: int = 8) -> str:
             "that", "these", "those", "what", "which", "who", "whom", "how",
             "why", "when", "where", "and", "or", "but", "if", "so", "not"}
     words = re.findall(r"\b[a-zA-Z][a-zA-Z0-9_-]{2,}\b", text.lower())
-    return " ".join(w for w in words if w not in stop)[:200]
+    filtered = [w for w in words if w not in stop]
+    return " ".join(filtered[:max_words])
 
 
 def _detect_language(text: str) -> str:
