@@ -86,6 +86,7 @@ async def run_command(command: str, timeout: int = 30, workdir: str = "") -> str
     if denied:
         return f"(denied: {denied})"
 
+    proc = None
     try:
         proc = await asyncio.create_subprocess_shell(
             command,
@@ -111,8 +112,20 @@ async def run_command(command: str, timeout: int = 30, workdir: str = "") -> str
         return result
 
     except asyncio.TimeoutError:
+        if proc:
+            try:
+                proc.kill()
+                await proc.wait()
+            except Exception:
+                pass
         return f"(timeout after {timeout}s)"
     except Exception as e:
+        if proc:
+            try:
+                proc.kill()
+                await proc.wait()
+            except Exception:
+                pass
         return f"(error: {e})"
 
 
