@@ -1,6 +1,8 @@
 import os, json, re, threading, asyncio, time
 from functools import partial
 from urllib.parse import urlparse
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Callable, TypeVar
 from mcp_cache import cache_get, cache_set
 from mcp.server.fastmcp import FastMCP
 
@@ -15,15 +17,14 @@ _pool_lock = threading.Lock()
 _executor = None
 
 
-def _get_executor():
+def _get_executor() -> ThreadPoolExecutor:
     global _executor
     if _executor is None:
-        from concurrent.futures import ThreadPoolExecutor
         _executor = ThreadPoolExecutor(max_workers=DB_POOL_MAX, thread_name_prefix="pg")
     return _executor
 
 
-def _get_pool():
+def _get_pool() -> Any:
     global _pool
     if _pool is None:
         with _pool_lock:
@@ -34,7 +35,7 @@ def _get_pool():
     return _pool
 
 
-def _get_conn_sync(connection_string: str = None):
+def _get_conn_sync(connection_string: str | None = None) -> tuple:
     cs = connection_string or DATABASE_URL
     if not cs:
         raise ValueError("DATABASE_URL not configured.")
@@ -54,14 +55,16 @@ def _get_conn_sync(connection_string: str = None):
     return conn, False  # False = dari pool, harus dikembalikan
 
 
-def _put_conn_sync(conn, is_dedicated: bool):
+def _put_conn_sync(conn, is_dedicated: bool) -> None:
     if is_dedicated:
         conn.close()
     else:
         _get_pool().putconn(conn)
 
 
-def _retry_sync(fn, retries: int = 3, backoff: float = 0.5):
+T = TypeVar('T')
+
+def _retry_sync(fn: Callable[[], T], retries: int = 3, backoff: float = 0.5) -> T:
     """Retry dengan exponential backoff untuk transient errors."""
     import psycopg2
     last_err = None
@@ -90,7 +93,7 @@ async def list_tables(connection_string: str = "") -> str:
     if cached is not None:
         return cached
 
-    def _sync():
+    def _sync() -> list:
         conn, dedicated = _get_conn_sync(connection_string)
         try:
             cur = conn.cursor()
@@ -136,7 +139,7 @@ async def query(sql: str, connection_string: str = "", max_rows: int = 100) -> s
     if cached is not None:
         return cached
 
-    def _sync():
+    def _sync() -> list:
         import psycopg2.extras
         conn, dedicated = _get_conn_sync(connection_string)
         try:
@@ -198,7 +201,7 @@ async def describe_table(table_name: str, connection_string: str = "") -> str:
     if cached is not None:
         return cached
 
-    def _sync():
+    def _sync() -> list:
         conn, dedicated = _get_conn_sync(connection_string)
         try:
             cur = conn.cursor()
@@ -241,7 +244,7 @@ async def describe_table(table_name: str, connection_string: str = "") -> str:
 async def get_table_schema(table_name: str) -> str:
     schema, tbl = ("public", table_name) if "." not in table_name else table_name.split(".", 1)
 
-    def _sync():
+    def _sync() -> list:
         conn, dedicated = _get_conn_sync()
         try:
             cur = conn.cursor()
@@ -268,7 +271,7 @@ async def get_table_schema(table_name: str) -> str:
 @mcp.resource(uri="postgres://tables", name="All Tables",
               description="List of all tables", mime_type="application/json")
 async def get_all_tables() -> str:
-    def _sync():
+    def _sync() -> list:
         conn, dedicated = _get_conn_sync()
         try:
             cur = conn.cursor()

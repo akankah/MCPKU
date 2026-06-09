@@ -21,6 +21,7 @@ import struct
 import time
 from pathlib import Path
 from datetime import datetime
+from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from mcp_diagnostics import (
@@ -176,7 +177,7 @@ def _can_auto_fix(error_types: list[str]) -> bool:
 _autofix_history: list[dict] = []
 
 
-def _record(entry: dict):
+def _record(entry: dict) -> None:
     if _STATELESS:
         return
     _autofix_history.append(entry)
@@ -272,7 +273,7 @@ async def _search_kb_file(query: str, limit: int = 5) -> list[dict]:
     q_lower = query.lower()
     results = []
 
-    def _scan():
+    def _scan() -> list[dict]:
         out = []
         files = sorted(kb_dir.glob("error_*.json"), reverse=True)
         for f in files:
@@ -326,7 +327,7 @@ async def _kb_stats() -> dict:
     kb_dir = _resolve_kb_dir()
     await asyncio.to_thread(kb_dir.mkdir, parents=True, exist_ok=True)
 
-    def _scan():
+    def _scan() -> dict:
         total = 0
         by_type: dict[str, int] = {}
         by_project: dict[str, int] = {}
@@ -379,7 +380,7 @@ _VECTOR_CONN = None
 _VECTOR_TABLE_INIT = False
 
 
-def _vector_conn():
+def _vector_conn() -> Any:
     global _VECTOR_CONN
     if _VECTOR_CONN is None:
         import psycopg2
@@ -395,7 +396,7 @@ def _vec_table() -> str:
     return f"vec_{safe}"
 
 
-def _ensure_vector_table():
+def _ensure_vector_table() -> None:
     global _VECTOR_TABLE_INIT
     if _VECTOR_TABLE_INIT:
         return
@@ -421,7 +422,7 @@ async def _save_to_vector(entry: dict) -> bool:
     if not _DATABASE_URL:
         return False
 
-    def _sync():
+    def _sync() -> bool:
         try:
             text = f"{' '.join(entry.get('error_types', []))} {entry.get('error_message', '')} {entry.get('command', '')}"
             emb = _embed_text_sync(text)
@@ -457,7 +458,7 @@ async def _vector_search_kb(query: str, limit: int = 5, min_score: float = 0.0) 
     if not _DATABASE_URL:
         return []
 
-    def _sync():
+    def _sync() -> list:
         try:
             qvec = _embed_text_sync(query)
             if qvec is None:
@@ -517,7 +518,7 @@ async def _kb_trends(days: int = 30) -> dict:
     await asyncio.to_thread(kb_dir.mkdir, parents=True, exist_ok=True)
     cutoff = time.time() - days * 86400
 
-    def _scan():
+    def _scan() -> list:
         entries = []
         for f in kb_dir.glob("error_*.json"):
             try:

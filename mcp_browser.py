@@ -11,7 +11,7 @@ Note: Reuters blocks headless browsers entirely; try search_web instead.
 _playwright = None
 _browser = None
 
-async def _ensure_browser():
+async def _ensure_browser() -> None:
     global _playwright, _browser
     if _browser is None:
         _playwright = await async_playwright().start()
@@ -21,7 +21,7 @@ async def _ensure_browser():
                   "--disable-gpu", "--disable-dev-shm-usage"]
         )
 
-async def _new_page():
+async def _new_page() -> tuple:
     await _ensure_browser()
     ctx = await _browser.new_context(
         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",

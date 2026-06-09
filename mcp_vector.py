@@ -1,5 +1,6 @@
 import os, json, re, hashlib, struct
 from urllib.parse import urlparse
+from typing import Any, Optional
 
 import numpy as np
 from mcp.server.fastmcp import FastMCP
@@ -18,7 +19,7 @@ Set DATABASE_URL and OPENAI_API_KEY environment variables.
 
 _conn = None
 
-def _get_conn():
+def _get_conn() -> Any:
     global _conn
     if _conn is None:
         import psycopg2
@@ -29,7 +30,7 @@ def _get_conn():
         _conn.autocommit = True
     return _conn
 
-def _ensure_extension():
+def _ensure_extension() -> None:
     conn = _get_conn()
     cur = conn.cursor()
     cur.execute("CREATE EXTENSION IF NOT EXISTS vector")

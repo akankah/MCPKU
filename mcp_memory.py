@@ -73,7 +73,7 @@ If past fix matches current error → high confidence, apply. If mismatch → pr
 
 migrated = False
 
-def _ensure_jsonl():
+def _ensure_jsonl() -> None:
     global migrated
     if migrated: return
     if os.path.exists(MEMORY_JSON) and not os.path.exists(MEMORY_JSONL):

@@ -19,7 +19,7 @@ REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 _cache = None
 
 
-def _get_redis():
+def _get_redis() -> object | None:
     global _cache
     if _cache is None:
         try:

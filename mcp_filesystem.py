@@ -14,7 +14,7 @@ Set MCP_FS_ALLOW_ALL=0 and use MCP_EXTRA_ALLOWED_DIR to tighten scope.
 ALLOW_ALL = os.environ.get("MCP_FS_ALLOW_ALL", "0") == "1"
 
 # Normalize allowed dirs with trailing separator to prevent prefix collisions
-def _norm_allowed(d):
+def _norm_allowed(d: str) -> str:
     rp = os.path.realpath(d)
     return rp if rp.endswith(os.sep) else rp + os.sep
 

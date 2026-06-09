@@ -18,6 +18,7 @@ Architecture:
 
 import json
 import os
+from typing import Any, Callable
 
 from mcp.server.fastmcp import FastMCP
 
@@ -49,9 +50,9 @@ to avoid redundant API calls. Use ?nocache=true in URL to bypass cache.
 """)
 
 
-def _wrap(fn):
+def _wrap(fn: Callable[..., Any]) -> Callable[..., Any]:
     """Wrap impl function: call it, return JSON string."""
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args: Any, **kwargs: Any) -> str:
         result = await fn(*args, **kwargs)
         return json.dumps(result, ensure_ascii=False)
     return wrapper

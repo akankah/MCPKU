@@ -17,8 +17,8 @@ discussions, notifications, organizations, labels, actions workflows, and more.
 Requires GITHUB_API_KEY environment variable.
 """)
 
-def _headers():
-    h = {
+def _headers() -> dict[str, str]:
+    h: dict[str, str] = {
         "User-Agent": "mcp-github-server",
         "Accept": "application/vnd.github.v3+json",
     }
@@ -46,22 +46,22 @@ def _api(method: str, path: str, **kwargs) -> dict:
     except Exception as e:
         return {"error": str(e)}
 
-def _get(path, params=None):
+def _get(path: str, params: dict | None = None) -> dict:
     return _api("get", path, params=params)
 
-def _post(path, data=None):
+def _post(path: str, data: dict | None = None) -> dict:
     return _api("post", path, data=data)
 
-def _patch(path, data):
+def _patch(path: str, data: dict) -> dict:
     return _api("patch", path, data=data)
 
-def _put(path, data=None):
+def _put(path: str, data: dict | None = None) -> dict:
     return _api("put", path, data=data)
 
-def _delete(path):
+def _delete(path: str) -> dict:
     return _api("delete", path)
 
-def _format_repo(r):
+def _format_repo(r: dict) -> str:
     return (
         f"Name: {r.get('full_name')}\n"
         f"Description: {r.get('description', '')}\n"

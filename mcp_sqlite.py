@@ -2,6 +2,7 @@ import os, sys, json, sqlite3, asyncio, re
 from pathlib import Path
 from contextlib import closing
 from functools import partial
+from concurrent.futures import ThreadPoolExecutor
 from mcp.server.fastmcp import FastMCP
 
 if sys.platform == "win32" and os.environ.get("PYTHONIOENCODING") is None:
@@ -24,10 +25,9 @@ _insights: list[str] = []
 _executor = None
 
 
-def _get_executor():
+def _get_executor() -> ThreadPoolExecutor:
     global _executor
     if _executor is None:
-        from concurrent.futures import ThreadPoolExecutor
         _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="sqlite")
     return _executor
 

@@ -38,13 +38,13 @@ _TOOL_META: dict[str, dict] = {}
 _policy = ExecutionPolicy()
 
 
-def _reg(name: str, fn: Any, meta: dict = None):
+def _reg(name: str, fn: Any, meta: dict | None = None) -> None:
     _TOOL_REGISTRY[name] = fn
     if meta:
         _TOOL_META[name] = meta
 
 
-def _register_all():
+def _register_all() -> None:
     from mcp_manifest import register_all as _ra, get_tool
     _ra(_TOOL_REGISTRY)
     for name in list(_TOOL_REGISTRY.keys()):
@@ -473,7 +473,7 @@ async def _auto_research(query: str, max_fetch: int = 3) -> str:
 
     firecrawl_key = os.environ.get("FIRECRAWL_API_KEY", "")
 
-    async def _fc_search():
+    async def _fc_search() -> str:
         if not firecrawl_key:
             return ""
         try:

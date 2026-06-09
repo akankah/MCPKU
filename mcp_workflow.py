@@ -55,7 +55,7 @@ def _schema() -> dict:
 def _resolve_refs(text: str, context: dict, query: str) -> str:
     """Resolve {query} and {outputs.step_id.key} placeholders."""
 
-    def _replace(m):
+    def _replace(m: re.Match) -> str:
         full = m.group(1)
         if full == "query":
             return query

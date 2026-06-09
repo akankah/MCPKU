@@ -1,4 +1,5 @@
 import os, json, time, threading, secrets
+from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
@@ -23,7 +24,7 @@ Config via env:
 """)
 
 
-def _r():
+def _r() -> Any:
     global _pool, _r_client
     if _pool is None:
         with _pool_lock:
