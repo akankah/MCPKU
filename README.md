@@ -245,7 +245,7 @@ Each server is a single self-contained Python file. Enable only what you need.
 
 | Server        | File                  | What it gives you                                                         |
 |---------------|-----------------------|---------------------------------------------------------------------------|
-| `bash`        | `mcp_bash.py`         | Sandboxed shell with command+argument denylist and git-subcommand ACL     |
+| `bash`        | `mcp_bash.py`         | Sandboxed shell with allowlist + argument denylist + timeout orphan kill  |
 | `think`       | `mcp_think.py`        | Per-session chain-of-thought + stuck-pattern detector + lag detector      |
 | `time`        | `mcp_time.py`         | Current time, timezone conversion, IANA timezone listing                  |
 | `filesystem`  | `mcp_filesystem.py`   | Read/write/search/diff inside an allowlisted directory tree               |
@@ -713,6 +713,7 @@ MCPKU Server  ──── stdio ────→  Python process
 
 - `bash` — command allowlist + argument denylist (wildcard deletes, `-rf`,
   subshell injection, etc.). Git restricted to explicit subcommand allowlist.
+  Orphan process killed on timeout to prevent resource leaks.
 - `redis.flushdb` — 2-step: request issues a short-lived token, confirm
   consumes it.
 - `sqlite` — identifier validation via regex before PRAGMA interpolation.
