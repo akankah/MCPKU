@@ -1,6 +1,189 @@
 {
   "$schema": "https://opencode.ai/config.json",
 
+  "disabled_providers": ["mistral", "groq", "zhipuai", "openrouter", "nvidia", "openai", "opencode-go", "ollama-cloud", "kilo"],
+
+  // B.AI custom provider — OpenAI-compatible
+  "provider": {
+    "bai": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "B.AI",
+      "options": {
+        "baseURL": "https://api.b.ai/v1"
+      },
+      "models": {
+        "gpt-5-mini": {},      // 0.25 / 2.00
+        "gpt-5-nano": {},      // 0.05 / 0.40
+        "gpt-5.2": {},         // 1.75 / 14.00
+        "gpt-5.4": {},         // 2.50 / 15.00
+        "gpt-5.4-mini": {},    // 0.75 / 4.50
+        "gpt-5.4-nano": {},    // 0.20 / 1.25
+        "claude-haiku-4-5": {},// 1.00 / 5.00
+        "claude-sonnet-4-5": {},//3.00 / 15.00
+        "claude-sonnet-4-6": {},//3.00 / 15.00
+        "deepseek-v3.2": {},   // 0.29 / 0.44
+        "deepseek-v4-pro": {}, // 0.87 / 1.74
+        "deepseek-v4-flash": {},//0.28 / 0.56
+        "gemini-3.1-pro": {},  // 2.00 / 12.00
+        "gemini-3.5-flash": {},// 1.50 / 9.00
+        "gemini-3-flash": {},  // 0.50 / 3.00
+        "glm-5.1": {},         // 1.40 / 4.40
+        "glm-5": {},           // 1.00 / 3.20
+        "kimi-k2.6": {},       // 0.95 / 4.00
+        "kimi-k2.5": {},       // 0.59 / 3.00
+        "minimax-m3": {},      // 0.30 / 1.20
+        "minimax-m2.7": {}     // 0.30 / 1.20
+      }
+    },
+    "free-zhipuai": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Free Zhipu AI",
+      "options": {
+        "baseURL": "https://open.bigmodel.cn/api/paas/v4",
+        "apiKey": "6cd523bc88ce4633965dce0bd811a24d.jhnyjKZLoKpI8usr"
+      },
+      "models": {
+        "glm-4-flash": {}  // free
+      }
+    },
+    "free-groq": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Free Groq",
+      "options": {
+        "baseURL": "https://api.groq.com/openai/v1",
+        "apiKey": "YOUR_GROQ_API_KEY"
+      },
+      "models": {
+        "llama-3.1-8b-instant": {},
+        "llama-3.3-70b-versatile": {},
+        "openai/gpt-oss-120b": {},
+        "openai/gpt-oss-20b": {},
+        "meta-llama/llama-4-scout-17b-16e-instruct": {},
+        "qwen/qwen3-32b": {},
+        "groq/compound": {},
+        "groq/compound-mini": {}
+      }
+    },
+    "free-mistral": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Free Mistral",
+      "options": {
+        "baseURL": "https://api.mistral.ai/v1",
+        "apiKey": "dtxJfZU9j7MOJ76gIigzB8WARGN7Vdbj"
+      },
+      "models": {
+        "open-mistral-7b": {},
+        "open-mixtral-8x7b": {},
+        "open-mistral-nemo": {},
+        "mistral-small-latest": {},
+        "mistral-medium-latest": {},
+        "mistral-large-latest": {},
+        "codestral": {},
+        "pixtral-large-latest": {}
+      }
+    },
+    "opencode": {
+      "models": {
+        "gpt-5-nano": {},
+        "glm-5-free": {},
+        "kimi-k2.5-free": {},
+        "minimax-m2.5-free": {},
+        "minimax-m2.7-free": {},
+        "big-pickle": {},
+        "deepseek-v4-flash-free": {},
+        "mimo-v2.5-free": {},
+        "nemotron-3-super-free": {}
+      }
+    },
+    "free-nvidia": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Free NVIDIA NIM",
+      "options": {
+        "baseURL": "https://integrate.api.nvidia.com/v1",
+        "apiKey": "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"
+      },
+      "models": {
+        "nvidia/nemotron-3-ultra-550b-a55b": {},
+        "deepseek-ai/deepseek-v4-flash": {},
+        "mistralai/mistral-medium-3.5-128b": {},
+        "moonshotai/kimi-k2.6": {},
+        "stepfun-ai/step-3.7-flash": {},
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": {},
+        "nvidia/cosmos3-nano-reasoner": {},
+        "nvidia/cosmos3-nano": {},
+        "nvidia/nemotron-3.5-content-safety": {}
+      }
+    },
+    "free-kilo": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Free Kilo Gateway",
+      "options": {
+        "baseURL": "https://api.kilo.ai/api/gateway",
+        "apiKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbnYiOiJwcm9kdWN0aW9uIiwia2lsb1VzZXJJZCI6IjVmNDQ4MDMxLTEzMTUtNGYzZi1hMjZjLTQ5YjQyMDk0MDk1NiIsImFwaVRva2VuUGVwcGVyIjpudWxsLCJ2ZXJzaW9uIjozLCJpYXQiOjE3ODA5NDY5MzcsImV4cCI6MTkzODYyNjkzN30.VvXTMn7_O8JGW43m8MPwvCMOj0bxevDeh-M6wOrCalg"
+      },
+      "models": {
+        "stepfun/step-3.7-flash:free": {},
+        "poolside/laguna-m.1:free": {},
+        "nvidia/nemotron-3-ultra-550b-a55b:free": {},
+        "nvidia/nemotron-3-super-120b-a12b:free": {},
+        "google/gemma-4-26b-a4b-it:free": {},
+        "openrouter/free": {}
+      }
+    },
+    "kimchi": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Kimchi",
+      "options": {
+        "baseURL": "https://llm.kimchi.dev/openai/v1",
+        "litellmProxy": true,
+        "apiKey": "castai_v1_a4396886a858db82555f2819e2b1c6faea2ed73e0e61d1d1e2f4a3d99610f5f1_3e6089f2"
+      },
+      "models": {
+        "kimi-k2.6": {},
+        "kimi-k2.5": {},
+        "minimax-m2.7": {},
+        "nemotron-3-super-fp4": {}
+      }
+    },
+    "free-openrouter": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Free OpenRouter",
+      "options": {
+        "baseURL": "https://openrouter.ai/api/v1",
+        "apiKey": "YOUR_OPENROUTER_API_KEY"
+      },
+      "models": {
+        "google/gemma-4-31b-it:free": {},
+        "google/gemma-4-26b-a4b-it:free": {},
+        "nvidia/nemotron-3-super-120b-a12b:free": {},
+        "nvidia/nemotron-3-ultra-550b-a55b:free": {},
+        "nvidia/nemotron-3-nano-30b-a3b:free": {},
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {},
+        "nvidia/nemotron-nano-12b-v2-vl:free": {},
+        "nvidia/nemotron-nano-9b-v2:free": {},
+        "nvidia/nemotron-3.5-content-safety:free": {},
+        "openai/gpt-oss-120b:free": {},
+        "openai/gpt-oss-20b:free": {},
+        "qwen/qwen3-coder:free": {},
+        "qwen/qwen3-next-80b-a3b-instruct:free": {},
+        "meta-llama/llama-3.3-70b-instruct:free": {},
+        "meta-llama/llama-3.2-3b-instruct:free": {},
+        "poolside/laguna-m.1:free": {},
+        "poolside/laguna-xs.2:free": {},
+        "moonshotai/kimi-k2.6:free": {},
+        "z-ai/glm-4.5-air:free": {},
+        "liquid/lfm-2.5-1.2b-thinking:free": {},
+        "liquid/lfm-2.5-1.2b-instruct:free": {},
+        "nousresearch/hermes-3-llama-3.1-405b:free": {},
+        "cognitivecomputations/dolphin-mistral-24b-venice-edition:free": {},
+        "google/lyria-3-pro-preview": {},
+        "google/lyria-3-clip-preview": {},
+        "openrouter/owl-alpha": {},
+        "openrouter/free": {}
+      }
+    }
+  },
+
   // MCPKU — 16 stdio MCP servers from E:\MCPKU
   // All use `python <file>.py`. Path resolved by the opencode parent process
   // (which on Windows is the same shell that launched opencode).
@@ -165,12 +348,19 @@
       "type": "local",
       "command": ["npx", "-y", "@upstash/context7-mcp"],
       "enabled": true,
-      "timeout": 30000
+      "timeout": 10000
     },
     // research: Parallel research orchestrator. Runs 6 web sources + diagnostics + memory in parallel, returns ranked consensus.
     "research": {
       "type": "local",
       "command": ["python", "E:/MCPKU/mcp_research.py"],
+      "enabled": true
+    },
+    // agent: Task orchestrator. Plans + executes using MCPKU tools.
+    // Plans & logs stored in %TEMP%\mcpku\ (not in project dir).
+    "agent": {
+      "type": "local",
+      "command": ["python", "E:/MCPKU/agentku_buat_chat.py"],
       "enabled": true
     }
   }

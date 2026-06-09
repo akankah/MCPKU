@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, r"E:\MCPKU")
 
 import pytest
-from mcp_web import _html_to_text
+from web.parsers import html_to_text as _html_to_text
 
 
 class TestHtmlToText:

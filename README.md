@@ -3,7 +3,7 @@
   <img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
 </picture>
 
-**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 17 MCP
+**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 18 MCP
 servers that gives AI agents the ability to read, write, execute, debug, fix,
 and commit code autonomously.
 
@@ -16,7 +16,7 @@ AI Model
 MCPKU Runtime
     │  orchestrates: shell → git → web → browser → diagnostics → autofix
     ▼
-17 MCP Servers
+18 MCP Servers
     │  each a self-contained stdio process
     ▼
 Your System / Repo / DB / Browser / Logs
@@ -238,7 +238,7 @@ Supported auto-fix strategies:
 
 ---
 
-## 17 MCP Servers
+## 18 MCP Servers
 
 Each server is a single self-contained Python file. Enable only what you need.
 
@@ -263,7 +263,8 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `workflow`    | `mcp_workflow.py`     | Autonomous workflow orchestrator (DAG execution, task self-healing, state tracking, resume support) |
 | `state`       | `mcp_state.py`        | Workflow execution status tracker (Black Box Recorder, resume support) |
 | `planner`     | `mcp_planner.py`      | AI-driven task graph generator (integrates with Memory, portable path support) |
-| `research`    | `mcp_research.py`     | Parallel research orchestrator: `query`/`quick`/`deep` — runs 6 web sources + diagnostics + memory via `asyncio.gather`, returns ranked consensus with cross-check verdict |
+| `research`    | `mcp_research.py`     | Semantic consensus engine: `query`/`quick`/`deep` — runs 6 web sources + diagnostics + memory via `asyncio.gather`, uses embedding-based cosine similarity for source agreement, returns structured JSON with 0-100 confidence score |
+| `agent`       | `agentku_buat_chat.py`| Autonomous orchestration agent: uses `planner/` + `mcp_manifest.py` (140 tools, 12 categories) for dynamic tool discovery, DAG-based execution with parallel task groups |
 
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by
 `postgres`, `vector`, `web`). Not a standalone server.
@@ -419,46 +420,75 @@ history isolated and avoids bloating the MCPKU repo with foreign debug data.
 
 ---
 
-## Parallel Research Orchestrator (mcp_research)
+## Semantic Research Engine (mcp_research) — v3
 
-The 17th server closes the orchestration gap: instead of the model calling
+The research engine closes the orchestration gap: instead of the model calling
 `autofix` + `diagnostics` + `memory` + `web search` sequentially, it makes
-ONE call to `research.query()` and gets a ranked consensus from 8 parallel
-sources.
+ONE call to `research.query()` and gets a **semantic consensus** from 8 parallel
+sources — with structured JSON output and embedding-based agreement detection.
+
+### v3 upgrades
+
+| Area | v2 (lexical) | v3 (semantic) |
+|---|---|---|
+| **Source similarity** | Word Jaccard `_text_similarity()` | Embedding cosine similarity via `mcp_vector._embed` — async-safe with 2s timeout, graceful fallback |
+| **Agreement detection** | Keyword overlap (`_extract_topics`) | Greedy clustering on embedding cosine matrix (threshold 0.5) |
+| **Confidence scoring** | Topic lexical overlap → heuristic | Cluster-based: fewer clusters = higher agreement; largest cluster ratio bonus |
+| **Output format** | Human-readable text blob | Structured JSON: `{success, confidence{score,verdict,coverage,agreement,...}, sources[], consensus_topics[], recommended_fix}` |
+| **Embedding** | None | OpenAI `text-embedding-3-small` (via `_embed`), deterministic hash fallback when key absent |
+
+### Clustering-based confidence
+
+Sources are grouped into **semantic clusters** via greedy clustering on a cosine
+similarity matrix. Confidence is computed from:
+
+1. **Coverage (0-30)**: how many sources returned content
+2. **Semantic agreement (0-30)**: inverse of cluster count — 1 cluster = max agreement; bonus if largest cluster covers >60% of sources
+3. **Weight bonus (0-20)**: weighted by `SOURCE_WEIGHTS` (MDN=0.95, SO=0.90, web=0.50)
+4. **KB bonus (0-20)**: past successful fix from `error_kb` = strong signal
+
+### Tools
 
 | Tool | Speed | Sources | Use when |
 |---|---|---|---|
 | `quick(question)` | ~3s | web + stackoverflow | fast sanity check |
-| `query(question, error_text=None)` | ~5s | 5 web + diagnostics + memory | unknown error, multi-source research |
+| `query(question, error_text=None)` | ~5s | 6 web + diagnostics + memory | unknown error, multi-source research |
 | `deep(question, error_text=None)` | ~8s | 8 web + diagnostics + memory | critical, 3+ sources must agree |
+| `stream(question, error_text=None)` | ~3-15s | returns each source as it arrives | don't block on slowest provider |
 
-### How it works
+### Example output (structured JSON)
 
-```python
-# Instead of 5 sequential calls:
-search_web(q)        # 2s
-search_stackover(q)  # 2s
-classify_error(e)    # 1s
-search_nodes(q)      # 0.5s
-mdn(q)               # 2s
-# Total: 7.5s
-
-# Make 1 call:
-research.query(q, error_text=e)
-# Runs all 5 in parallel via asyncio.gather
-# Total: 2s (max of all, not sum)
-# Returns: ranked + cross-checked consensus
+```json
+{
+  "success": true,
+  "tool": "query",
+  "query": "how to fix ModuleNotFoundError in Python",
+  "language": "python",
+  "confidence": {
+    "score": 82,
+    "verdict": "high",
+    "coverage": 25,
+    "agreement": 22,
+    "weight_bonus": 15,
+    "kb_bonus": 20,
+    "clusters": [["stackoverflow", "mdn", "web"], ["diagnostics"]],
+    "sources_returned": 4,
+    "sources_total": 6
+  },
+  "sources": [
+    {
+      "name": "stackoverflow",
+      "weight": 0.9,
+      "preview": "Run pip install to add missing packages...",
+      "status": null
+    }
+  ],
+  "consensus_topics": ["stackoverflow", "mdn", "web"],
+  "recommended_fix": "pip install <package>",
+  "sources_returned": 4,
+  "sources_total": 6
+}
 ```
-
-### Cross-check verdict
-
-The output includes a `─── CROSS-CHECK ───` block with explicit signal:
-- ✅ Diagnostics classified: ... + Memory returned N matching entities
-- ⚠️ Diagnostics: UNKNOWN error type. Web sources should be authoritative.
-- ⚠️ No sources returned content. Refine query and retry.
-
-If 3+ sources agree on a fix, confidence is high. If sources conflict,
-the conflict is surfaced to the user.
 
 ### Server instructions also enable parallel batching
 
@@ -512,7 +542,7 @@ session, every directory, every model** — now and after future opencode
 upgrades.
 
 ```bash
-python verify_setup.py check     # verify current setup (17/17 registered?)
+python verify_setup.py check     # verify current setup (18/18 registered?)
 python verify_setup.py sync      # install/repair global config
 python verify_setup.py status    # show registered servers + paths
 python verify_setup.py doctor    # full diagnostic + fix suggestions
@@ -699,7 +729,7 @@ pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-**175 tests** across 17 server modules (164 passed + 11 skipped). Pure unit
+**175 tests** across 18 server modules (164 passed + 11 skipped). Pure unit
 tests with no network, DB, or browser dependency. Runs in ~23 seconds.
 
 | Module | Tests | What's covered |
@@ -710,8 +740,8 @@ tests with no network, DB, or browser dependency. Runs in ~23 seconds.
 | `test_sqlite.py` | 13 | Identifier validation, CRUD operations |
 | `test_vector.py` | 9 | Fallback embeddings, collection name sanitization |
 | `test_postgres.py` | 4 | Retry with exponential backoff |
-| `test_think.py` | 10 | Per-session chain-of-thought + **stuck-pattern detector** (triggers websearch demand after 2 retry thoughts) |
-| `test_verify_setup.py` | 10 | JSONC comment stripping, server path validation, expected server count, dispatcher |
+| `test_think.py` | 15 | Per-session chain-of-thought + **stuck-pattern detector** (triggers websearch demand after 2 retry thoughts) + semantic repetition detection + lag detector |
+| `test_verify_setup.py` | 10 | JSONC comment stripping, server path validation, expected server count (18), dispatcher |
 | `test_autofallback.py` | manual | Knowledge-graph smoke test (run directly: `python tests/test_autofallback.py`) |
 | `test_*` (6 more) | 23 | Git flag protection, memory persistence, timezone, HTML parsing, filesystem paths, Redis flush tokens |
 
@@ -740,7 +770,7 @@ tests with no network, DB, or browser dependency. Runs in ~23 seconds.
 
 | Term | Meaning |
 |---|---|
-| **MCPKU Runtime** | The orchestration layer of 17 coordinated servers |
+| **MCPKU Runtime** | The orchestration layer of 18 coordinated servers |
 | **Autonomous Debugging Engine** | The diagnostics + autofix pipeline that closes the debug loop |
 | **Closed-loop debugging** | Run → detect → fix → retry → commit without human intervention |
 | **Fix strategy** | A handler function that maps an error type to an executable fix command |

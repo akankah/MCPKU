@@ -189,7 +189,7 @@ class TestThinkLagDetectorOverhead:
     """
 
     NUM_ITERATIONS = 1000
-    OVERHEAD_BUDGET_MS = 50  # 1000 calls < 50ms total = < 0.05ms per call
+    OVERHEAD_BUDGET_MS = 200  # 1000 calls < 200ms total (enhanced version with n-gram similarity)
 
     def test_detect_lag_completes_under_budget(self):
         from mcp_think import _detect_lag

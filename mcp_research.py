@@ -1,16 +1,8 @@
 """
-mcp_research.py — MCPKU Parallel Research Aggregator (v2)
+mcp_research.py — MCPKU Parallel Research Aggregator (v3)
 ==========================================================
-Closes the orchestration gap. Calls 6 web sources + diagnostics + memory +
-error_kb IN PARALLEL via asyncio.gather, deduplicates, ranks by weighted
-voting, returns CONSENSUS with confidence score (0-100%).
-
-Improvements over v1:
-  1. Weighted source reliability (SO/GitHub > blogs)
-  2. Confidence score (0-100) based on agreement + source weights
-  3. error_kb cross-check (past similar errors = strong signal)
-  4. Streaming partial results via asyncio.as_completed (don't wait for slowest)
-  5. Cross-source text similarity (not just "is response present")
+Semantic consensus engine. Uses embedding-based similarity for
+source agreement detection and structured JSON output.
 
 Tools:
   - query(question, error_text=None, stream=False)
@@ -25,6 +17,8 @@ import os
 import re
 from pathlib import Path
 from typing import Optional
+
+import numpy as np
 from mcp.server.fastmcp import FastMCP
 
 from mcp_web import (
@@ -39,16 +33,15 @@ from mcp_web import (
 )
 from mcp_diagnostics import classify_error
 from mcp_memory import search_nodes
-
-# ── Configuration ────────────────────────────────────────────────────────────
+from mcp_vector import _embed
 
 mcp = FastMCP(
     "mcp-research",
     instructions=(
-        "Parallel research orchestrator with weighted voting + confidence scoring. "
+        "Parallel research orchestrator with semantic consensus + confidence scoring. "
         "Use query() when you need a single consensus answer cross-checked across "
         "multiple sources. Runs 6 web sources + diagnostics + memory + error_kb "
-        "in parallel via asyncio.gather, returns ranked consensus with explicit "
+        "in parallel via asyncio.gather, returns structured JSON with explicit "
         "confidence score (0-100%).\n\n"
         "AUTOFALLBACK (mandatory): if any other reasoning path takes > 10s without "
         "progress, or you are about to retry a failing approach, call query() (or "
@@ -62,27 +55,113 @@ mcp = FastMCP(
         "  - Trivial lookups (use mcp_web.search_web directly)\n"
         "  - Single-source docs check (use mcp_web.search_mdn / search_npm directly)\n"
         "  - Renames / typos / file reads\n\n"
-        "Use stream() if you want results as they arrive (don't wait for slowest). "
-        "Use quick() for fast 2-source check. Use deep() for full 8-source cross-validation."
+        "Return value is always structured JSON: "
+        "{success, tool, confidence: {score, verdict, ...}, sources: [...], "
+        "consensus_topics: [...], recommended_fix, ...}"
     ),
 )
 
-# Source weights — how much we trust each source. Higher = more authoritative.
 SOURCE_WEIGHTS = {
-    "stackoverflow": 0.90,  # Q&A curated by community, high signal
-    "github":        0.85,  # Issues, code, official maintainers
-    "mdn":           0.95,  # Official web platform docs
-    "pypi":          0.80,  # Official package index
-    "npm":           0.80,  # Official package index
-    "crates":        0.80,  # Official package index
-    "devdocs":       0.85,  # Aggregated official docs
-    "error_kb":      0.95,  # OUR past fixes — highest signal for recurrence
-    "memory":        0.75,  # User's persistent notes
-    "diagnostics":   0.85,  # Local static analysis
-    "web":           0.50,  # General web — noisy, low weight
+    "stackoverflow": 0.90,
+    "github":        0.85,
+    "mdn":           0.95,
+    "pypi":          0.80,
+    "npm":           0.80,
+    "crates":        0.80,
+    "devdocs":       0.85,
+    "error_kb":      0.95,
+    "memory":        0.75,
+    "diagnostics":   0.85,
+    "web":           0.50,
 }
 
 ERROR_KB_DIR = Path(os.environ.get("ERROR_KB_DIR", Path(__file__).parent / "error_kb"))
+
+
+# ── Semantic similarity via embeddings (async-safe) ──────────────────────────
+
+_EMBED_TIMEOUT = 2.0  # seconds max for embedding call
+
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    a = np.array(a, dtype=np.float64)
+    b = np.array(b, dtype=np.float64)
+    denom = np.linalg.norm(a) * np.linalg.norm(b)
+    if denom == 0:
+        return 0.0
+    return float(np.dot(a, b) / denom)
+
+
+async def _embed_async(texts: list[str]) -> list[list[float] | None]:
+    """Async wrapper for _embed with timeout. Returns None-filled list on failure."""
+    try:
+        embs = await asyncio.wait_for(
+            asyncio.to_thread(_embed, texts),
+            timeout=_EMBED_TIMEOUT,
+        )
+        return embs if embs else [None] * len(texts)
+    except Exception:
+        return [None] * len(texts)
+
+
+async def _semantic_similarity(a: str, b: str) -> float:
+    if not a or not b:
+        return 0.0
+    embs = await _embed_async([a[:500], b[:500]])
+    if len(embs) >= 2 and embs[0] is not None and embs[1] is not None:
+        return _cosine_similarity(embs[0], embs[1])
+    # Fallback: lexical Jaccard on words
+    return _lexical_similarity(a, b)
+
+
+def _lexical_similarity(a: str, b: str) -> float:
+    wa = set(re.findall(r"\b\w{3,}\b", a.lower()))
+    wb = set(re.findall(r"\b\w{3,}\b", b.lower()))
+    if not wa or not wb:
+        return 0.0
+    return len(wa & wb) / len(wa | wb)
+
+
+# ── Semantic source clustering (async) ───────────────────────────────────────
+
+async def _cluster_sources(source_texts: dict[str, str]) -> list[list[str]]:
+    """
+    Group sources into semantic clusters using embedding cosine similarity.
+    Returns list of clusters, where each cluster is a list of source names.
+    """
+    names = list(source_texts.keys())
+    texts = [source_texts[n][:500] for n in names]
+    if len(texts) < 2:
+        return [names]
+
+    embs = await _embed_async(texts)
+    if not embs or all(e is None for e in embs):
+        return [names]
+
+    sim_matrix = []
+    for i in range(len(embs)):
+        row = []
+        for j in range(len(embs)):
+            if embs[i] is not None and embs[j] is not None:
+                row.append(_cosine_similarity(embs[i], embs[j]))
+            else:
+                row.append(_lexical_similarity(texts[i], texts[j]))
+        sim_matrix.append(row)
+
+    THRESHOLD = 0.50
+    assigned = set()
+    clusters = []
+    for i in range(len(names)):
+        if i in assigned:
+            continue
+        cluster = [names[i]]
+        assigned.add(i)
+        for j in range(i + 1, len(names)):
+            if j not in assigned and sim_matrix[i][j] >= THRESHOLD:
+                cluster.append(names[j])
+                assigned.add(j)
+        clusters.append(cluster)
+    return clusters
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -108,7 +187,6 @@ def _detect_language(text: str) -> str:
     t = text.lower()
     if any(x in t for x in ["npm", "node", "javascript", "typescript", "react", "vue", "next.js"]):
         return "javascript"
-    # Python: explicit keywords OR Python-specific errors
     if any(x in t for x in ["pip", "python", "django", "flask", "fastapi"]) or \
        any(x in t for x in ["modulenotfounderror", "importerror", "indentationerror",
                              "syntaxerror", "attributeerror", "pyfile"]):
@@ -120,19 +198,7 @@ def _detect_language(text: str) -> str:
     return "general"
 
 
-def _text_similarity(a: str, b: str) -> float:
-    """Cheap Jaccard similarity on words. 0.0 = no overlap, 1.0 = identical."""
-    if not a or not b:
-        return 0.0
-    wa = set(re.findall(r"\b\w{3,}\b", a.lower()))
-    wb = set(re.findall(r"\b\w{3,}\b", b.lower()))
-    if not wa or not wb:
-        return 0.0
-    return len(wa & wb) / len(wa | wb)
-
-
 async def _search_error_kb(query: str, error_text: Optional[str] = None) -> str:
-    """Search local error_kb/ for past similar errors. Returns matching entries."""
     if not ERROR_KB_DIR.exists():
         return ""
     keywords = _extract_keywords(query + " " + (error_text or ""))
@@ -150,7 +216,7 @@ async def _search_error_kb(query: str, error_text: Optional[str] = None) -> str:
             err_types = " ".join(data.get("error_types") or []).lower()
             text = f"{err_msg} {err_types}"
             overlap = len(keyword_set & set(re.findall(r"\b\w{3,}\b", text)))
-            if overlap >= 1 or _text_similarity(keywords, text) > 0.15:
+            if overlap >= 1 or _lexical_similarity(keywords, text) > 0.15:
                 matches.append({
                     "file": kb_file.name,
                     "error_types": data.get("error_types", []),
@@ -160,7 +226,7 @@ async def _search_error_kb(query: str, error_text: Optional[str] = None) -> str:
                     "overlap": overlap,
                 })
     except Exception as e:
-        return f"(error_kb scan error: {e})"
+        return json.dumps({"error_kb_error": str(e)})
     matches.sort(key=lambda m: (m["overlap"], m["success"]), reverse=True)
     matches = matches[:5]
     if not matches:
@@ -168,67 +234,65 @@ async def _search_error_kb(query: str, error_text: Optional[str] = None) -> str:
     return json.dumps({"error_kb_matches": matches, "count": len(matches)}, indent=2)
 
 
-def _extract_topics(text: str, n: int = 5) -> set[str]:
-    """Extract key topics (capitalized phrases, code identifiers) for agreement check."""
-    if not text:
-        return set()
-    # Code-like tokens, capitalized words, quoted strings
-    topics = set()
-    topics.update(re.findall(r"\b[A-Z][a-zA-Z]{2,}\b", text))         # CamelCase
-    topics.update(re.findall(r"\b[a-z_]{3,}\(\)", text))               # function calls
-    topics.update(re.findall(r"\b(?:npm|pip|install|import|require)\s+([a-zA-Z0-9_-]+)", text))
-    topics.update(re.findall(r'"([^"]{3,30})"', text))                  # quoted strings
-    return {t.lower() for t in topics if len(t) > 2}
+def _try_parse_json(s: str) -> Optional[dict]:
+    if not s:
+        return None
+    if s.strip().startswith("{"):
+        try:
+            return json.loads(s)
+        except Exception:
+            pass
+    return None
 
 
-def _compute_confidence(results: dict) -> tuple[int, str]:
+# ── Confidence (semantic-aware) ──────────────────────────────────────────────
+
+async def _compute_confidence(results: dict, query: str) -> dict:
     """
-    Compute confidence score (0-100) based on:
-      - Number of sources that returned content
-      - Agreement between sources (topic overlap)
-      - Source weights (trusted sources = more weight)
-      - error_kb hit with successful past fix = strong signal
-    Returns (score, verdict_label).
+    Compute confidence score (0-100) using semantic source clustering.
+    Returns structured confidence dict.
     """
     populated = {k: v for k, v in results.items()
                  if v and not v.startswith("(") and not v.startswith("(error")
                  and len(v) > 50}
     if not populated:
-        return (0, "no_data")
+        return {"score": 0, "verdict": "no_data", "coverage": 0, "agreement": 0,
+                "weight_bonus": 0, "kb_bonus": 0, "clusters": []}
 
-    # 1. Coverage score (0-30): how many sources returned useful content
+    # 1. Coverage score (0-30)
     coverage = min(30, int(len(populated) / max(1, len(results)) * 30))
 
-    # 2. Agreement score (0-30): how much topics overlap across sources
-    topics_per_source = {k: _extract_topics(v) for k, v in populated.items()}
-    topic_sets = [s for s in topics_per_source.values() if s]
-    if len(topic_sets) >= 2:
-        pairs = []
-        for i in range(len(topic_sets)):
-            for j in range(i + 1, len(topic_sets)):
-                a, b = topic_sets[i], topic_sets[j]
-                if a and b:
-                    pairs.append(len(a & b) / len(a | b))
-        agreement = int((sum(pairs) / len(pairs)) * 30) if pairs else 0
+    # 2. Semantic agreement score (0-30) via embedding clusters
+    clusters = await _cluster_sources(populated)
+    # More clusters = less agreement. Best: 1 cluster = all agree.
+    if len(clusters) <= 1:
+        agreement = 30
+    elif len(clusters) == 2:
+        agreement = 20
+    elif len(clusters) == 3:
+        agreement = 10
     else:
-        agreement = 10 if topic_sets else 0
+        agreement = 5
 
-    # 3. Source weight bonus (0-20): sum of weights of populated sources
+    # Bonus if the largest cluster covers > 60% of populated sources
+    largest_cluster_size = max(len(c) for c in clusters) if clusters else 0
+    cluster_ratio = largest_cluster_size / max(1, len(populated))
+    if cluster_ratio >= 0.6:
+        agreement = min(30, agreement + 10)
+
+    # 3. Source weight bonus (0-20)
     weight_bonus = min(20, int(sum(SOURCE_WEIGHTS.get(k, 0.5) for k in populated) * 10))
 
-    # 4. error_kb + diagnostics agreement bonus (0-20): if BOTH ran AND
-    #    error_kb has a past successful fix → strong signal we're on right track
+    # 4. error_kb + diagnostics bonus (0-20)
     kb_bonus = 0
     if "error_kb" in populated and "diagnostics" in populated:
-        try:
-            kb_data = json.loads(results["error_kb"])
+        kb_data = _try_parse_json(results["error_kb"])
+        if kb_data:
             successful = [m for m in kb_data.get("error_kb_matches", []) if m.get("success")]
             if successful:
-                kb_bonus = 20  # past successful fix + classification = very strong
+                kb_bonus = 20
             elif kb_data.get("error_kb_matches"):
-                kb_bonus = 10  # seen this pattern before
-        except Exception:
-            pass
+                kb_bonus = 10
 
     score = coverage + agreement + weight_bonus + kb_bonus
     score = max(0, min(100, score))
@@ -241,78 +305,92 @@ def _compute_confidence(results: dict) -> tuple[int, str]:
         verdict = "low"
     else:
         verdict = "very_low"
-    return (score, verdict)
+
+    return {
+        "score": score,
+        "verdict": verdict,
+        "coverage": coverage,
+        "agreement": agreement,
+        "weight_bonus": weight_bonus,
+        "kb_bonus": kb_bonus,
+        "clusters": clusters,
+        "cluster_ratio": round(cluster_ratio, 2),
+        "sources_returned": len(populated),
+        "sources_total": len(results),
+    }
 
 
-def _format_consensus(results: dict, query: str, lang: str, confidence: int, verdict: str) -> str:
-    lines = [
-        f"=== MCP Research Consensus ===",
-        f"Query      : {query[:120]}",
-        f"Lang       : {lang}",
-        f"Sources    : {len(results)} polled, {sum(1 for v in results.values() if v and not v.startswith('('))} returned",
-        f"Confidence : {confidence}/100 ({verdict})",
-        "",
-    ]
+# ── Structured output builder ────────────────────────────────────────────────
 
-    # Diagnostics
-    diag = results.get("diagnostics", "")
-    if diag and "(no error_text" not in diag and "(empty" not in diag:
-        lines.append("─── DIAGNOSTICS ───")
-        lines.append(diag[:500])
-        lines.append("")
+def _build_result(tool_name: str, question: str, results: dict,
+                  confidence: dict, lang: str) -> str:
+    """Build structured JSON result from all sources."""
+    populated = {k: v for k, v in results.items()
+                 if v and not v.startswith("(") and not v.startswith("(error")
+                 and len(v) > 50}
+    empty_sources = {k: v for k, v in results.items() if k not in populated}
 
-    # Memory
-    mem = results.get("memory", "")
-    if mem and '"entities": []' not in mem and mem.strip().startswith("{"):
-        lines.append("─── MEMORY (user notes) ───")
-        lines.append(mem[:500])
-        lines.append("")
+    # Build sources list
+    sources = []
+    for name in sorted(populated, key=lambda n: SOURCE_WEIGHTS.get(n, 0.5), reverse=True):
+        body = populated[name]
+        source_entry = {
+            "name": name,
+            "weight": SOURCE_WEIGHTS.get(name, 0.5),
+            "preview": body[:500],
+        }
+        # Parse error_kb JSON inline
+        if name == "error_kb":
+            parsed = _try_parse_json(body)
+            if parsed:
+                source_entry["matches"] = parsed.get("error_kb_matches", [])
+                source_entry["match_count"] = parsed.get("count", 0)
+        sources.append(source_entry)
 
-    # error_kb
-    ekb = results.get("error_kb", "")
-    if ekb and '"error_kb_matches"' in ekb:
-        try:
-            d = json.loads(ekb)
-            lines.append(f"─── ERROR KB ({d.get('count', 0)} past similar) ───")
-            for m in d.get("error_kb_matches", [])[:3]:
-                etype = m.get('error_types', ['?'])[0] if m.get('error_types') else '?'
-                lines.append(f"  • {etype}: {m.get('error_message', '')[:120]}")
-                if m.get("fixes"):
-                    lines.append(f"    fix: {m['fixes'][0]}")
-                lines.append(f"    success: {m.get('success')}")
-            lines.append("")
-        except Exception as e:
-            lines.append(f"─── ERROR KB (parse error: {e}) ───")
-    elif ekb:
-        # debug: show what we got
-        lines.append(f"─── ERROR KB (raw, {len(ekb)} chars) ───")
-        lines.append(ekb[:200])
-        lines.append("")
+    for name in sorted(empty_sources):
+        body = empty_sources[name]
+        reason = "empty"
+        if body.startswith("(") or body.startswith("(error") or body.startswith("(timeout"):
+            reason = body.strip("()")
+        elif body.startswith("(skip"):
+            reason = "skipped"
+        sources.append({
+            "name": name,
+            "weight": SOURCE_WEIGHTS.get(name, 0.5),
+            "preview": body[:200],
+            "status": reason,
+        })
 
-    # Web sources
-    web_sources = [(k, v) for k, v in results.items()
-                   if k not in ("diagnostics", "memory", "error_kb")
-                   and v and not v.startswith("(") and len(v) > 50]
-    web_sources.sort(key=lambda kv: SOURCE_WEIGHTS.get(kv[0], 0.5), reverse=True)
-    if web_sources:
-        lines.append(f"─── WEB SOURCES ({len(web_sources)}) ───")
-        for name, body in web_sources:
-            w = SOURCE_WEIGHTS.get(name, 0.5)
-            preview = body[:350].replace("\n\n", "\n")
-            lines.append(f"[{name} | weight={w:.2f}] {preview}")
-            lines.append("")
+    # Build consensus topics from largest cluster
+    clusters = confidence.get("clusters", [])
+    consensus_topics = []
+    if clusters:
+        largest = max(clusters, key=len)
+        consensus_topics = [s for s in largest if s != "diagnostics" and s != "error_kb"]
 
-    # Final verdict
-    lines.append("─── VERDICT ───")
-    if verdict == "high":
-        lines.append(f"✅ High confidence ({confidence}/100). Multiple sources agree. Safe to apply.")
-    elif verdict == "medium":
-        lines.append(f"🟡 Medium confidence ({confidence}/100). Apply with verification step.")
-    elif verdict == "low":
-        lines.append(f"⚠️  Low confidence ({confidence}/100). Sources disagree or sparse. Verify before applying.")
-    else:
-        lines.append(f"❌ Very low confidence ({confidence}/100). No useful sources. Re-search with refined query.")
-    return "\n".join(lines)
+    # Recommended fix from error_kb if available
+    recommended_fix = None
+    for s in sources:
+        if s.get("name") == "error_kb" and s.get("matches"):
+            successful = [m for m in s["matches"] if m.get("success")]
+            if successful:
+                fixes = successful[0].get("fixes", [])
+                if fixes:
+                    recommended_fix = fixes[0]
+
+    output = {
+        "success": True,
+        "tool": tool_name,
+        "query": question[:500],
+        "language": lang,
+        "confidence": confidence,
+        "sources": sources,
+        "consensus_topics": consensus_topics,
+        "recommended_fix": recommended_fix,
+        "sources_returned": len(populated),
+        "sources_total": len(results),
+    }
+    return json.dumps(output, indent=2, ensure_ascii=False)
 
 
 # ── Tools ────────────────────────────────────────────────────────────────────
@@ -320,14 +398,14 @@ def _format_consensus(results: dict, query: str, lang: str, confidence: int, ver
 @mcp.tool(
     name="query",
     description=(
-        "One-shot parallel research with weighted voting + confidence score. "
+        "One-shot parallel research with semantic consensus + confidence score. "
         "Polls 5+ web sources + diagnostics + memory + error_kb in parallel, "
-        "returns ranked consensus with 0-100 confidence score. ~5s latency."
+        "returns structured JSON with 0-100 confidence score. ~5s latency."
     ),
 )
 async def query(question: str, error_text: Optional[str] = None) -> str:
     if not question.strip():
-        return "(empty query)"
+        return json.dumps({"success": False, "tool": "query", "error": "empty query"})
     lang = _detect_language(question + " " + (error_text or ""))
     keywords = _extract_keywords(question) or question
 
@@ -341,18 +419,17 @@ async def query(question: str, error_text: Optional[str] = None) -> str:
         "crates":         search_crates(keywords, limit=2) if lang == "rust" else _noop("not rust"),
         "diagnostics":    classify_error(error_text) if error_text else _noop("no error"),
         "memory":         search_nodes(keywords[:30]),
-        # error_kb is sync file I/O — run directly in event loop (fast for small kb)
         "error_kb":       _search_error_kb(question, error_text),
     }
-    results = await _gather_with_timeout(tasks, timeout=6.0)  # 6s per source — slow ones get dropped
-    confidence, verdict = _compute_confidence(results)
-    return _format_consensus(results, question, lang, confidence, verdict)
+    results = await _gather_with_timeout(tasks, timeout=6.0)
+    confidence = await _compute_confidence(results, question)
+    return _build_result("query", question, results, confidence, lang)
 
 
 @mcp.tool(name="quick", description="Fast 2-source check: web + stackoverflow in parallel. ~3s.")
 async def quick(question: str) -> str:
     if not question.strip():
-        return "(empty query)"
+        return json.dumps({"success": False, "tool": "quick", "error": "empty query"})
     keywords = _extract_keywords(question) or question
     web, so = await asyncio.gather(
         search_web(keywords, max_results=3),
@@ -363,21 +440,25 @@ async def quick(question: str) -> str:
         "web": web if not isinstance(web, Exception) else f"(error: {web})",
         "stackoverflow": so if not isinstance(so, Exception) else f"(error: {so})",
     }
-    confidence, verdict = _compute_confidence(results)
-    body = _format_consensus(results, question, "general", confidence, verdict)
-    return body + "\n\n─── QUICK MODE: only 2 sources polled ───"
+    confidence = await _compute_confidence(results, question)
+    result = _build_result("quick", question, results, confidence, "general")
+    # Add quick-mode note
+    d = json.loads(result)
+    d["mode"] = "quick (2 sources only)"
+    return json.dumps(d, indent=2, ensure_ascii=False)
 
 
 @mcp.tool(
     name="deep",
     description=(
         "Full 8-source cross-validation + error_kb. Slower (~8s) but highest "
-        "confidence. Use for critical unknown errors where 3+ sources must agree."
+        "confidence. Returns structured JSON. Use for critical unknown errors "
+        "where 3+ sources must agree."
     ),
 )
 async def deep(question: str, error_text: Optional[str] = None) -> str:
     if not question.strip():
-        return "(empty query)"
+        return json.dumps({"success": False, "tool": "deep", "error": "empty query"})
     lang = _detect_language(question + " " + (error_text or ""))
     keywords = _extract_keywords(question) or question
 
@@ -394,26 +475,24 @@ async def deep(question: str, error_text: Optional[str] = None) -> str:
         "error_kb":       _search_error_kb(question, error_text),
     }
     results = await _gather_with_timeout(tasks, timeout=8.0)
-    confidence, verdict = _compute_confidence(results)
-    body = _format_consensus(results, question, lang, confidence, verdict)
-    return body + "\n\n─── DEEP MODE: 8 web sources + diagnostics + memory + error_kb ───"
+    confidence = await _compute_confidence(results, question)
+    result = _build_result("deep", question, results, confidence, lang)
+    d = json.loads(result)
+    d["mode"] = "deep (8 sources + diagnostics + memory + error_kb)"
+    return json.dumps(d, indent=2, ensure_ascii=False)
 
 
 @mcp.tool(
     name="stream",
     description=(
         "Async iterator: returns each source's result AS IT ARRIVES. "
-        "Don't wait for slowest — use fastest available answer."
+        "Don't wait for slowest — use fastest available answer. "
+        "Returns structured JSON."
     ),
 )
 async def stream(question: str, error_text: Optional[str] = None) -> str:
-    """
-    Stream sources as they complete using asyncio.as_completed.
-    Returns a summary: which source finished first, what it said, and
-    confidence based on early arrivals.
-    """
     if not question.strip():
-        return "(empty query)"
+        return json.dumps({"success": False, "tool": "stream", "error": "empty query"})
     keywords = _extract_keywords(question) or question
     lang = _detect_language(question + " " + (error_text or ""))
 
@@ -424,34 +503,34 @@ async def stream(question: str, error_text: Optional[str] = None) -> str:
         "diagnostics":   classify_error(error_text) if error_text else _noop("no error"),
         "error_kb":      _search_error_kb(question, error_text),
     }
-    # Wrap coros as (name, coro) pairs and use as_completed
     named = list(coros.items())
     tasks = [asyncio.create_task(c, name=name) for name, c in named]
-    lines = ["=== MCP Research Stream (results as they arrive) ===", f"Query: {question[:120]}", ""]
     arrivals = []
     try:
         for finished in asyncio.as_completed(tasks, timeout=15.0):
             try:
                 result = await finished
-                # Find which task just completed
-                idx = tasks.index(finished) if finished in tasks else 0
+                idx = tasks.index(finished)
                 name = named[idx][0]
             except Exception as e:
                 name = "?"
                 result = f"(error: {e})"
-            arrivals.append((name, result))
-            preview = (result or "")[:200].replace("\n", " ")
-            w = SOURCE_WEIGHTS.get(name, 0.5)
-            lines.append(f"[{name} w={w:.2f}] {preview}")
+            arrivals.append({"name": name, "result": result[:500]})
     except asyncio.TimeoutError:
-        lines.append("(timeout — some sources did not respond)")
+        pass
 
-    # Use arrived sources for confidence
-    results_dict = {n: r for n, r in arrivals}
-    confidence, verdict = _compute_confidence(results_dict)
-    lines.append("")
-    lines.append(f"─── EARLY CONFIDENCE: {confidence}/100 ({verdict}) from {len(arrivals)} sources ───")
-    return "\n".join(lines)
+    results_dict = {a["name"]: a["result"] for a in arrivals}
+    confidence = await _compute_confidence(results_dict, question)
+    output = {
+        "success": True,
+        "tool": "stream",
+        "query": question[:500],
+        "language": lang,
+        "confidence": confidence,
+        "arrivals": arrivals,
+        "arrival_count": len(arrivals),
+    }
+    return json.dumps(output, indent=2, ensure_ascii=False)
 
 
 # ── Internal helpers ─────────────────────────────────────────────────────────
@@ -461,12 +540,6 @@ async def _noop(reason: str) -> str:
 
 
 async def _gather_with_timeout(tasks: dict, timeout: float) -> dict:
-    """
-    Run coros in parallel with a per-task timeout. Slow tasks return
-    "(timeout)" but don't cancel the fast ones. Critical: asyncio.wait_for
-    on gather cancels EVERYTHING if any one task is slow, so we wrap each
-    task individually.
-    """
     async def _one(name: str, coro) -> tuple[str, str]:
         try:
             result = await asyncio.wait_for(coro, timeout=timeout)

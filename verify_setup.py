@@ -22,6 +22,7 @@ EXPECTED_SERVERS = {
     "bash", "think", "sqlite", "time", "filesystem", "memory",
     "git", "web", "github", "redis", "postgres", "vector",
     "browser", "diagnostics", "autofix", "context7", "research",
+    "agent",
 }
 
 
@@ -101,7 +102,7 @@ def check_paths(servers: dict) -> list:
 
 
 def cmd_check():
-    """Verify all 17 MCPs are correctly registered in global config."""
+    """Verify all 18 MCPs are correctly registered in global config."""
     print("=" * 60)
     print(f"  MCPKU setup check")
     print(f"  global config: {GLOBAL_CONFIG}")
@@ -125,7 +126,7 @@ def cmd_check():
     missing = EXPECTED_SERVERS - registered
     extra = registered - EXPECTED_SERVERS
 
-    print(f"\nRegistered: {len(registered)}/17")
+    print(f"\nRegistered: {len(registered)}/{len(EXPECTED_SERVERS)}")
     if missing:
         print(f"[FAIL] missing servers: {', '.join(sorted(missing))}")
         print(f"       Run: python verify_setup.py sync")
@@ -211,6 +212,7 @@ def cmd_sync():
         "autofix":     {"type": "local", "command": ["python", "E:/MCPKU/mcp_autofix.py"], "enabled": True},
         "context7":    {"type": "local", "command": ["npx", "-y", "@upstash/context7-mcp"], "enabled": True},
         "research":    {"type": "local", "command": ["python", "E:/MCPKU/mcp_research.py"], "enabled": True},
+        "agent":       {"type": "local", "command": ["python", "E:/MCPKU/agentku_buat_chat.py"], "enabled": True},
     }
 
     # Update existing mcp block with fresh server entries
@@ -283,7 +285,7 @@ def cmd_doctor():
     else:
         print(f"[OK]   MCPKU dir exists")
 
-    # 3. All 17 server files exist
+    # 3. All 18 server files exist
     cfg = load_global_config()
     servers = cfg.get("mcp", {})
     for name, c in servers.items():

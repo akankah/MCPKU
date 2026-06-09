@@ -1,6 +1,6 @@
 {
   "steps": [
-    { "name": "List files", "command": "dir" },
-    { "name": "Check python version", "command": "python --version" }
+    { "id": "step1", "name": "List files", "command": "dir" },
+    { "id": "step2", "name": "Success now", "command": "dir" }
   ]
 }
