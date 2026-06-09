@@ -132,7 +132,6 @@ def _h_go_mod_tidy(error_types: list[str], error_text: str, cwd: str) -> list[tu
 
 
 def _h_black_format(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
-    # Extract file path from last traceback frame
     frame_m = re.search(r'File "([^"]+)", line \d+', error_text)
     if frame_m:
         file_path = frame_m.group(1)
@@ -141,7 +140,6 @@ def _h_black_format(error_types: list[str], error_text: str, cwd: str) -> list[t
 
 
 def _h_ping_db(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
-    # Try a simple connectivity check
     return [("python -c \"import socket; socket.gethostbyname('localhost')\"", "Check DB host resolution")]
 
 
@@ -246,20 +244,20 @@ async def _search_references(error_text: str, error_types: list[str]) -> str:
     return "\n".join(parts)
 
 
-# ── Error Knowledge Base ─────────────────────────────────────────────
+# ── Error Knowledge Base (async) ─────────────────────────────────────────
 
-def _save_to_kb(entry: dict, cwd: str = "") -> str:
+
+async def _save_to_kb(entry: dict, cwd: str = "") -> str:
     kb_dir = _resolve_kb_dir(cwd) if cwd else _resolve_kb_dir()
-    kb_dir.mkdir(parents=True, exist_ok=True)
+    await asyncio.to_thread(kb_dir.mkdir, parents=True, exist_ok=True)
     ts = entry.get("timestamp", datetime.now().isoformat())
     safe_ts = ts.replace(":", "-").replace(".", "-")
     fname = f"error_{safe_ts}.json"
     fpath = kb_dir / fname
     try:
-        with open(fpath, "w", encoding="utf-8") as f:
-            json.dump(entry, f, indent=2, ensure_ascii=False)
-        # Also save to vector DB if available
-        vec_ok = _save_to_vector(entry)
+        data = json.dumps(entry, indent=2, ensure_ascii=False)
+        await asyncio.to_thread(lambda: fpath.write_text(data, encoding="utf-8"))
+        vec_ok = await _save_to_vector(entry)
         result = str(fpath)
         if vec_ok:
             result += " (vector indexed)"
@@ -268,34 +266,39 @@ def _save_to_kb(entry: dict, cwd: str = "") -> str:
         return f"(save failed: {e})"
 
 
-def _search_kb_file(query: str, limit: int = 5) -> list[dict]:
-    _resolve_kb_dir().mkdir(parents=True, exist_ok=True)
+async def _search_kb_file(query: str, limit: int = 5) -> list[dict]:
+    kb_dir = _resolve_kb_dir()
+    await asyncio.to_thread(kb_dir.mkdir, parents=True, exist_ok=True)
     q_lower = query.lower()
     results = []
-    files = sorted(_resolve_kb_dir().glob("error_*.json"), reverse=True)
-    for f in files:
-        try:
-            with open(f, "r", encoding="utf-8") as fh:
-                entry = json.load(fh)
-        except Exception:
-            continue
-        score = 0
-        for val in entry.values():
-            if isinstance(val, str) and q_lower in val.lower():
-                score += 1
-            elif isinstance(val, list):
-                for v in val:
-                    if isinstance(v, str) and q_lower in v.lower():
-                        score += 1
-        if score > 0:
-            results.append((score, entry))
-    results.sort(key=lambda x: -x[0])
-    return [e for _, e in results[:limit]]
+
+    def _scan():
+        out = []
+        files = sorted(kb_dir.glob("error_*.json"), reverse=True)
+        for f in files:
+            try:
+                with open(f, "r", encoding="utf-8") as fh:
+                    entry = json.load(fh)
+            except Exception:
+                continue
+            score = 0
+            for val in entry.values():
+                if isinstance(val, str) and q_lower in val.lower():
+                    score += 1
+                elif isinstance(val, list):
+                    for v in val:
+                        if isinstance(v, str) and q_lower in v.lower():
+                            score += 1
+            if score > 0:
+                out.append((score, entry))
+        out.sort(key=lambda x: -x[0])
+        return [e for _, e in out[:limit]]
+
+    return await asyncio.to_thread(_scan)
 
 
-def _search_kb(query: str, limit: int = 5) -> list[dict]:
-    # Try vector search first (semantic similarity, more accurate)
-    vec_results = _vector_search_kb(query, limit=limit, min_score=0.0)
+async def _search_kb(query: str, limit: int = 5) -> list[dict]:
+    vec_results = await _vector_search_kb(query, limit=limit, min_score=0.0)
     if vec_results:
         out = []
         for vr in vec_results:
@@ -313,55 +316,57 @@ def _search_kb(query: str, limit: int = 5) -> list[dict]:
             out.append(entry)
         if out:
             return out
-    # Fallback: keyword-based file search
-    file_results = _search_kb_file(query, limit=limit)
+    file_results = await _search_kb_file(query, limit=limit)
     for r in file_results:
         r["_source"] = "keyword"
     return file_results
 
 
-def _kb_stats() -> dict:
-    _resolve_kb_dir().mkdir(parents=True, exist_ok=True)
-    total = 0
-    by_type: dict[str, int] = {}
-    by_project: dict[str, int] = {}
-    for f in _resolve_kb_dir().glob("error_*.json"):
-        total += 1
-        try:
-            with open(f, "r", encoding="utf-8") as fh:
-                e = json.load(fh)
-            for et in e.get("error_types", []):
-                by_type[et] = by_type.get(et, 0) + 1
-            proj = e.get("project", "?")
-            by_project[proj] = by_project.get(proj, 0) + 1
-        except Exception:
-            pass
-    return {
-        "total": total,
-        "by_type": dict(sorted(by_type.items(), key=lambda x: -x[1])[:10]),
-        "by_project": dict(sorted(by_project.items(), key=lambda x: -x[1])[:10]),
-    }
+async def _kb_stats() -> dict:
+    kb_dir = _resolve_kb_dir()
+    await asyncio.to_thread(kb_dir.mkdir, parents=True, exist_ok=True)
+
+    def _scan():
+        total = 0
+        by_type: dict[str, int] = {}
+        by_project: dict[str, int] = {}
+        for f in kb_dir.glob("error_*.json"):
+            total += 1
+            try:
+                with open(f, "r", encoding="utf-8") as fh:
+                    e = json.load(fh)
+                for et in e.get("error_types", []):
+                    by_type[et] = by_type.get(et, 0) + 1
+                proj = e.get("project", "?")
+                by_project[proj] = by_project.get(proj, 0) + 1
+            except Exception:
+                pass
+        return {
+            "total": total,
+            "by_type": dict(sorted(by_type.items(), key=lambda x: -x[1])[:10]),
+            "by_project": dict(sorted(by_project.items(), key=lambda x: -x[1])[:10]),
+        }
+
+    return await asyncio.to_thread(_scan)
 
 
-# ── Vector integration (pgvector) ────────────────────────────────────
-# Optional: if DATABASE_URL is set, errors are also embedded and stored
-# in a pgvector table for semantic similarity search.
-# Fallback: keyword-based file search when DB is unavailable.
+# ── Vector integration (pgvector) — async wrappers ───────────────────────
 
 _VECTOR_COLLECTION = "error_kb"
 _DATABASE_URL = os.environ.get("DATABASE_URL", "")
 _EMBEDDING_DIM = int(os.environ.get("VECTOR_EMBEDDING_DIM", "1536"))
 
 
-def _embed_text(text: str) -> list[float] | None:
-    """Embed text using OpenAI API. Returns None if API key is missing or call fails."""
+async def _embed_text(text: str) -> list[float] | None:
+    """Embed text using OpenAI API. Runs in thread to avoid blocking event loop."""
     api_key = os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
         return None
     try:
         from openai import OpenAI
         client = OpenAI(api_key=api_key)
-        r = client.embeddings.create(
+        r = await asyncio.to_thread(
+            client.embeddings.create,
             model=os.environ.get("VECTOR_EMBEDDING_MODEL", "text-embedding-3-small"),
             input=[text],
         )
@@ -412,94 +417,126 @@ def _ensure_vector_table():
     _VECTOR_TABLE_INIT = True
 
 
-def _save_to_vector(entry: dict) -> bool:
+async def _save_to_vector(entry: dict) -> bool:
     if not _DATABASE_URL:
         return False
-    try:
-        text = f"{' '.join(entry.get('error_types', []))} {entry.get('error_message', '')} {entry.get('command', '')}"
-        emb = _embed_text(text)
-        if emb is None:
-            return False
-        emb_str = "[" + ",".join(str(v) for v in emb) + "]"
-        _ensure_vector_table()
-        tbl = _vec_table()
-        doc_id = entry.get("timestamp", datetime.now().isoformat())
-        meta = json.dumps({
-            "command": entry.get("command", ""),
-            "fixes": entry.get("fixes", []),
-            "error_types": entry.get("error_types", []),
-            "project": entry.get("project", ""),
-        })
-        conn = _vector_conn()
-        cur = conn.cursor()
-        cur.execute(f"""
-            INSERT INTO {tbl} (id, text, metadata, embedding)
-            VALUES (%s, %s, %s::jsonb, %s::vector)
-            ON CONFLICT (id) DO UPDATE
-            SET text=EXCLUDED.text, metadata=EXCLUDED.metadata, embedding=EXCLUDED.embedding
-        """, (doc_id, text, meta, emb_str))
-        cur.close()
-        return True
-    except Exception:
-        return False
 
-
-def _vector_search_kb(query: str, limit: int = 5, min_score: float = 0.0) -> list[dict]:
-    if not _DATABASE_URL:
-        return []
-    try:
-        qvec = _embed_text(query)
-        if qvec is None:
-            return []
-        emb_str = "[" + ",".join(str(v) for v in qvec) + "]"
-        _ensure_vector_table()
-        tbl = _vec_table()
-        conn = _vector_conn()
-        cur = conn.cursor()
-        cur.execute(f"""
-            SELECT id, text, metadata, 1 - (embedding <=> %s::vector) AS score
-            FROM {tbl}
-            WHERE 1 - (embedding <=> %s::vector) >= %s
-            ORDER BY score DESC
-            LIMIT %s
-        """, (emb_str, emb_str, min_score, limit))
-        rows = cur.fetchall()
-        cur.close()
-        results = []
-        for row in rows:
-            meta = row[2] if isinstance(row[2], dict) else json.loads(row[2]) if row[2] else {}
-            results.append({
-                "id": row[0],
-                "text": (meta.get("error_types", []) or ["?"])[0] + ": " + (row[1] or "")[:200],
-                "score": round(float(row[3]), 4),
-                "metadata": meta,
-            })
-        return results
-    except Exception:
-        return []
-
-
-# ── Trend analysis ───────────────────────────────────────────────────
-
-def _kb_trends(days: int = 30) -> dict:
-    _resolve_kb_dir().mkdir(parents=True, exist_ok=True)
-    cutoff = time.time() - days * 86400
-    entries = []
-    for f in _resolve_kb_dir().glob("error_*.json"):
+    def _sync():
         try:
-            with open(f, "r", encoding="utf-8") as fh:
-                e = json.load(fh)
-            ts_str = e.get("timestamp", "")
-            if ts_str:
-                try:
-                    dt = datetime.fromisoformat(ts_str)
-                    if dt.timestamp() < cutoff:
-                        continue
-                except Exception:
-                    pass
-            entries.append(e)
+            text = f"{' '.join(entry.get('error_types', []))} {entry.get('error_message', '')} {entry.get('command', '')}"
+            emb = _embed_text_sync(text)
+            if emb is None:
+                return False
+            emb_str = "[" + ",".join(str(v) for v in emb) + "]"
+            _ensure_vector_table()
+            tbl = _vec_table()
+            doc_id = entry.get("timestamp", datetime.now().isoformat())
+            meta = json.dumps({
+                "command": entry.get("command", ""),
+                "fixes": entry.get("fixes", []),
+                "error_types": entry.get("error_types", []),
+                "project": entry.get("project", ""),
+            })
+            conn = _vector_conn()
+            cur = conn.cursor()
+            cur.execute(f"""
+                INSERT INTO {tbl} (id, text, metadata, embedding)
+                VALUES (%s, %s, %s::jsonb, %s::vector)
+                ON CONFLICT (id) DO UPDATE
+                SET text=EXCLUDED.text, metadata=EXCLUDED.metadata, embedding=EXCLUDED.embedding
+            """, (doc_id, text, meta, emb_str))
+            cur.close()
+            return True
         except Exception:
-            pass
+            return False
+
+    return await asyncio.to_thread(_sync)
+
+
+async def _vector_search_kb(query: str, limit: int = 5, min_score: float = 0.0) -> list[dict]:
+    if not _DATABASE_URL:
+        return []
+
+    def _sync():
+        try:
+            qvec = _embed_text_sync(query)
+            if qvec is None:
+                return []
+            emb_str = "[" + ",".join(str(v) for v in qvec) + "]"
+            _ensure_vector_table()
+            tbl = _vec_table()
+            conn = _vector_conn()
+            cur = conn.cursor()
+            cur.execute(f"""
+                SELECT id, text, metadata, 1 - (embedding <=> %s::vector) AS score
+                FROM {tbl}
+                WHERE 1 - (embedding <=> %s::vector) >= %s
+                ORDER BY score DESC
+                LIMIT %s
+            """, (emb_str, emb_str, min_score, limit))
+            rows = cur.fetchall()
+            cur.close()
+            results = []
+            for row in rows:
+                meta = row[2] if isinstance(row[2], dict) else json.loads(row[2]) if row[2] else {}
+                results.append({
+                    "id": row[0],
+                    "text": (meta.get("error_types", []) or ["?"])[0] + ": " + (row[1] or "")[:200],
+                    "score": round(float(row[3]), 4),
+                    "metadata": meta,
+                })
+            return results
+        except Exception:
+            return []
+
+    return await asyncio.to_thread(_sync)
+
+
+def _embed_text_sync(text: str) -> list[float] | None:
+    """Sync embedding call — runs inside asyncio.to_thread."""
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        return None
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        r = client.embeddings.create(
+            model=os.environ.get("VECTOR_EMBEDDING_MODEL", "text-embedding-3-small"),
+            input=[text],
+        )
+        return r.data[0].embedding
+    except Exception:
+        return None
+
+
+# ── Trend analysis (async) ──────────────────────────────────────────────
+
+
+async def _kb_trends(days: int = 30) -> dict:
+    kb_dir = _resolve_kb_dir()
+    await asyncio.to_thread(kb_dir.mkdir, parents=True, exist_ok=True)
+    cutoff = time.time() - days * 86400
+
+    def _scan():
+        entries = []
+        for f in kb_dir.glob("error_*.json"):
+            try:
+                with open(f, "r", encoding="utf-8") as fh:
+                    e = json.load(fh)
+                ts_str = e.get("timestamp", "")
+                if ts_str:
+                    try:
+                        dt = datetime.fromisoformat(ts_str)
+                        if dt.timestamp() < cutoff:
+                            continue
+                    except Exception:
+                        pass
+                entries.append(e)
+            except Exception:
+                pass
+        return entries
+
+    entries = await asyncio.to_thread(_scan)
 
     if not entries:
         return {"total": 0, "period_days": days, "by_type": {}, "by_date": {}, "by_project": {}, "fix_rate": 0.0}
@@ -551,14 +588,6 @@ async def autofix_run(
     auto_commit: bool = False,
     commit_message: str = "",
 ) -> str:
-    """
-    Args:
-        command: Command to run (e.g. "python app.py")
-        workdir: Working directory (default: cwd)
-        max_retries: Max auto-fix attempts (default: 3)
-        auto_commit: If True and fix succeeds, git commit
-        commit_message: Custom commit message (auto-generated if empty)
-    """
     cwd = workdir or os.getcwd()
     lines = [
         f"── autofix_run: {command!r} ──",
@@ -566,7 +595,6 @@ async def autofix_run(
         f"Max retries: {max_retries}",
     ]
 
-    # Safety check — regex with word boundaries, covers more variants
     _DANGEROUS_PATTERNS = [
         (r'\brm\s+-[rf]+\b', "rm -rf recursive delete"),
         (r'\bRemove-Item\b.*-Recurse', "PowerShell recursive delete"),
@@ -601,7 +629,6 @@ async def autofix_run(
             if stderr.strip():
                 lines.append(f"\n[stderr]\n{stderr[:1000]}")
 
-            # Auto-commit if requested (only tracked files, no untracked)
             if auto_commit and applied_fixes:
                 msg = commit_message or f"autofix: {', '.join(applied_fixes)}"
                 safe_msg = shlex.quote(msg)
@@ -627,7 +654,6 @@ async def autofix_run(
             })
             return "\n".join(lines)
 
-        # Command failed — parse error
         error_text = stderr + "\n" + stdout
         lang = _auto_detect_language(error_text)
 
@@ -647,9 +673,8 @@ async def autofix_run(
             lines.append(f"   Message: {parsed['error_message'][:200]}")
         lines.append(f"   Classifications: {', '.join(error_types)}")
 
-        # Search KB for similar past errors
         if attempt == 0:
-            kb_results = _search_kb(" ".join(error_types), limit=3)
+            kb_results = await _search_kb(" ".join(error_types), limit=3)
             if kb_results:
                 lines.append(f"\n📚 Found {len(kb_results)} similar error(s) in knowledge base:")
                 for i, kb in enumerate(kb_results, 1):
@@ -668,7 +693,6 @@ async def autofix_run(
             lines.append(f"\n⚠️  Manual debugging needed after all retries.")
             break
 
-        # Try auto-fix
         fix_cmds = _build_fix_commands(error_types, error_text, cwd)
 
         if fix_cmds:
@@ -683,7 +707,6 @@ async def autofix_run(
                     err = fix_result["stderr"][:200]
                     lines.append(f"   ⚠️  Fix failed: {err}")
         else:
-            # No auto-fix strategy — give suggestion + search references
             suggestions = []
             for et in error_types:
                 if et in FIX_SUGGESTIONS:
@@ -715,7 +738,6 @@ async def autofix_run(
         "project": cwd,
     })
 
-    # Auto-save failed error to KB
     if not _STATELESS:
         kb_entry = {
             "timestamp": datetime.now().isoformat(),
@@ -728,10 +750,9 @@ async def autofix_run(
             "error_text_tail": error_text[:1000],
             "project": cwd,
         }
-        saved_path = _save_to_kb(kb_entry, cwd=cwd)
+        saved_path = await _save_to_kb(kb_entry, cwd=cwd)
         lines.append(f"\n💾 Error saved to knowledge base: {saved_path}")
 
-    # Show stderr tail
     if stderr.strip():
         lines.append(f"\n[stderr tail]\n{stderr[:2000]}")
     if stdout.strip() and not stderr.strip():
@@ -798,7 +819,7 @@ async def autofix_save_error(
         "error_text_tail": context[:1000] or error_message[:1000],
         "project": project or os.getcwd(),
     }
-    path = _save_to_kb(entry, cwd=project or os.getcwd())
+    path = await _save_to_kb(entry, cwd=project or os.getcwd())
     return f"✅ Error saved to knowledge base: {path}"
 
 
@@ -809,7 +830,7 @@ async def autofix_save_error(
     " fallback keyword search jika tidak."
 )
 async def autofix_search_kb(query: str, limit: int = 5) -> str:
-    results = _search_kb(query, limit=limit)
+    results = await _search_kb(query, limit=limit)
     if not results:
         return "(no matching errors in knowledge base)"
 
@@ -839,7 +860,7 @@ async def autofix_search_kb(query: str, limit: int = 5) -> str:
     description="Lihat statistik knowledge base: total error, error types, project."
 )
 async def autofix_kb_stats() -> str:
-    stats = _kb_stats()
+    stats = await _kb_stats()
     total = stats["total"]
     if total == 0:
         return "(knowledge base is empty — errors will be saved automatically when autofix_run fails)"
@@ -864,7 +885,7 @@ async def autofix_kb_stats() -> str:
     " dan fix success rate dalam periode tertentu."
 )
 async def autofix_kb_trends(days: int = 30, top_n: int = 10) -> str:
-    trends = _kb_trends(days=days)
+    trends = await _kb_trends(days=days)
     total = trends["total"]
     if total == 0:
         return f"(no errors in the last {days} days)"
@@ -892,7 +913,6 @@ async def autofix_kb_trends(days: int = 30, top_n: int = 10) -> str:
     if trends["by_date"]:
         out.append("By Date:")
         dates = list(trends["by_date"].items())
-        # Show last 14 days or all
         for day, cnt in dates[-14:]:
             bar = "█" * min(cnt, 20)
             out.append(f"  {day} {bar} {cnt}")

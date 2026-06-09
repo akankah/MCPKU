@@ -1,7 +1,7 @@
 """Tests for mcp_research.py — pure function tests (no network)."""
 
-import sys
-sys.path.insert(0, r"E:\MCPKU")
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from mcp_research import (
     _cosine_similarity,

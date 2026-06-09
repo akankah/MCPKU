@@ -1,5 +1,5 @@
-import sys
-sys.path.insert(0, r"E:\MCPKU")
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 from mcp_redis import _flush_tokens

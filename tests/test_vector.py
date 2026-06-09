@@ -1,5 +1,5 @@
-import sys
-sys.path.insert(0, r"E:\MCPKU")
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pytest
 from mcp_vector import _embed_fallback, _table_name

@@ -37,9 +37,13 @@ from mcp.server.fastmcp import FastMCP
 _FS_ALLOW_ALL = os.environ.get("MCP_FS_ALLOW_ALL", "0") == "1"
 _extra = os.environ.get("MCP_EXTRA_ALLOWED_DIR", "").strip()
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.name == "nt":
+    _DEFAULT_PATHS = ["C:\\", "D:\\", "E:\\"]
+else:
+    _DEFAULT_PATHS = ["/home", "/tmp", "/workspace"]
 _ALLOWED_PREFIXES = tuple(
     os.path.normpath(p) + os.sep
-    for p in (["C:\\", "E:\\", _BASE_DIR] + ([_extra] if _extra else []))
+    for p in (_DEFAULT_PATHS + [_BASE_DIR] + ([_extra] if _extra else []))
 )
 
 def _is_path_allowed(path: str) -> bool:
