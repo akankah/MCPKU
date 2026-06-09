@@ -33,6 +33,21 @@ from datetime import datetime
 from typing import Optional
 from mcp.server.fastmcp import FastMCP
 
+# ── Path allowlist (sama dengan mcp_filesystem) ─────────────────────────────
+_FS_ALLOW_ALL = os.environ.get("MCP_FS_ALLOW_ALL", "0") == "1"
+_extra = os.environ.get("MCP_EXTRA_ALLOWED_DIR", "").strip()
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_ALLOWED_PREFIXES = tuple(
+    os.path.normpath(p) + os.sep
+    for p in (["C:\\", "E:\\", _BASE_DIR] + ([_extra] if _extra else []))
+)
+
+def _is_path_allowed(path: str) -> bool:
+    if _FS_ALLOW_ALL:
+        return True
+    resolved = os.path.normpath(os.path.abspath(path))
+    return any(resolved.startswith(ap) for ap in _ALLOWED_PREFIXES)
+
 mcp = FastMCP(
     "diagnostics",
     instructions=(
@@ -52,14 +67,7 @@ mcp = FastMCP(
         "3. If explain_error cannot map the error to a known fix strategy → call websearch.\n"
         "Skip websearch ONLY for: standard well-known errors (ImportError, "
         "ModuleNotFoundError, FileNotFoundError, IndentationError, SyntaxError) "
-        "where the fix is unambiguous and library-version-independent.\n\n"
-        "PARALLEL CROSS-VALIDATION (mandatory for UNKNOWN errors):\n"
-        "After classify_error returns UNKNOWN, call these IN PARALLEL in the same batch:\n"
-        "  - autofix.autofix_run(command_that_failed)  → auto-fix attempt\n"
-        "  - memory.search_nodes('<error_keyword>')    → past similar errors\n"
-        "  - mcp_research.query(query)                 → 6 web sources + autofix in parallel\n"
-        "Then cross-check: do all 3 sources agree on the root cause? If yes, fix is high-confidence. "
-        "If no, present the conflict to the user."
+        "where the fix is unambiguous and library-version-independent."
     ),
 )
 
@@ -116,7 +124,7 @@ ERROR_PATTERNS = {
     "JS.EACCES":               r"EACCES(?:: permission denied)",
     "JS.EADDRINUSE":           r"EADDRINUSE",
     # Rust
-    "Rust.Panic":              r"\bthread '.*' panicked\b",
+    "Rust.Panic":              r"\bthread '.*' panicked(?: at '.*?')?(?: at \S+:\d+:\d+)?",
     "Rust.CompileError":       r"error\[E\d+\]",
     "Rust.BorrowError":        r"cannot borrow|borrow checker",
     # Go
@@ -246,11 +254,19 @@ def _parse_rust_traceback(text: str) -> dict:
     """Extract structured info dari Rust panic / compile error."""
     result = {"language": "Rust", "frames": [], "error_type": "", "error_message": ""}
 
-    panic_re = re.compile(r"thread '(.+?)' panicked at '(.+?)', (.+):(\d+):(\d+)")
+    # Rust 1.73+ (new format): thread 'main' panicked at src/main.rs:10:5: message
+    # Rust pre-1.73 (old format): thread 'main' panicked at 'message', src/main.rs:10:5
+    panic_re = re.compile(
+        r"thread '(.+?)' panicked at "
+        r"(?:'(.+?)', )?"                    # optional old-format message in quotes
+        r"([^:']+):(\d+):(\d+)"              # file:line:col
+        r"(?::\s*(.+))?"                     # optional new-format message after colon
+    )
     m = panic_re.search(text)
     if m:
         result["error_type"] = "Panic"
-        result["error_message"] = m.group(2)
+        # Prefer new-format message (group 6), fallback to old-format (group 2)
+        result["error_message"] = (m.group(6) or m.group(2) or "").strip()
         result["frames"].append({
             "thread": m.group(1),
             "file": m.group(3),
@@ -271,7 +287,7 @@ def _auto_detect_language(text: str) -> str:
         return "python"
     if re.search(r'at \S+:\d+:\d+', text) and "Error:" in text:
         return "nodejs"
-    if re.search(r"thread '.*' panicked|error\[E\d+\]", text):
+    if re.search(r"thread '.*' panicked(?: at)?|error\[E\d+\]", text):
         return "rust"
     if re.search(r'goroutine \d+ \[', text):
         return "go"
@@ -455,6 +471,7 @@ async def watch_stderr(
             return f"(blocked: command contains dangerous pattern '{d}')"
 
     cwd = workdir or os.getcwd()
+    proc = None
     try:
         proc = await asyncio.create_subprocess_shell(
             command,
@@ -508,6 +525,12 @@ async def watch_stderr(
         return f"(command not found: {command.split()[0]})"
     except Exception as e:
         return f"(error running command: {e})"
+    finally:
+        if proc and proc.returncode is None:
+            try:
+                proc.kill()
+            except Exception:
+                pass
 
 
 @mcp.tool(
@@ -567,6 +590,8 @@ async def scan_project_errors(
         max_files     : Maks file yang dibaca (default: 20)
         lines_per_file: Maks baris per file (default: 50)
     """
+    if not _is_path_allowed(folder_path):
+        return f"(blocked: path not in allowlist: {folder_path})"
     folder = Path(folder_path)
     if not folder.exists():
         return f"(folder not found: {folder_path})"
