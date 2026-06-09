@@ -533,7 +533,7 @@ parallel([
 ```bash
 pip install -r requirements.txt
 playwright install chromium
-python -m pytest tests/ -v    # 288 tests, ~24 seconds
+python -m pytest tests/ -v    # 462 tests, ~24 seconds
 ```
 
 ### Auto-load in every OpenCode session
@@ -732,7 +732,7 @@ pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-**288 tests** across 23 server modules. Pure unit tests with no network, DB,
+**462 tests** across 23 server modules. Pure unit tests with no network, DB,
 or browser dependency. Runs in ~24 seconds.
 
 | Module | Tests | What's covered |
