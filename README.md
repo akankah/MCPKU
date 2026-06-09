@@ -3,7 +3,7 @@
   <img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
 </picture>
 
-**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 18 MCP
+**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 22 MCP
 servers that gives AI agents the ability to read, write, execute, debug, fix,
 and commit code autonomously.
 
@@ -16,7 +16,7 @@ AI Model
 MCPKU Runtime
     │  orchestrates: shell → git → web → browser → diagnostics → autofix
     ▼
-18 MCP Servers
+22 MCP Servers
     │  each a self-contained stdio process
     ▼
 Your System / Repo / DB / Browser / Logs
@@ -544,7 +544,7 @@ session, every directory, every model** — now and after future opencode
 upgrades.
 
 ```bash
-python verify_setup.py check     # verify current setup (18/18 registered?)
+python verify_setup.py check     # verify current setup (19/19 registered?)
 python verify_setup.py sync      # install/repair global config
 python verify_setup.py status    # show registered servers + paths
 python verify_setup.py doctor    # full diagnostic + fix suggestions
@@ -732,7 +732,7 @@ pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-**288 tests** across 24 server modules. Pure unit tests with no network, DB,
+**288 tests** across 23 server modules. Pure unit tests with no network, DB,
 or browser dependency. Runs in ~24 seconds.
 
 | Module | Tests | What's covered |
@@ -786,7 +786,7 @@ or browser dependency. Runs in ~24 seconds.
 
 | Term | Meaning |
 |---|---|
-| **MCPKU Runtime** | The orchestration layer of 18 coordinated servers |
+| **MCPKU Runtime** | The orchestration layer of 22 coordinated servers |
 | **Autonomous Debugging Engine** | The diagnostics + autofix pipeline that closes the debug loop |
 | **Closed-loop debugging** | Run → detect → fix → retry → commit without human intervention |
 | **Fix strategy** | A handler function that maps an error type to an executable fix command |
