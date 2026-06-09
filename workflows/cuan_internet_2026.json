@@ -1,0 +1,16 @@
+{
+  "name": "cuan_internet_2026",
+  "goal": "riset peluang bisnis digital yang legit dengan modal minim di 2026",
+  "steps": [
+    {
+      "id": "step1",
+      "name": "Init",
+      "command": "echo 'Starting cuan_internet_2026'"
+    },
+    {
+      "id": "step2",
+      "name": "Execution",
+      "command": "echo 'Run logic here'"
+    }
+  ]
+}
