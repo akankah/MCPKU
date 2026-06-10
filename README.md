@@ -3,7 +3,7 @@
   <img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
 </picture>
 
-**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 22 MCP
+**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 27 MCP
 servers that gives AI agents the ability to read, write, execute, debug, fix,
 and commit code autonomously.
 
@@ -16,7 +16,7 @@ AI Model
 MCPKU Runtime
     │  orchestrates: shell → git → web → browser → diagnostics → autofix
     ▼
-22 MCP Servers
+27 MCP Servers
     │  each a self-contained stdio process
     ▼
 Your System / Repo / DB / Browser / Logs
@@ -267,6 +267,11 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `research`    | `mcp_research.py`     | Semantic consensus engine: query/quick/deep with embedding-based agreement|
 | `manifest`    | `mcp_manifest.py`     | Central tool metadata registry (140+ tools, 12 categories)                |
 | `agent`       | `agentku_buat_chat.py`| Autonomous agent: planner + manifest for dynamic tool discovery           |
+| `visualizer`  | `mcp_visualizer.py`   | Generate Mermaid ERD diagrams from SQLite/Postgres schemas                |
+| `sysmon`      | `mcp_sysmon.py`       | Advanced system monitor: CPU, RAM, Disk, and Process management           |
+| `ocr`         | `mcp_ocr.py`          | Local OCR: Extract text from images/PDFs (no API keys required)            |
+| `git_doc`     | `mcp_git_doc.py`      | Auto-generate commit messages and PR summaries from git diffs             |
+| `api_tester`  | `mcp_api_tester.py`   | API Performance & Stress Tester: Latency analysis and concurrency testing |
 
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by
 `postgres`, `vector`, `web`). Not a standalone server.
