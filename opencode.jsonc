@@ -26,6 +26,19 @@
         "kimi-k2.5": {}
       }
     },
+    "alibaba-free": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Alibaba Free",
+      "options": {
+        "baseURL": "https://ws-ndy4oqsdo8b54pfm.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
+        "apiKey": "${ALIBABA_API_KEY}"
+      },
+      "models": {
+        "qwen-turbo": {},
+        "qwen-plus": {},
+        "qwen-max": {}
+      }
+    },
     "free-zhipuai": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "Free Zhipu AI",

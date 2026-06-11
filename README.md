@@ -724,6 +724,7 @@ KILO_API_KEY=xxx
 NVIDIA_API_KEY=xxx
 KIMCHI_API_KEY=xxx
 BAI_API_KEY=xxx          # B.AI — 4 models: gemini-3.5-flash, glm-5.1, glm-5, kimi-k2.5
+ALIBABA_API_KEY=xxx      # Alibaba Free — 3 models: qwen-turbo, qwen-plus, qwen-max
 ```
 
 ### Editing rules
