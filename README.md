@@ -682,7 +682,82 @@ current directory.
 }
 ```
 
-> **Note**: Use `cmd /c` wrapper for Windows `.exe`/`.cmd` resolution. Replace `<user>` in context7 path.
+> **Note**: Use `cmd /c` wrapper for Windows `.exe`/`.cmd` resolution. Replace `<user>` in context7 path with your Windows username.
+```
+
+---
+
+## Config Files & Rules
+
+### Files in repo
+
+| File | Tracked | Purpose |
+|------|---------|---------|
+| `opencode.jsonc` | ✅ Yes | 28 MCP server definitions with `cmd /c` wrapper + `timeout` |
+| `mcp_wrapper.py` | ✅ Yes | Optional diagnostics injector (not used by default) |
+
+### Files NOT in repo (create locally)
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `opencode.jsonc` (global) | `~/.config/opencode/opencode.jsonc` | Copy from repo, update `context7` path |
+| `.env` | `E:\MCPKU\.env` | API keys (never commit) |
+| `memory.jsonl` | `E:\MCPKU\memory.jsonl` | Personal knowledge graph (auto-created) |
+| `error_kb/*.json` | `E:\MCPKU\error_kb\` | Per-project error KB (auto-created) |
+
+### Required environment variables
+
+Create `E:\MCPKU\.env` (or export in shell):
+
+```bash
+# Required for servers that need them
+GITHUB_API_KEY=ghp_xxx
+FIRECRAWL_API_KEY=fc_xxx
+STACKEX_API_KEY=xxx
+DATABASE_URL=postgresql://user:pass@host:5432/db
+REDIS_URL=redis://localhost:6379/0
+OPENAI_API_KEY=sk-xxx
+
+# Optional free-tier providers
+ZHIPUAI_API_KEY=xxx
+KILO_API_KEY=xxx
+NVIDIA_API_KEY=xxx
+KIMCHI_API_KEY=xxx
+```
+
+### Editing rules
+
+| Rule | Enforcement |
+|------|-------------|
+| **Never commit secrets** | `.env`, `memory.jsonl`, `error_kb/` in `.gitignore` |
+| **Use `${VAR}` interpolation** | `opencode.jsonc` uses `${VAR}` for API keys — resolves from env |
+| **Context7 path template** | Replace `<user>` in `C:/Users/<user>/AppData/...` with actual username |
+| **Timeout values** | All Python servers: `60000`, context7: `120000` (tested working) |
+| **Cmd wrapper** | All Python commands: `["cmd", "/c", "python", ...]` — required on Windows |
+| **Schema version** | opencode v1.17+ uses `"mcp"` key (NOT `"mcpServers"`) |
+
+### Validation checklist before commit
+
+```bash
+# 1. Verify config syntax
+python -m json.tool E:\MCPKU\opencode.jsonc > nul && echo "JSONC valid"
+
+# 2. Check no hardcoded secrets
+grep -i "api_key\|password\|secret" E:\MCPKU\opencode.jsonc || echo "No secrets found"
+
+# 3. Verify all servers have timeout
+grep -c '"timeout": 60000' E:\MCPKU\opencode.jsonc  # should be 27
+grep -c '"timeout": 120000' E:\MCPKU\opencode.jsonc  # should be 1 (context7)
+
+# 4. Verify cmd wrapper
+grep -c 'cmd.*python' E:\MCPKU\opencode.jsonc  # should be 27
+```
+
+### Sync global config
+
+```bash
+python verify_setup.py sync   # copies opencode.jsonc to global ~/.config/opencode/
+python verify_setup.py check  # validates registration
 ```
 
 ### Cursor / others
