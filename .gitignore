@@ -14,4 +14,4 @@ workflow_state.jsonl
 output/
 .pytest_cache/
 .config_backup/
-.provider-free-models.txt
+.cara_tutor_buat_tampilkan_provider_free_model_opencode.txt
