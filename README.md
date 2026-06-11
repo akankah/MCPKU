@@ -718,11 +718,12 @@ DATABASE_URL=postgresql://user:pass@host:5432/db
 REDIS_URL=redis://localhost:6379/0
 OPENAI_API_KEY=sk-xxx
 
-# Optional free-tier providers
+# Optional free-tier providers (set these for free-model access)
 ZHIPUAI_API_KEY=xxx
 KILO_API_KEY=xxx
 NVIDIA_API_KEY=xxx
 KIMCHI_API_KEY=xxx
+BAI_API_KEY=xxx          # B.AI — 4 models: gemini-3.5-flash, glm-5.1, glm-5, kimi-k2.5
 ```
 
 ### Editing rules

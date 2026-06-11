@@ -16,30 +16,14 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "B.AI",
       "options": {
-        "baseURL": "https://api.b.ai/v1"
+        "baseURL": "https://api.b.ai/v1",
+        "apiKey": "${BAI_API_KEY}"
       },
       "models": {
-        "gpt-5-mini": {},      // 0.25 / 2.00
-        "gpt-5-nano": {},      // 0.05 / 0.40
-        "gpt-5.2": {},         // 1.75 / 14.00
-        "gpt-5.4": {},         // 2.50 / 15.00
-        "gpt-5.4-mini": {},    // 0.75 / 4.50
-        "gpt-5.4-nano": {},    // 0.20 / 1.25
-        "claude-haiku-4-5": {},// 1.00 / 5.00
-        "claude-sonnet-4-5": {},//3.00 / 15.00
-        "claude-sonnet-4-6": {},//3.00 / 15.00
-        "deepseek-v3.2": {},   // 0.29 / 0.44
-        "deepseek-v4-pro": {}, // 0.87 / 1.74
-        "deepseek-v4-flash": {},//0.28 / 0.56
-        "gemini-3.1-pro": {},  // 2.00 / 12.00
-        "gemini-3.5-flash": {},// 1.50 / 9.00
-        "gemini-3-flash": {},  // 0.50 / 3.00
-        "glm-5.1": {},         // 1.40 / 4.40
-        "glm-5": {},           // 1.00 / 3.20
-        "kimi-k2.6": {},       // 0.95 / 4.00
-        "kimi-k2.5": {},       // 0.59 / 3.00
-        "minimax-m3": {},      // 0.30 / 1.20
-        "minimax-m2.7": {}     // 0.30 / 1.20
+        "gemini-3.5-flash": {},
+        "glm-5.1": {},
+        "glm-5": {},
+        "kimi-k2.5": {}
       }
     },
     "free-zhipuai": {
