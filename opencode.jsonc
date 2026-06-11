@@ -36,7 +36,14 @@
       "models": {
         "qwen-turbo": {},
         "qwen-plus": {},
-        "qwen-max": {}
+        "qwen-max": {},
+        "qwen3.5-122b-a10b": {},
+        "qwen3.7-plus": {},
+        "qwen3-vl-235b-a22b-thinking": {},
+        "qwen-plus-2025-07-28": {},
+        "qwen3-max": {},
+        "qwen3.5-plus-2026-02-15": {},
+        "qwen-mt-flash": {}
       }
     },
     "free-zhipuai": {
