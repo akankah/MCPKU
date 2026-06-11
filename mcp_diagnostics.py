@@ -152,6 +152,10 @@ ERROR_PATTERNS = {
     "MCP.Timeout":             r"Operation timed out after \d+ms",
     "MCP.RequestTimeout":      r"MCP error -32001: Request timed out",
     "MCP.SpawnFailed":         r"Unrecognized key: mcpServers",
+    # Generic error log patterns
+    "General.LogError":        r"^\s*\[\d{2}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}\]\s+ERROR\b",
+    "General.ValidationError": r"validation error for \w+",
+    "General.InvalidJSON":     r"Invalid JSON:",
 }
 
 FIX_SUGGESTIONS = {
@@ -199,6 +203,9 @@ FIX_SUGGESTIONS = {
     "MCP.Timeout":             "opencode MCP server startup timeout. Fix: 1) Wrap command with ['cmd', '/c', ...] di opencode.jsonc, 2) Set per-server timeout: 60000+ di config, 3) Lazy-load heavy imports in server code.",
     "MCP.RequestTimeout":      "MCP tool call timeout (tools/list terlalu lama). Fix: Per-server timeout 120000+ di opencode.jsonc, atau disable server jika tidak kritis.",
     "MCP.SpawnFailed":         "Config format salah (mcpServers vs mcp key). opencode v1.17+ pakai key 'mcp' bukan 'mcpServers'. Perbarui config ke schema baru.",
+    "General.LogError":        "ERROR log entry. Check full traceback below for root cause.",
+    "General.ValidationError": "Pydantic validation error. Check input data matches expected schema.",
+    "General.InvalidJSON":     "Invalid JSON input. Ensure valid JSON-RPC format.",
 }
 
 def _classify(text: str) -> list[str]:

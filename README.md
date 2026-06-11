@@ -579,7 +579,9 @@ python -m pytest tests/ -v    # 462 tests, ~24 seconds
 | Lazy imports | `mcp_doc_intel.py` | Defer `pypdf`/`python-docx`/`pandas` to tool call time |
 | Direct node path | `opencode.jsonc` | Bypass `npx` for context7 (uses global install) |
 
-**Result**: 27/28 servers connect reliably. `context7` partially connects (tools/list takes ~55s due to external API call).
+**Result**: 28/28 servers connect reliably on Windows 10/11 (opencode v1.17.3).
+
+**Tested**: Windows 10 + Windows 11, Python 3.11+, opencode v1.17.3.
 
 **Self-recovery**: `mcp_autofix.py` now detects MCP timeout errors and suggests config fixes:
 
@@ -627,25 +629,28 @@ config at `~/.config/opencode/opencode.jsonc`. The original file stays in
 // ~/.config/opencode/opencode.jsonc
 {
   "mcp": {
-    "bash":       { "type": "local", "command": ["python", "E:/MCPKU/mcp_bash.py"],       "enabled": true },
-    "think":      { "type": "local", "command": ["python", "E:/MCPKU/mcp_think.py"],      "enabled": true },
-    "time":       { "type": "local", "command": ["python", "E:/MCPKU/mcp_time.py"],       "enabled": true },
-    "filesystem": { "type": "local", "command": ["python", "E:/MCPKU/mcp_filesystem.py"], "enabled": true },
-    "git":        { "type": "local", "command": ["python", "E:/MCPKU/mcp_git.py"],        "enabled": true },
-    "github":     { "type": "local", "command": ["python", "E:/MCPKU/mcp_github.py"],     "enabled": true },
-    "web":        { "type": "local", "command": ["python", "E:/MCPKU/mcp_web.py"],        "enabled": true },
-    "vector":     { "type": "local", "command": ["python", "E:/MCPKU/mcp_vector.py"],     "enabled": true },
-    "postgres":   { "type": "local", "command": ["python", "E:/MCPKU/mcp_postgres.py"],   "enabled": true },
-    "sqlite":     { "type": "local", "command": ["python", "E:/MCPKU/mcp_sqlite.py"],     "enabled": true },
-    "redis":      { "type": "local", "command": ["python", "E:/MCPKU/mcp_redis.py"],      "enabled": true },
-    "memory":     { "type": "local", "command": ["python", "E:/MCPKU/mcp_memory.py"],     "enabled": true },
-    "browser":    { "type": "local", "command": ["python", "E:/MCPKU/mcp_browser.py"],    "enabled": true },
-    "diagnostics":{"type": "local", "command": ["python", "E:/MCPKU/mcp_diagnostics.py"], "enabled": true },
-    "autofix":    { "type": "local", "command": ["python", "E:/MCPKU/mcp_autofix.py"],    "enabled": true },
-    "context7":   { "type": "local", "command": ["npx", "-y", "@upstash/context7-mcp"],    "enabled": true },
-    "research":   { "type": "local", "command": ["python", "E:/MCPKU/mcp_research.py"],   "enabled": true }
+    "bash":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_bash.py"],       "enabled": true, "timeout": 60000 },
+    "think":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_think.py"],      "enabled": true, "timeout": 60000 },
+    "time":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_time.py"],       "enabled": true, "timeout": 60000 },
+    "filesystem": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_filesystem.py"], "enabled": true, "timeout": 60000 },
+    "git":        { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_git.py"],        "enabled": true, "timeout": 60000 },
+    "github":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_github.py"],     "enabled": true, "timeout": 60000 },
+    "web":        { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_web.py"],        "enabled": true, "timeout": 60000 },
+    "vector":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_vector.py"],     "enabled": true, "timeout": 60000 },
+    "postgres":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_postgres.py"],   "enabled": true, "timeout": 60000 },
+    "sqlite":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sqlite.py"],     "enabled": true, "timeout": 60000 },
+    "redis":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_redis.py"],      "enabled": true, "timeout": 60000 },
+    "memory":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_memory.py"],     "enabled": true, "timeout": 60000 },
+    "browser":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_browser.py"],    "enabled": true, "timeout": 60000 },
+    "diagnostics":{"type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_diagnostics.py"], "enabled": true, "timeout": 60000 },
+    "autofix":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_autofix.py"],    "enabled": true, "timeout": 60000 },
+    "context7":   { "type": "local", "command": ["cmd", "/c", "node", "C:/Users/<user>/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"], "enabled": true, "timeout": 120000 },
+    "research":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_research.py"],   "enabled": true, "timeout": 60000 }
   }
 }
+```
+
+> **Note**: All Python servers use `cmd /c` wrapper + explicit `timeout: 60000` (context7: 120000) for Windows compatibility. Replace `<user>` in context7 path with your Windows username.
 ```
 
 Once added, MCPKU is active whenever opencode starts — regardless of the
@@ -656,25 +661,28 @@ current directory.
 ```json
 {
   "mcpServers": {
-    "bash":       { "command": "python", "args": ["E:/MCPKU/mcp_bash.py"] },
-    "think":      { "command": "python", "args": ["E:/MCPKU/mcp_think.py"] },
-    "time":       { "command": "python", "args": ["E:/MCPKU/mcp_time.py"] },
-    "filesystem": { "command": "python", "args": ["E:/MCPKU/mcp_filesystem.py"] },
-    "git":        { "command": "python", "args": ["E:/MCPKU/mcp_git.py"] },
-    "github":     { "command": "python", "args": ["E:/MCPKU/mcp_github.py"] },
-    "web":        { "command": "python", "args": ["E:/MCPKU/mcp_web.py"] },
-    "vector":     { "command": "python", "args": ["E:/MCPKU/mcp_vector.py"] },
-    "postgres":   { "command": "python", "args": ["E:/MCPKU/mcp_postgres.py"] },
-    "sqlite":     { "command": "python", "args": ["E:/MCPKU/mcp_sqlite.py"] },
-    "redis":      { "command": "python", "args": ["E:/MCPKU/mcp_redis.py"] },
-    "memory":     { "command": "python", "args": ["E:/MCPKU/mcp_memory.py"] },
-    "browser":    { "command": "python", "args": ["E:/MCPKU/mcp_browser.py"] },
-    "diagnostics":{"command": "python", "args": ["E:/MCPKU/mcp_diagnostics.py"] },
-    "autofix":    { "command": "python", "args": ["E:/MCPKU/mcp_autofix.py"] },
-    "context7":   { "command": "npx",   "args": ["-y", "@upstash/context7-mcp"] },
-    "research":   { "command": "python", "args": ["E:/MCPKU/mcp_research.py"] }
+    "bash":       { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_bash.py"] },
+    "think":      { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_think.py"] },
+    "time":       { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_time.py"] },
+    "filesystem": { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_filesystem.py"] },
+    "git":        { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_git.py"] },
+    "github":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_github.py"] },
+    "web":        { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_web.py"] },
+    "vector":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_vector.py"] },
+    "postgres":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_postgres.py"] },
+    "sqlite":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_sqlite.py"] },
+    "redis":      { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_redis.py"] },
+    "memory":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_memory.py"] },
+    "browser":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_browser.py"] },
+    "diagnostics":{"command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_diagnostics.py"] },
+    "autofix":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_autofix.py"] },
+    "context7":   { "command": "cmd", "args": ["/c", "node", "C:/Users/<user>/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"] },
+    "research":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_research.py"] }
   }
 }
+```
+
+> **Note**: Use `cmd /c` wrapper for Windows `.exe`/`.cmd` resolution. Replace `<user>` in context7 path.
 ```
 
 ### Cursor / others
