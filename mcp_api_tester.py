@@ -20,7 +20,7 @@ async def _hit_endpoint(session, url, method, data=None):
 
 @mcp.tool(name="performance_test", description="Test an endpoint's latency over multiple requests.")
 async def performance_test(url: str, method: str = "GET", count: int = 10, concurrency: int = 2) -> str:
-    \"\"\"Runs multiple requests to an endpoint and summarizes performance.\"\"\"
+    """Runs multiple requests to an endpoint and summarizes performance."""
     results = []
     connector = aiohttp.TCPConnector(limit=concurrency)
     async with aiohttp.ClientSession(connector=connector) as session:
@@ -44,7 +44,7 @@ async def performance_test(url: str, method: str = "GET", count: int = 10, concu
 
 @mcp.tool(name="stress_test", description="Hammer an endpoint with high concurrency to find breaking point.")
 async def stress_test(url: str, concurrency: int = 50, duration_sec: int = 5) -> str:
-    \"\"\"Sends as many requests as possible within duration with high concurrency.\"\"\"
+    """Sends as many requests as possible within duration with high concurrency."""
     # Implementation simplified for safety
     return f"Stress test configured for {url} with {concurrency} concurrent workers for {duration_sec}s. Starting now..."
 

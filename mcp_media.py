@@ -11,7 +11,7 @@ Optimizes assets for web and mobile development.
 
 @mcp.tool(name="get_image_info", description="Get image metadata (resolution, format, mode).")
 async def get_image_info(image_path: str) -> str:
-    \"\"\"Returns metadata for the specified image.\"\"\"
+    """Returns metadata for the specified image."""
     try:
         path = Path(image_path).expanduser()
         if not path.exists():
@@ -27,13 +27,13 @@ async def get_image_info(image_path: str) -> str:
                 "height": img.height,
                 "info": img.info
             }
-        return json.dumps(info, indent=2)
+        return json.dumps(info, indent=2, default=str)
     except Exception as e:
         return f"Error reading image: {str(e)}"
 
 @mcp.tool(name="resize_image", description="Resize an image to specified width/height.")
 async def resize_image(image_path: str, width: int, height: int, output_path: str = None) -> str:
-    \"\"\"Resizes image. If output_path is none, appends '_resized' to filename.\"\"\"
+    """Resizes image. If output_path is none, appends '_resized' to filename."""
     try:
         path = Path(image_path).expanduser()
         if not path.exists():
@@ -52,7 +52,7 @@ async def resize_image(image_path: str, width: int, height: int, output_path: st
 
 @mcp.tool(name="convert_image", description="Convert an image to another format (e.g., PNG to WebP).")
 async def convert_image(image_path: str, target_format: str, output_path: str = None) -> str:
-    \"\"\"Converts image format (webp, png, jpeg, etc.).\"\"\"
+    """Converts image format (webp, png, jpeg, etc.)."""
     try:
         path = Path(image_path).expanduser()
         if not path.exists():

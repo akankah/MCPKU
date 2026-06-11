@@ -22,7 +22,7 @@ def _get_diff(repo_path: str) -> str:
 
 @mcp.tool(name="generate_commit_proposal", description="Analyze staged changes and propose a commit message.")
 async def generate_commit_proposal(repo_path: str) -> str:
-    \"\"\"Analyzes git diff and returns a structured summary for commit/PR.\"\"\"
+    """Analyzes git diff and returns a structured summary for commit/PR."""
     diff = _get_diff(repo_path)
     if not diff.strip():
         return "No staged changes found. Please 'git add' files first."
@@ -32,7 +32,7 @@ async def generate_commit_proposal(repo_path: str) -> str:
 
 @mcp.tool(name="generate_pr_summary", description="Generate a detailed PR summary for all commits between current branch and base.")
 async def generate_pr_summary(repo_path: str, base_branch: str = "main") -> str:
-    \"\"\"Analyzes changes between current branch and base for PR description.\"\"\"
+    """Analyzes changes between current branch and base for PR description."""
     try:
         result = subprocess.run(
             ["git", "diff", f"{base_branch}...HEAD"],

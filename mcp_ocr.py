@@ -20,7 +20,7 @@ Requires Tesseract OCR installed on the system path.
 
 @mcp.tool(name="extract_text_from_image", description="Extract text from an image file (PNG, JPG, etc.)")
 async def extract_text_from_image(image_path: str) -> str:
-    \"\"\"Extracts text from the given image path using Tesseract.\"\"\"
+    """Extracts text from the given image path using Tesseract."""
     if not HAS_OCR:
         return "Error: OCR dependencies (pytesseract/PIL) not installed. Run 'pip install pytesseract Pillow'."
     

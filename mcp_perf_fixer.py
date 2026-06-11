@@ -11,7 +11,7 @@ It identifies performance bottlenecks and suggests optimization strategies.
 
 @mcp.tool(name="analyze_performance_report", description="Analyze output from mcp_api_tester and trigger optimization suggestions.")
 async def analyze_performance_report(report_json: str, threshold_ms: int = 200) -> str:
-    \"\"\"Analyzes performance report and categorizes results for optimization.\"\"\"
+    """Analyzes performance report and categorizes results for optimization."""
     try:
         data = json.loads(report_json)
         latency = data.get("avg_latency_ms", 0)
@@ -40,7 +40,7 @@ async def analyze_performance_report(report_json: str, threshold_ms: int = 200) 
 
 @mcp.tool(name="bridge_to_autofix", description="Directly trigger an optimization task based on high latency.")
 async def bridge_to_autofix(url: str, latency_ms: float) -> str:
-    \"\"\"Generates a pseudo-error message that can be fed into autofix_run for optimization.\"\"\"
+    """Generates a pseudo-error message that can be fed into autofix_run for optimization."""
     error_msg = f"Performance.HighLatency: Endpoint {url} responded with {latency_ms}ms"
     return (
         f"Generated Optimization Trigger:\\n\\n{error_msg}\\n\\n"

@@ -13,7 +13,7 @@ Helps in debugging performance issues and resource leaks.
 
 @mcp.tool(name="get_system_stats", description="Get overall system resource usage (CPU, RAM, Disk).")
 async def get_system_stats() -> str:
-    \"\"\"Returns a summary of current system resource usage.\"\"\"
+    """Returns a summary of current system resource usage."""
     try:
         cpu_usage = psutil.cpu_percent(interval=1)
         memory = psutil.virtual_memory()
@@ -40,7 +40,7 @@ async def get_system_stats() -> str:
 
 @mcp.tool(name="list_top_processes", description="List top N processes by CPU or Memory usage.")
 async def list_top_processes(sort_by: str = "cpu", limit: int = 10) -> str:
-    \"\"\"List top processes. sort_by can be 'cpu' or 'memory'.\"\"\"
+    """List top processes. sort_by can be 'cpu' or 'memory'."""
     try:
         processes = []
         for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
@@ -58,7 +58,7 @@ async def list_top_processes(sort_by: str = "cpu", limit: int = 10) -> str:
 
 @mcp.tool(name="kill_process", description="Kill a process by PID.")
 async def kill_process(pid: int) -> str:
-    \"\"\"Attempts to terminate a process with the given PID.\"\"\"
+    """Attempts to terminate a process with the given PID."""
     try:
         proc = psutil.Process(pid)
         name = proc.name()

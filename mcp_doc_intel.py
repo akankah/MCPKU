@@ -30,7 +30,7 @@ except ImportError:
 
 @mcp.tool(name="read_pdf", description="Extract text content from a PDF file.")
 async def read_pdf(file_path: str) -> str:
-    \"\"\"Reads text from a PDF file page by page.\"\"\"
+    """Reads text from a PDF file page by page."""
     if not HAS_PDF:
         return "Error: 'pypdf' not installed. Run 'pip install pypdf'."
     
@@ -53,7 +53,7 @@ async def read_pdf(file_path: str) -> str:
 
 @mcp.tool(name="read_docx", description="Extract text content from a Word document (.docx).")
 async def read_docx(file_path: str) -> str:
-    \"\"\"Reads text from a DOCX file.\"\"\"
+    """Reads text from a DOCX file."""
     if not HAS_DOCX:
         return "Error: 'python-docx' not installed. Run 'pip install python-docx'."
     
@@ -70,7 +70,7 @@ async def read_docx(file_path: str) -> str:
 
 @mcp.tool(name="read_xlsx", description="Extract data from an Excel spreadsheet (.xlsx).")
 async def read_xlsx(file_path: str, sheet_name: str = 0) -> str:
-    \"\"\"Reads data from an Excel file and returns as JSON-formatted string.\"\"\"
+    """Reads data from an Excel file and returns as JSON-formatted string."""
     if not HAS_XLSX:
         return "Error: 'pandas' and 'openpyxl' not installed. Run 'pip install pandas openpyxl'."
     

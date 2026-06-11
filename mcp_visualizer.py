@@ -12,7 +12,7 @@ Works with SQLite and (soon) PostgreSQL.
 """)
 
 def _get_mermaid_for_sqlite(db_path: str) -> str:
-    \"\"\"Reads SQLite schema and generates Mermaid ERD string.\"\"\"
+    """Reads SQLite schema and generates Mermaid ERD string."""
     if not os.path.exists(db_path):
         return f"Error: Database file not found at {db_path}"
     
@@ -48,7 +48,7 @@ def _get_mermaid_for_sqlite(db_path: str) -> str:
 
 @mcp.tool(name="visualize_sqlite", description="Generate a Mermaid ERD diagram for a SQLite database.")
 async def visualize_sqlite(db_path: str) -> str:
-    \"\"\"Generates a Mermaid diagram from a SQLite database.\"\"\"
+    """Generates a Mermaid diagram from a SQLite database."""
     try:
         mermaid_code = _get_mermaid_for_sqlite(db_path)
         

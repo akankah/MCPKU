@@ -11,7 +11,7 @@ Supports automated linting, unused import removal, and code style enforcement.
 
 @mcp.tool(name="clean_python_code", description="Automatically remove unused imports and format Python code using autoflake and black.")
 async def clean_python_code(file_path: str) -> str:
-    \"\"\"Runs autoflake and black on a file to clean it up.\"\"\"
+    """Runs autoflake and black on a file to clean it up."""
     path = Path(file_path).expanduser()
     if not path.exists():
         return f"Error: File {file_path} not found."
@@ -38,7 +38,7 @@ async def clean_python_code(file_path: str) -> str:
 
 @mcp.tool(name="rename_symbol_project", description="Rename a variable or function across the entire project (simple regex-based).")
 async def rename_symbol_project(old_name: str, new_name: str, directory: str = ".") -> str:
-    \"\"\"Renames symbols in multiple files. Use with caution.\"\"\"
+    """Renames symbols in multiple files. Use with caution."""
     count = 0
     dir_path = Path(directory).expanduser()
     
@@ -59,7 +59,7 @@ async def rename_symbol_project(old_name: str, new_name: str, directory: str = "
 
 @mcp.tool(name="check_code_smells", description="Scan for long functions or deep nesting (simple analysis).")
 async def check_code_smells(file_path: str) -> str:
-    \"\"\"Basic complexity check.\"\"\"
+    """Basic complexity check."""
     path = Path(file_path).expanduser()
     content = path.read_text(encoding='utf-8').splitlines()
     
