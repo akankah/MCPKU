@@ -3,7 +3,7 @@
   <img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
 </picture>
 
-**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 30 MCP
+**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 31 MCP
 servers that gives AI agents the ability to read, write, execute, debug, fix,
 and commit code autonomously.
 
@@ -16,7 +16,7 @@ AI Model
 MCPKU Runtime
     │  orchestrates: shell → git → web → browser → diagnostics → autofix
     ▼
-30 MCP Servers
+31 MCP Servers
     │  each a self-contained stdio process
     ▼
 Your System / Repo / DB / Browser / Logs
@@ -275,6 +275,7 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `media`       | `mcp_media.py`        | Media Processor: Resize, convert, and inspect images (Pillow-based)       |
 | `perf_fixer`  | `mcp_perf_fixer.py`   | Performance Fixer Bridge: Connects API Tester results to Auto-Fix         |
 | `refactor`    | `mcp_refactor.py`     | Smart Refactorer: Automated clean code, linting, and symbol renaming      |
+| `doc_intel`   | `mcp_doc_intel.py`    | Local Document Intelligence: Read PDF, DOCX, and XLSX files locally       |
 | `media`       | `mcp_media.py`        | Media Processor: Resize, convert, and inspect images (Pillow-based)       |
 
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by

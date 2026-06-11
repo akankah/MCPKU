@@ -362,6 +362,11 @@
       "command": ["python", "E:/MCPKU/mcp_refactor.py"],
       "enabled": true
     },
+    "doc_intel": {
+      "type": "local",
+      "command": ["python", "E:/MCPKU/mcp_doc_intel.py"],
+      "enabled": true
+    },
     "media": {
       "type": "local",
       "command": ["python", "E:/MCPKU/mcp_media.py"],
