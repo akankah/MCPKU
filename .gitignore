@@ -13,3 +13,4 @@ memory.jsonl
 workflow_state.jsonl
 output/
 .pytest_cache/
+.config_backup/

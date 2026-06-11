@@ -760,6 +760,44 @@ python verify_setup.py sync   # copies opencode.jsonc to global ~/.config/openco
 python verify_setup.py check  # validates registration
 ```
 
+### Backup & Restore (portable)
+
+Global config backed up to `.config_backup/` (gitignored):
+
+| File | Source | Backup location |
+|------|--------|-----------------|
+| `opencode.jsonc` (global) | `~/.config/opencode/opencode.jsonc` | `.config_backup/opencode.jsonc.global` |
+
+**Auto-backup on sync:**
+```bash
+python verify_setup.py sync  # also copies global → .config_backup/
+```
+
+**Manual restore if global config corrupted:**
+```bash
+# Option 1: Copy backup to global
+cp E:\MCPKU\.config_backup\opencode.jsonc.global "%USERPROFILE%\.config\opencode\opencode.jsonc"
+
+# Option 2: Use verify_setup (recommended)
+python verify_setup.py sync  # reads from repo opencode.jsonc, writes to global
+```
+
+**Portable setup on new machine:**
+```bash
+# 1. Clone repo
+git clone https://github.com/akankah/MCPKU.git E:\MCPKU
+
+# 2. Copy backup to global (or run sync)
+cp E:\MCPKU\.config_backup\opencode.jsonc.global "%USERPROFILE%\.config\opencode\opencode.jsonc"
+
+# 3. Update context7 path in global config
+#    Edit %USERPROFILE%\.config\opencode\opencode.jsonc
+#    Replace <user> with your Windows username
+
+# 4. Set env vars (.env or shell)
+# 5. Restart opencode
+```
+
 ### Cursor / others
 
 Same pattern — register each `mcp_*.py` as a stdio command. Trim the list to

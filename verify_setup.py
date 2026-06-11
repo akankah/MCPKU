@@ -22,7 +22,8 @@ EXPECTED_SERVERS = {
     "bash", "think", "sqlite", "time", "filesystem", "memory",
     "git", "web", "github", "redis", "postgres", "vector",
     "browser", "diagnostics", "autofix", "context7", "research",
-    "agent", "planner",
+    "agent", "planner", "visualizer", "sysmon", "ocr", "git_doc",
+    "api_tester", "perf_fixer", "refactor", "doc_intel", "media",
 }
 
 
@@ -89,15 +90,28 @@ def check_paths(servers: dict) -> list:
         if not cmd:
             broken.append((name, "no command"))
             continue
-        # Extract path from command[1] (after 'python' or 'npx')
+
+        # Handle both formats:
+        # 1. ["python", "path/to/server.py"]
+        # 2. ["cmd", "/c", "python", "path/to/server.py"]
+        # 3. ["cmd", "/c", "node", "path/to/server.js"]
+        target = None
         if len(cmd) >= 2 and cmd[0] in ("python", "npx"):
             target = cmd[1]
-            if cmd[0] == "python":
-                p = Path(target)
-                if not p.exists():
-                    broken.append((name, f"missing file: {target}"))
+        elif len(cmd) >= 4 and cmd[0] == "cmd" and cmd[1] == "/c" and cmd[2] in ("python", "node"):
+            target = cmd[3]
         else:
             broken.append((name, f"unexpected command: {cmd}"))
+            continue
+
+        if target and cmd[0] in ("python",) or (len(cmd) >= 4 and cmd[2] == "python"):
+            p = Path(target)
+            if not p.exists():
+                broken.append((name, f"missing file: {target}"))
+        elif target and (cmd[0] == "npx" or (len(cmd) >= 4 and cmd[2] == "node")):
+            # Node.js path - just check it looks valid
+            if not target.endswith((".js", ".mjs")):
+                broken.append((name, f"unexpected node target: {target}"))
     return broken
 
 
@@ -165,8 +179,18 @@ def cmd_check():
         return 0
 
 
+def _load_repo_mcp_config() -> dict:
+    """Load mcp section from repo's opencode.jsonc."""
+    repo_config = MCPKU_DIR / "opencode.jsonc"
+    if not repo_config.exists():
+        raise FileNotFoundError(f"Repo config not found: {repo_config}")
+    text = repo_config.read_text(encoding="utf-8")
+    data = json.loads(_strip_jsonc_comments(text))
+    return data.get("mcp", {})
+
+
 def cmd_sync():
-    """Copy MCPKU's opencode.jsonc as the global config (if it has the mcp section)."""
+    """Sync global config from repo's opencode.jsonc (canonical source)."""
     print("=" * 60)
     print(f"  MCPKU setup sync")
     print("=" * 60)
@@ -182,38 +206,20 @@ def cmd_sync():
         existing = {}
         print(f"\n[INFO] global config not found, will create new")
 
-    # Build fresh mcp block from MCPKU repo (the canonical source)
-    # For now: rebuild the same block (user can re-run after adding new servers)
-    fresh_mcp = {
-        "bash":        {"type": "local", "command": ["python", "E:/MCPKU/mcp_bash.py"], "enabled": True},
-        "think":       {"type": "local", "command": ["python", "E:/MCPKU/mcp_think.py"], "enabled": True},
-        "sqlite":      {"type": "local", "command": ["python", "E:/MCPKU/mcp_sqlite.py"], "enabled": True,
-                         "env": {"SQLITE_DB_PATH": "", "PYTHONIOENCODING": "utf-8"}},
-        "time":        {"type": "local", "command": ["python", "E:/MCPKU/mcp_time.py"], "enabled": True,
-                         "env": {"LOCAL_TIMEZONE": "Asia/Jakarta"}},
-        "filesystem":  {"type": "local", "command": ["python", "E:/MCPKU/mcp_filesystem.py"], "enabled": True,
-                         "env": {"MCP_EXTRA_ALLOWED_DIR": "E:/", "MCP_FS_ALLOW_ALL": "1"}},
-        "memory":      {"type": "local", "command": ["python", "E:/MCPKU/mcp_memory.py"], "enabled": True,
-                         "env": {"MEMORY_FILE_PATH": "E:/MCPKU/memory.jsonl"}},
-        "git":         {"type": "local", "command": ["python", "E:/MCPKU/mcp_git.py"], "enabled": True},
-        "web":         {"type": "local", "command": ["python", "E:/MCPKU/mcp_web.py"], "enabled": True,
-                         "env": {"FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"}},
-        "github":      {"type": "local", "command": ["python", "E:/MCPKU/mcp_github.py"], "enabled": True,
-                         "env": {"GITHUB_API_KEY": "${GITHUB_API_KEY}"}},
-        "redis":       {"type": "local", "command": ["python", "E:/MCPKU/mcp_redis.py"], "enabled": True,
-                         "env": {"REDIS_URL": "redis://localhost:6379/0"}},
-        "postgres":    {"type": "local", "command": ["python", "E:/MCPKU/mcp_postgres.py"], "enabled": True,
-                         "env": {"DATABASE_URL": "${DATABASE_URL}", "REDIS_URL": "redis://localhost:6379/0"}},
-        "vector":      {"type": "local", "command": ["python", "E:/MCPKU/mcp_vector.py"], "enabled": True,
-                         "env": {"DATABASE_URL": "${DATABASE_URL}", "OPENAI_API_KEY": "${OPENAI_API_KEY}",
-                                 "REDIS_URL": "redis://localhost:6379/0"}},
-        "browser":     {"type": "local", "command": ["python", "E:/MCPKU/mcp_browser.py"], "enabled": True},
-        "diagnostics": {"type": "local", "command": ["python", "E:/MCPKU/mcp_diagnostics.py"], "enabled": True},
-        "autofix":     {"type": "local", "command": ["python", "E:/MCPKU/mcp_autofix.py"], "enabled": True},
-        "context7":    {"type": "local", "command": ["npx", "-y", "@upstash/context7-mcp"], "enabled": True},
-        "research":    {"type": "local", "command": ["python", "E:/MCPKU/mcp_research.py"], "enabled": True},
-        "agent":       {"type": "local", "command": ["python", "E:/MCPKU/agentku_buat_chat.py"], "enabled": True},
-    }
+    # Load fresh mcp block from repo (canonical source)
+    fresh_mcp = _load_repo_mcp_config()
+    if not fresh_mcp:
+        print(f"[FAIL] no mcp section found in repo config")
+        return 1
+
+    # Backup current global config to .config_backup/
+    backup_dir = MCPKU_DIR / ".config_backup"
+    backup_dir.mkdir(exist_ok=True)
+    if GLOBAL_CONFIG.exists():
+        import shutil
+        backup_path = backup_dir / "opencode.jsonc.global"
+        shutil.copy2(GLOBAL_CONFIG, backup_path)
+        print(f"[OK]   backed up global config to {backup_path}")
 
     # Update existing mcp block with fresh server entries
     existing.setdefault("mcp", {}).update(fresh_mcp)
