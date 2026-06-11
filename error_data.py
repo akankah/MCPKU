@@ -45,6 +45,9 @@ FIX_SUGGESTIONS = {
     "General.SegFault": "Check null/invalid memory access.",
     "General.Permission": "Check permissions or run with higher privileges.",
     "General.NetworkError": "Check internet, firewall, and server status.",
+    "MCP.Timeout": "opencode MCP startup timeout. Fix: wrap cmd with ['cmd','/c',...], add timeout: 60000+, lazy-load imports.",
+    "MCP.RequestTimeout": "MCP tool call timeout. Fix: increase server timeout to 120000+ in opencode.jsonc.",
+    "MCP.SpawnFailed": "Config format error. opencode v1.17+ uses 'mcp' key not 'mcpServers'. Update schema.",
 }
 
 FIX_STRATEGIES_DESC = {
@@ -56,4 +59,7 @@ FIX_STRATEGIES_DESC = {
     "JS.EADDRINUSE": "netstat + taskkill / lsof -ti:PORT | kill (auto-extract port)",
     "Go.BuildError": "go mod tidy",
     "Python.IndentationError": "black <file> (auto-extract file from traceback)",
+    "MCP.Timeout": "Update opencode.jsonc: add cmd /c wrapper + timeout: 60000 per server",
+    "MCP.RequestTimeout": "Update opencode.jsonc: increase timeout to 120000 for affected server",
+    "MCP.SpawnFailed": "Update opencode.jsonc: change key from mcpServers to mcp",
 }

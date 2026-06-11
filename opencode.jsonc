@@ -1,7 +1,8 @@
 {
   "$schema": "https://opencode.ai/config.json",
 
-  // Windows MCP startup fix: naikin timeout dari 30s -> 120s
+  // Windows MCP startup fix: wrap command dgn "cmd", "/c" biar shell resolve .exe/.cmd properly
+  // + naikin timeout dari 30s -> 120s
   // lihat https://github.com/anomalyco/opencode/issues/22310
   "experimental": {
     "mcp_timeout": 120000
@@ -236,18 +237,21 @@
   "mcp": {
     "bash": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_bash.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_bash.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "think": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_think.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_think.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "sqlite": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_sqlite.py"],
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sqlite.py"],
       "enabled": true,
+      "timeout": 60000,
       "env": {
         "SQLITE_DB_PATH": "",
         "PYTHONIOENCODING": "utf-8"
@@ -255,16 +259,18 @@
     },
     "time": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_time.py"],
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_time.py"],
       "enabled": true,
+      "timeout": 60000,
       "env": {
         "LOCAL_TIMEZONE": "Asia/Jakarta"
       }
     },
     "filesystem": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_filesystem.py"],
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_filesystem.py"],
       "enabled": true,
+      "timeout": 60000,
       "env": {
         "MCP_EXTRA_ALLOWED_DIR": "E:/MCPKU",
         "MCP_FS_ALLOW_ALL": "1"
@@ -272,21 +278,24 @@
     },
     "memory": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_memory.py"],
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_memory.py"],
       "enabled": true,
+      "timeout": 60000,
       "env": {
         "MEMORY_FILE_PATH": "E:/MCPKU/memory.jsonl"
       }
     },
     "git": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_git.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_git.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "web": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_web.py"],
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_web.py"],
       "enabled": true,
+      "timeout": 60000,
       "env": {
         "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}",
         "STACKEX_API_KEY": "${STACKEX_API_KEY}"
@@ -294,24 +303,27 @@
     },
     "github": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_github.py"],
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_github.py"],
       "enabled": true,
+      "timeout": 60000,
       "env": {
         "GITHUB_API_KEY": "${GITHUB_API_KEY}"
       }
     },
     "redis": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_redis.py"],
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_redis.py"],
       "enabled": true,
+      "timeout": 60000,
       "env": {
         "REDIS_URL": "redis://localhost:6379/0"
       }
     },
     "postgres": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_postgres.py"],
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_postgres.py"],
       "enabled": true,
+      "timeout": 60000,
       "env": {
         "DATABASE_URL": "${DATABASE_URL}",
         "REDIS_URL": "redis://localhost:6379/0"
@@ -319,8 +331,9 @@
     },
     "vector": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_vector.py"],
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_vector.py"],
       "enabled": true,
+      "timeout": 60000,
       "env": {
         "DATABASE_URL": "${DATABASE_URL}",
         "OPENAI_API_KEY": "${OPENAI_API_KEY}",
@@ -329,91 +342,106 @@
     },
     "visualizer": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_visualizer.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_visualizer.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "sysmon": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_sysmon.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sysmon.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "ocr": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_ocr.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_ocr.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "git_doc": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_git_doc.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_git_doc.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "api_tester": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_api_tester.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_api_tester.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "perf_fixer": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_perf_fixer.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_perf_fixer.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "refactor": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_refactor.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_refactor.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "doc_intel": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_doc_intel.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_doc_intel.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "media": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_media.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_media.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "browser": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_browser.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_browser.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     // diagnostics: Auto-parse errors from any command output.
     //              AI MUST call parse_traceback / classify_error
     //              automatically on every error without waiting for user.
     "diagnostics": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_diagnostics.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_diagnostics.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     // autofix: Closed-loop debugging. Run command → detect error → auto-fix → retry → commit.
     "autofix": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_autofix.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_autofix.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "planner": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_planner.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_planner.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     "context7": {
       "type": "local",
-      "command": ["npx", "-y", "@upstash/context7-mcp"],
+      "command": ["cmd", "/c", "node", "C:/Users/r/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"],
       "enabled": true,
-      "timeout": 10000
+      "timeout": 120000
     },
     // research: Parallel research orchestrator. Runs 6 web sources + diagnostics + memory in parallel, returns ranked consensus.
     "research": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/mcp_research.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_research.py"],
+      "enabled": true,
+      "timeout": 60000
     },
     // agent: Task orchestrator. Plans + executes using MCPKU tools.
     // Plans & logs stored in %TEMP%\mcpku\ (not in project dir).
     "agent": {
       "type": "local",
-      "command": ["python", "E:/MCPKU/agentku_buat_chat.py"],
-      "enabled": true
+      "command": ["cmd", "/c", "python", "E:/MCPKU/agentku_buat_chat.py"],
+      "enabled": true,
+      "timeout": 60000
     }
   }
 }

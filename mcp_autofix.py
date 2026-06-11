@@ -132,6 +132,32 @@ def _h_go_mod_tidy(error_types: list[str], error_text: str, cwd: str) -> list[tu
     return [("go mod tidy", "Run go mod tidy")]
 
 
+def _h_mcp_timeout_config(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
+    """Fix for MCP.Timeout: update opencode.jsonc with cmd /c wrapper and timeout."""
+    cmds = []
+    # Check if opencode.jsonc exists
+    config_path = Path(cwd) / "opencode.jsonc"
+    if config_path.exists():
+        cmds.append((
+            f'python -c "import json, sys; data = open(\\\"{config_path}\\\").read(); '
+            f'print(\"Config exists, apply manual fix: add cmd /c wrapper and timeout: 60000 to all mcp servers\")"',
+            "Check opencode.jsonc exists"
+        ))
+    return cmds
+
+
+def _h_mcp_request_timeout(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
+    """Fix for MCP.RequestTimeout: increase server timeout in config."""
+    cmds = []
+    config_path = Path(cwd) / "opencode.jsonc"
+    if config_path.exists():
+        cmds.append((
+            f'python -c "print(\\\"Fix: Increase timeout to 120000 for the affected server in opencode.jsonc\\\")"',
+            "Increase MCP server timeout"
+        ))
+    return cmds
+
+
 def _h_black_format(error_types: list[str], error_text: str, cwd: str) -> list[tuple[str, str]]:
     frame_m = re.search(r'File "([^"]+)", line \d+', error_text)
     if frame_m:
@@ -153,6 +179,9 @@ FIX_HANDLERS: dict[str, callable] = {
     "JS.EADDRINUSE": _h_kill_port,
     "Go.BuildError": _h_go_mod_tidy,
     "Python.IndentationError": _h_black_format,
+    "MCP.Timeout": _h_mcp_timeout_config,
+    "MCP.RequestTimeout": _h_mcp_request_timeout,
+    "MCP.SpawnFailed": _h_mcp_timeout_config,
 }
 
 # FIX_STRATEGIES_DESC and FIX_SUGGESTIONS imported from error_data

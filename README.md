@@ -546,6 +546,51 @@ playwright install chromium
 python -m pytest tests/ -v    # 462 tests, ~24 seconds
 ```
 
+---
+
+## Windows MCP Timeout Fix (opencode v1.17+)
+
+**Problem**: On Windows, opencode v1.17.3 spawns MCP servers via `child_process.spawn()` without `shell: true`. This fails to resolve `.exe`/`.cmd` shims, causing all 28 servers to timeout on startup (30s default).
+
+**Root causes**:
+1. `spawn("python", ...)` doesn't find `python.exe` on Windows without shell
+2. 30s default timeout is too short for 28 parallel Python process startup
+3. Some servers (e.g., `doc_intel`) import heavy optional deps at module level
+
+**Applied fixes** (in `opencode.jsonc`):
+
+```jsonc
+{
+  "mcp": {
+    "bash":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_bash.py"],       "enabled": true, "timeout": 60000 },
+    "think":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_think.py"],      "enabled": true, "timeout": 60000 },
+    "time":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_time.py"],       "enabled": true, "timeout": 60000 },
+    // ... all 28 servers wrapped with "cmd", "/c" + explicit timeout: 60000
+    "context7":   { "type": "local", "command": ["cmd", "/c", "node", "C:/Users/r/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"], "enabled": true, "timeout": 120000 },
+    "doc_intel":  { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_doc_intel.py"],  "enabled": true, "timeout": 60000 }
+  }
+}
+```
+
+| Fix | File | What it does |
+|-----|------|--------------|
+| `cmd /c` wrapper | `opencode.jsonc` | Forces Windows shell to resolve `.exe`/`.cmd` |
+| `timeout: 60000` | `opencode.jsonc` | Per-server timeout (overrides 30s default) |
+| Lazy imports | `mcp_doc_intel.py` | Defer `pypdf`/`python-docx`/`pandas` to tool call time |
+| Direct node path | `opencode.jsonc` | Bypass `npx` for context7 (uses global install) |
+
+**Result**: 27/28 servers connect reliably. `context7` partially connects (tools/list takes ~55s due to external API call).
+
+**Self-recovery**: `mcp_autofix.py` now detects MCP timeout errors and suggests config fixes:
+
+| Error pattern | Detected as | Fix guidance |
+|---------------|-------------|--------------|
+| `Operation timed out after 30000ms` | `MCP.Timeout` | Add `cmd /c` wrapper + `timeout: 60000` |
+| `MCP error -32001: Request timed out` | `MCP.RequestTimeout` | Increase timeout to `120000` |
+| `Unrecognized key: mcpServers` | `MCP.SpawnFailed` | Change config key from `mcpServers` → `mcp` |
+
+Run `autofix_run` on any failing MCP command — it will classify, suggest the exact fix, search web/GitHub/SO, and save to error KB for future sessions.
+
 ### Auto-load in every OpenCode session
 
 `verify_setup.py` ensures MCPKU stays registered in the global

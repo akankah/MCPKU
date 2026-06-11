@@ -1,3 +1,4 @@
+import importlib
 import os
 import json
 import asyncio
@@ -9,31 +10,48 @@ Local Document Intelligence Server: Extract text and data from PDF, DOCX, and XL
 Allows the AI to 'read' office documents locally without external APIs.
 """)
 
-# Optional dependencies check
-try:
-    import pypdf
-    HAS_PDF = True
-except ImportError:
-    HAS_PDF = False
+# Lazy optional deps — import on first use to avoid startup hangs when
+# 28 MCP servers load C extensions simultaneously on Windows.
+_HAS_PDF: bool | None = None
+_HAS_DOCX: bool | None = None
+_HAS_XLSX: bool | None = None
 
-try:
-    from docx import Document
-    HAS_DOCX = True
-except ImportError:
-    HAS_DOCX = False
+def _check_pdf():
+    global _HAS_PDF
+    if _HAS_PDF is None:
+        try:
+            import pypdf
+            _HAS_PDF = True
+        except ImportError:
+            _HAS_PDF = False
+    return _HAS_PDF
 
-try:
-    import pandas as pd
-    HAS_XLSX = True
-except ImportError:
-    HAS_XLSX = False
+def _check_docx():
+    global _HAS_DOCX
+    if _HAS_DOCX is None:
+        try:
+            from docx import Document
+            _HAS_DOCX = True
+        except ImportError:
+            _HAS_DOCX = False
+    return _HAS_DOCX
+
+def _check_xlsx():
+    global _HAS_XLSX
+    if _HAS_XLSX is None:
+        try:
+            import pandas as pd
+            _HAS_XLSX = True
+        except ImportError:
+            _HAS_XLSX = False
+    return _HAS_XLSX
 
 @mcp.tool(name="read_pdf", description="Extract text content from a PDF file.")
 async def read_pdf(file_path: str) -> str:
     """Reads text from a PDF file page by page."""
-    if not HAS_PDF:
+    if not _check_pdf():
         return "Error: 'pypdf' not installed. Run 'pip install pypdf'."
-    
+    import pypdf
     try:
         path = Path(file_path).expanduser()
         if not path.exists():
@@ -54,9 +72,9 @@ async def read_pdf(file_path: str) -> str:
 @mcp.tool(name="read_docx", description="Extract text content from a Word document (.docx).")
 async def read_docx(file_path: str) -> str:
     """Reads text from a DOCX file."""
-    if not HAS_DOCX:
+    if not _check_docx():
         return "Error: 'python-docx' not installed. Run 'pip install python-docx'."
-    
+    from docx import Document
     try:
         path = Path(file_path).expanduser()
         if not path.exists():
@@ -71,9 +89,9 @@ async def read_docx(file_path: str) -> str:
 @mcp.tool(name="read_xlsx", description="Extract data from an Excel spreadsheet (.xlsx).")
 async def read_xlsx(file_path: str, sheet_name: str = 0) -> str:
     """Reads data from an Excel file and returns as JSON-formatted string."""
-    if not HAS_XLSX:
+    if not _check_xlsx():
         return "Error: 'pandas' and 'openpyxl' not installed. Run 'pip install pandas openpyxl'."
-    
+    import pandas as pd
     try:
         path = Path(file_path).expanduser()
         if not path.exists():

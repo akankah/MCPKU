@@ -148,6 +148,10 @@ ERROR_PATTERNS = {
     "General.SegFault":        r"(?:segmentation fault|SIGSEGV|core dumped)",
     "General.Permission":      r"(?:permission denied|access denied|EPERM)",
     "General.NetworkError":    r"(?:connection reset|broken pipe|network unreachable|ECONNREFUSED)",
+    # MCP (opencode) specific
+    "MCP.Timeout":             r"Operation timed out after \d+ms",
+    "MCP.RequestTimeout":      r"MCP error -32001: Request timed out",
+    "MCP.SpawnFailed":         r"Unrecognized key: mcpServers",
 }
 
 FIX_SUGGESTIONS = {
@@ -192,8 +196,10 @@ FIX_SUGGESTIONS = {
     "General.SegFault":        "Segmentation fault. Cek akses memori null/invalid, biasa di C/C++/extension.",
     "General.Permission":      "Permission denied. Cek izin file (chmod) atau jalankan dengan hak lebih tinggi.",
     "General.NetworkError":    "Network error. Cek koneksi internet, firewall, dan apakah server up.",
+    "MCP.Timeout":             "opencode MCP server startup timeout. Fix: 1) Wrap command with ['cmd', '/c', ...] di opencode.jsonc, 2) Set per-server timeout: 60000+ di config, 3) Lazy-load heavy imports in server code.",
+    "MCP.RequestTimeout":      "MCP tool call timeout (tools/list terlalu lama). Fix: Per-server timeout 120000+ di opencode.jsonc, atau disable server jika tidak kritis.",
+    "MCP.SpawnFailed":         "Config format salah (mcpServers vs mcp key). opencode v1.17+ pakai key 'mcp' bukan 'mcpServers'. Perbarui config ke schema baru.",
 }
-
 
 def _classify(text: str) -> list[str]:
     """Return list of matched error type strings."""
