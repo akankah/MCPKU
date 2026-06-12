@@ -17,7 +17,7 @@
       "name": "B.AI",
       "options": {
         "baseURL": "https://api.b.ai/v1",
-        "apiKey": "${BAI_API_KEY}"
+        "apiKey": "{env:BAI_API_KEY}"
       },
       "models": {
         "gemini-3.5-flash": {},
@@ -31,7 +31,7 @@
       "name": "Alibaba Free",
       "options": {
         "baseURL": "https://ws-ndy4oqsdo8b54pfm.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
-        "apiKey": "${ALIBABA_API_KEY}"
+        "apiKey": "{env:ALIBABA_API_KEY}"
       },
       "models": {
         "qwen-turbo": {},
@@ -51,7 +51,7 @@
       "name": "Z.AI Free",
       "options": {
         "baseURL": "https://api.z.ai/api/paas/v4",
-        "apiKey": "${ZHIPUAI_API_KEY}"
+        "apiKey": "{env:ZHIPUAI_API_KEY}"
       },
       "models": {
         "glm-4.6": {},
@@ -66,7 +66,7 @@
       "name": "Free Groq",
       "options": {
         "baseURL": "https://api.groq.com/openai/v1",
-        "apiKey": "YOUR_GROQ_API_KEY"
+        "apiKey": "{env:GROQ_API_KEY}"
       },
       "models": {
         "llama-3.1-8b-instant": {},
@@ -84,7 +84,7 @@
       "name": "Free Mistral",
       "options": {
         "baseURL": "https://api.mistral.ai/v1",
-        "apiKey": "${MISTRAL_API_KEY}"
+        "apiKey": "{env:MISTRAL_API_KEY}"
       },
       "models": {
         "open-mistral-nemo": {},
@@ -114,7 +114,7 @@
       "name": "Free NVIDIA NIM",
       "options": {
         "baseURL": "https://integrate.api.nvidia.com/v1",
-        "apiKey": "${NVIDIA_API_KEY}"
+        "apiKey": "{env:NVIDIA_API_KEY}"
       },
       "models": {
         "nvidia/nemotron-3-ultra-550b-a55b": {},
@@ -131,7 +131,7 @@
       "name": "Free Kilo Gateway",
       "options": {
         "baseURL": "https://api.kilo.ai/api/gateway",
-        "apiKey": "${KILO_API_KEY}"
+        "apiKey": "{env:KILO_API_KEY}"
       },
       "models": {
         "kilo-auto/free": {},
@@ -152,7 +152,7 @@
       "options": {
         "baseURL": "https://llm.kimchi.dev/openai/v1",
         "litellmProxy": true,
-        "apiKey": "${KIMCHI_API_KEY}"
+        "apiKey": "{env:KIMCHI_API_KEY}"
       },
       "models": {
         "kimi-k2.6": {},
@@ -166,7 +166,7 @@
       "name": "Free OpenRouter",
       "options": {
         "baseURL": "https://openrouter.ai/api/v1",
-        "apiKey": "YOUR_OPENROUTER_API_KEY"
+        "apiKey": "{env:OPENROUTER_API_KEY}"
       },
       "models": {
         "google/gemma-4-31b-it:free": {},
@@ -304,8 +304,8 @@
       "enabled": true,
       "timeout": 60000,
       "env": {
-        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}",
-        "STACKEX_API_KEY": "${STACKEX_API_KEY}"
+        "FIRECRAWL_API_KEY": "{env:FIRECRAWL_API_KEY}",
+        "STACKEX_API_KEY": "{env:STACKEX_API_KEY}"
       }
     },
     "github": {
@@ -314,7 +314,7 @@
       "enabled": true,
       "timeout": 60000,
       "env": {
-        "GITHUB_API_KEY": "${GITHUB_API_KEY}"
+        "GITHUB_API_KEY": "{env:GITHUB_API_KEY}"
       }
     },
     "redis": {
@@ -332,7 +332,7 @@
       "enabled": true,
       "timeout": 60000,
       "env": {
-        "DATABASE_URL": "${DATABASE_URL}",
+        "DATABASE_URL": "{env:DATABASE_URL}",
         "REDIS_URL": "redis://localhost:6379/0"
       }
     },
@@ -342,8 +342,8 @@
       "enabled": true,
       "timeout": 60000,
       "env": {
-        "DATABASE_URL": "${DATABASE_URL}",
-        "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+        "DATABASE_URL": "{env:DATABASE_URL}",
+        "OPENAI_API_KEY": "{env:OPENAI_API_KEY}",
         "REDIS_URL": "redis://localhost:6379/0"
       }
     },
