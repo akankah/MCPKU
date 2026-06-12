@@ -1,4 +1,4 @@
-# Contoh Penggunaan MCPKU (28 Servers)
+# Contoh Penggunaan MCPKU (Core 11 Servers)
 
 ## 1. Full-stack app dalam 1 prompt
 

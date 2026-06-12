@@ -229,16 +229,6 @@
       "enabled": true,
       "timeout": 60000
     },
-    "sqlite": {
-      "type": "local",
-      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sqlite.py"],
-      "enabled": true,
-      "timeout": 60000,
-      "env": {
-        "SQLITE_DB_PATH": "",
-        "PYTHONIOENCODING": "utf-8"
-      }
-    },
     "time": {
       "type": "local",
       "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_time.py"],
@@ -292,25 +282,6 @@
         "GITHUB_API_KEY": "{env:GITHUB_API_KEY}"
       }
     },
-    "redis": {
-      "type": "local",
-      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_redis.py"],
-      "enabled": true,
-      "timeout": 60000,
-      "env": {
-        "REDIS_URL": "redis://localhost:6379/0"
-      }
-    },
-    "postgres": {
-      "type": "local",
-      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_postgres.py"],
-      "enabled": true,
-      "timeout": 60000,
-      "env": {
-        "DATABASE_URL": "{env:DATABASE_URL}",
-        "REDIS_URL": "redis://localhost:6379/0"
-      }
-    },
     "vector": {
       "type": "local",
       "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_vector.py"],
@@ -331,12 +302,6 @@
     "sysmon": {
       "type": "local",
       "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sysmon.py"],
-      "enabled": true,
-      "timeout": 60000
-    },
-    "ocr": {
-      "type": "local",
-      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_ocr.py"],
       "enabled": true,
       "timeout": 60000
     },
@@ -367,12 +332,6 @@
     "doc_intel": {
       "type": "local",
       "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_doc_intel.py"],
-      "enabled": true,
-      "timeout": 60000
-    },
-    "media": {
-      "type": "local",
-      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_media.py"],
       "enabled": true,
       "timeout": 60000
     },

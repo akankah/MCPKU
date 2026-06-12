@@ -3,7 +3,7 @@
 <img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
 </picture>
 
-**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 28 MCP
+**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 23 MCP
 servers that gives AI agents the ability to read, write, execute, debug, fix,
 and commit code autonomously.
 
@@ -16,7 +16,7 @@ AI Model
 MCPKU Runtime
 │  orchestrates: shell → git → web → browser → diagnostics → autofix
 ▼
-28 MCP Servers
+23 MCP Servers
 │  each a self-contained stdio process
 ▼
 Your System / Repo / DB / Browser / Logs
@@ -239,7 +239,7 @@ Supported auto-fix strategies:
 
 ---
 
-## 21 MCP Servers
+## 23 MCP Servers (Core)
 
 Each server is a single self-contained Python file. Enable only what you need.
 
@@ -254,32 +254,23 @@ Each server is a single self-contained Python file. Enable only what you need.
 | `web`         | `mcp_web.py`          | URL fetch + web search (DDG/Firecrawl) + Stack Overflow + npm/PyPI/MDN/crates/DevDocs |
 | `context7`    | (npm `@upstash/context7-mcp`) | Up-to-date library docs — prevents stale API/syntax from training cutoff |
 | `vector`      | `mcp_vector.py`       | Postgres + pgvector + OpenAI embeddings, cosine similarity search          |
-| `postgres`    | `mcp_postgres.py`     | Read-only SQL with retry+backoff and connection pool                      |
-| `sqlite`      | `mcp_sqlite.py`       | Read/write queries, schema introspection, identifier-safe PRAGMA          |
-| `redis`       | `mcp_redis.py`        | Strings, lists, sets, hashes, TTL, FLUSHDB with 2-step confirmation       |
 | `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
 | `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (fetch, screenshot)                      |
 | `diagnostics` | `mcp_diagnostics.py`  | Parse, classify, explain errors from any command output (Py/JS/Rust/Go)  |
 | `autofix`     | `mcp_autofix.py`      | Closed-loop debug: auto-fix + parallel search (web/GitHub/SO) + error KB |
-| `workflow`    | `mcp_workflow.py`     | DAG workflow orchestrator with state tracking and resume support          |
-| `state`       | `mcp_state.py`        | Workflow execution status tracker (JSONL-based Black Box Recorder)        |
 | `planner`     | `mcp_planner.py`      | AI-driven DAG task graph generator (planner/ package)                     |
 | `research`    | `mcp_research.py`     | Semantic consensus engine: query/quick/deep with embedding-based agreement|
-| `manifest`    | `mcp_manifest.py`     | Central tool metadata registry (140+ tools, 12 categories)                |
+| `manifest`    | `mcp_manifest.py`     | Central tool metadata registry (64 tools, 12 categories)                  |
 | `agent`       | `agentku_buat_chat.py`| Autonomous agent: planner + manifest for dynamic tool discovery           |
 | `visualizer`  | `mcp_visualizer.py`   | Generate Mermaid ERD diagrams from SQLite/Postgres schemas                |
 | `sysmon`      | `mcp_sysmon.py`       | Advanced system monitor: CPU, RAM, Disk, and Process management           |
-| `ocr`         | `mcp_ocr.py`          | Local OCR: Extract text from images/PDFs (no API keys required)            |
 | `git_doc`     | `mcp_git_doc.py`      | Auto-generate commit messages and PR summaries from git diffs             |
 | `api_tester`  | `mcp_api_tester.py`   | API Performance & Stress Tester: Latency analysis and concurrency testing |
-| `media`       | `mcp_media.py`        | Media Processor: Resize, convert, and inspect images (Pillow-based)       |
 | `perf_fixer`  | `mcp_perf_fixer.py`   | Performance Fixer Bridge: Connects API Tester results to Auto-Fix         |
 | `refactor`    | `mcp_refactor.py`     | Smart Refactorer: Automated clean code, linting, and symbol renaming      |
 | `doc_intel`   | `mcp_doc_intel.py`    | Local Document Intelligence: Read PDF, DOCX, and XLSX files locally       |
-| `media`       | `mcp_media.py`        | Media Processor: Resize, convert, and inspect images (Pillow-based)       |
 
-`mcp_cache.py` is a shared helper for Redis-backed response caching (used by
-`postgres`, `vector`, `web`). Not a standalone server.
+`mcp_cache.py` is a shared helper for Redis-backed response caching (used by `vector`, `web`). Not a standalone server.
 
 ### AGENTS.md — opencode rules reference (included in repo)
 
@@ -637,15 +628,21 @@ config at `~/.config/opencode/opencode.jsonc`. The original file stays in
 "github":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_github.py"],     "enabled": true, "timeout": 60000 },
 "web":        { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_web.py"],        "enabled": true, "timeout": 60000 },
 "vector":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_vector.py"],     "enabled": true, "timeout": 60000 },
-"postgres":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_postgres.py"],   "enabled": true, "timeout": 60000 },
-"sqlite":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sqlite.py"],     "enabled": true, "timeout": 60000 },
-"redis":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_redis.py"],      "enabled": true, "timeout": 60000 },
 "memory":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_memory.py"],     "enabled": true, "timeout": 60000 },
 "browser":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_browser.py"],    "enabled": true, "timeout": 60000 },
 "diagnostics":{"type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_diagnostics.py"], "enabled": true, "timeout": 60000 },
 "autofix":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_autofix.py"],    "enabled": true, "timeout": 60000 },
 "context7":   { "type": "local", "command": ["cmd", "/c", "node", "C:/Users/<user>/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"], "enabled": true, "timeout": 120000 },
-"research":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_research.py"],   "enabled": true, "timeout": 60000 }
+"research":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_research.py"],   "enabled": true, "timeout": 60000 },
+"planner":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_planner.py"],    "enabled": true, "timeout": 60000 },
+"visualizer": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_visualizer.py"], "enabled": true, "timeout": 60000 },
+"sysmon":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sysmon.py"],     "enabled": true, "timeout": 60000 },
+"git_doc":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_git_doc.py"],    "enabled": true, "timeout": 60000 },
+"api_tester": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_api_tester.py"], "enabled": true, "timeout": 60000 },
+"perf_fixer": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_perf_fixer.py"], "enabled": true, "timeout": 60000 },
+"refactor":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_refactor.py"],   "enabled": true, "timeout": 60000 },
+"doc_intel":  { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_doc_intel.py"],  "enabled": true, "timeout": 60000 },
+"agent":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/agentku_buat_chat.py"], "enabled": true, "timeout": 60000 }
 }
 }
 ```
@@ -669,15 +666,21 @@ current directory.
 "github":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_github.py"] },
 "web":        { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_web.py"] },
 "vector":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_vector.py"] },
-"postgres":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_postgres.py"] },
-"sqlite":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_sqlite.py"] },
-"redis":      { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_redis.py"] },
 "memory":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_memory.py"] },
 "browser":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_browser.py"] },
 "diagnostics":{"command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_diagnostics.py"] },
 "autofix":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_autofix.py"] },
 "context7":   { "command": "cmd", "args": ["/c", "node", "C:/Users/<user>/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"] },
-"research":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_research.py"] }
+"research":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_research.py"] },
+"planner":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_planner.py"] },
+"visualizer": { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_visualizer.py"] },
+"sysmon":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_sysmon.py"] },
+"git_doc":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_git_doc.py"] },
+"api_tester": { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_api_tester.py"] },
+"perf_fixer": { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_perf_fixer.py"] },
+"refactor":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_refactor.py"] },
+"doc_intel":  { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_doc_intel.py"] },
+"agent":      { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/agentku_buat_chat.py"] }
 }
 }
 ```
@@ -693,7 +696,7 @@ current directory.
 
 | File | Tracked | Purpose |
 |------|---------|---------|
-| `opencode.jsonc` | ✅ Yes | 28 MCP server definitions with `cmd /c` wrapper + `timeout` |
+| `opencode.jsonc` | ✅ Yes | 23 MCP server definitions with `cmd /c` wrapper + `timeout` |
 | `mcp_wrapper.py` | ✅ Yes | Optional diagnostics injector (not used by default) |
 
 ### Files NOT in repo (create locally)
@@ -714,7 +717,6 @@ Create `E:\MCPKU\.env` (or export in shell):
 GITHUB_API_KEY=ghp_xxx
 FIRECRAWL_API_KEY=fc_xxx
 STACKEX_API_KEY=xxx
-DATABASE_URL=postgresql://user:pass@host:5432/db
 REDIS_URL=redis://localhost:6379/0
 OPENAI_API_KEY=sk-xxx
 
@@ -911,33 +913,28 @@ pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-**462 tests** across 23 server modules. Pure unit tests with no network, DB,
-or browser dependency. Runs in ~24 seconds.
+**416 tests** across 19 server modules. Pure unit tests with no network, DB,
+or browser dependency. Runs in ~22 seconds.
 
 | Module | Tests | What's covered |
 |---|---|---|
 | `test_diagnostics.py` | 39 | Error classification, traceback parsing, language detection, history |
 | `test_bash.py` | 15 | Command allowlist, argument denylist, git ACL, injection blocking |
 | `test_autofix.py` | 29 | Fix handlers, module extraction, async run loop with mocked shell |
-| `test_sqlite.py` | 13 | Identifier validation, CRUD operations |
 | `test_vector.py` | 9 | Fallback embeddings, collection name sanitization |
-| `test_postgres.py` | 4 | Retry with exponential backoff |
 | `test_think.py` | 15 | Chain-of-thought + stuck-pattern detector + lag detector |
 | `test_verify_setup.py` | 10 | JSONC stripping, path validation, dispatcher |
 | `test_research.py` | 26 | Cosine similarity, lexical overlap, keyword extraction, language detection, JSON parsing |
 | `test_web.py` | 5 | HTML-to-text conversion |
-| `test_workflow.py` | 11 | Schema, refs, state loading, event append |
 | `test_github.py` | 21 | HTTP helpers, _api, tool integration with mocked HTTP |
 | `test_browser.py` | 6 | URL normalization, error handling, text truncation |
 | `test_memory.py` | 3 | Graph save/reload with observations |
-| `test_redis.py` | 3 | Flush token generation, expiry, validation |
 | `test_git.py` | 5 | Flag protection |
 | `test_time.py` | 4 | Timezone resolution |
 | `test_filesystem.py` | 3 | Path normalization, allowlist checking |
 | `test_perf.py` | 7 | Benchmark: parallel batching, lag detector overhead, timeout safety |
 | `test_autofallback.py` | 7 | Memory autofallback with mocked knowledge graph |
 | `test_manifest.py` | 20 | ToolEntry dataclass, TOOL_MANIFEST integrity, category helpers |
-| `test_state.py` | 11 | Workflow state init/update with tempfile isolation |
 | `test_cache.py` | 17 | Key normalization, Redis abstraction, silent degradation |
 
 ---
@@ -954,9 +951,7 @@ or browser dependency. Runs in ~24 seconds.
 | `AUTOFIX_STATELESS=1` | `autofix`, `diagnostics` | `0` | Skip in-memory history |
 | `ERROR_KB_DIR` | `autofix` | `<cwd>/error_kb/` | Force global KB dir (overrides per-project CWD resolution) |
 | `OPENAI_API_KEY` | `mcp_vector.py` | — | Embeddings (falls back to local hash) |
-| `DATABASE_URL` | `mcp_postgres.py`, `mcp_vector.py` | — | Standard libpq URL |
-| `REDIS_URL` | `mcp_redis.py`, `mcp_cache.py` | `redis://localhost:6379/0` | For caching & Redis server |
-| `SQLITE_DB_PATH` | `mcp_sqlite.py` | `:memory:` | File path for persistent DB |
+| `REDIS_URL` | `mcp_cache.py` | `redis://localhost:6379/0` | For caching |
 | `MCP_EXTRA_ALLOWED_DIR` | `mcp_filesystem.py` | — | Extra allowlisted roots (comma-sep) |
 | `MEMORY_FILE_PATH` | `mcp_memory.py` | `memory.jsonl` | Knowledge graph persistence |
 | `LOCAL_TIMEZONE` | `mcp_time.py` | UTC | Default display timezone |
@@ -988,10 +983,10 @@ Instruksi ini berlaku untuk seluruh sesi pengembangan di repositori E:\MCPKU.
 
 ## Status — Kesan Kerja dengan MCPKU
 
-**Enak.** Dulu sering timeout/macet, sekarang 28 MCP server connect semua stabil. Provider juga udah dirapihin — tinggal pake yang work, gak perlu tebak-tebak.
+**Enak.** Dulu sering timeout/macet, sekarang 23 MCP server connect semua stabil. Provider juga udah dirapihin — tinggal pake yang work, gak perlu tebak-tebak.
 
 **Yang improved:**
-- **Stability** — 28/28 server connect, no more timeout
+- **Stability** — 23/23 server connect, no more timeout
 - **Config clean** — B.AI 21→4, ZhipuAI broken→5 work, Alibaba Free 10 model
 - **Documentation** — API keys guide, base URLs, cara ganti key, semua jelas
 - **Auto-sync** — `verify_setup.py sync` bikin backup + sync global config
@@ -1022,14 +1017,14 @@ MIT — see [LICENSE](LICENSE).
 ## MCPKU System Status
 - **Wrapper Otomatis**: Semua server MCP berjalan melalui mcp_wrapper.py untuk auto-diagnostics dan error reporting.
 - **Konfigurasi**: Menggunakan format JSON murni (no comments) untuk stabilitas parser.
-- **Sync**: Sinkronisasi otomatis via erify_setup.py.
+- **Sync**: Sinkronisasi otomatis via verify_setup.py.
 - **Kondisi**: Sistem dalam status *Self-Diagnosing* (mendukung auto-fix melalui error_kb).
-- **Default Model**: google/gemini-flash-lite-latest.
+- **Default Model**: free-kilo/openrouter/free.
 - Semua MCP server otomatis berjalan via mcp_wrapper.py.
 - Konfigurasi murni JSON (no comments) untuk stabilitas parser.
-- Sync otomatis via erify_setup.py.
+- Sync otomatis via verify_setup.py.
 
 ## 18. Auto-Purge Cache (Penting!)
 Jika sistem mulai terasa lambat atau sering error maximum number of tool calls, sistem kini memiliki fitur pembersihan otomatis:
    - Jalankan python verify_setup.py doctor 
-   - Ini akan otomatis membersihkan workflow_state.jsonl dan .pytest_cache yang sering menyebabkan perulangan tak terbatas.
+   - Ini akan otomatis membersihkan .pytest_cache yang sering menyebabkan perulangan tak terbatas.

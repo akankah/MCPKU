@@ -19,11 +19,11 @@ from pathlib import Path
 MCPKU_DIR = Path(r"E:\MCPKU")
 GLOBAL_CONFIG = Path.home() / ".config" / "opencode" / "opencode.jsonc"
 EXPECTED_SERVERS = {
-    "bash", "think", "sqlite", "time", "filesystem", "memory",
-    "git", "web", "github", "redis", "postgres", "vector",
+    "bash", "think", "time", "filesystem", "memory",
+    "git", "web", "github", "vector",
     "browser", "diagnostics", "autofix", "context7", "research",
-    "agent", "planner", "visualizer", "sysmon", "ocr", "git_doc",
-    "api_tester", "perf_fixer", "refactor", "doc_intel", "media",
+    "agent", "planner", "visualizer", "sysmon", "git_doc",
+    "api_tester", "perf_fixer", "refactor", "doc_intel",
 }
 
 
@@ -221,8 +221,8 @@ def cmd_sync():
         shutil.copy2(GLOBAL_CONFIG, backup_path)
         print(f"[OK]   backed up global config to {backup_path}")
 
-    # Update existing mcp block with fresh server entries
-    existing.setdefault("mcp", {}).update(fresh_mcp)
+    # Replace mcp block entirely with fresh server entries
+    existing["mcp"] = fresh_mcp
 
     GLOBAL_CONFIG.parent.mkdir(parents=True, exist_ok=True)
     GLOBAL_CONFIG.write_text(
