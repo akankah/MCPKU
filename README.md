@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-dark.png">
-  <img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
+<source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-dark.png">
+<img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
 </picture>
 
 **MCPKU** is an open-source **AI Runtime** — a coordinated layer of 28 MCP
@@ -11,14 +11,14 @@ Not a collection of tools. A **closed-loop** for AI-driven development.
 
 ```
 AI Model
-    │  understands intent, generates code
-    ▼
+│  understands intent, generates code
+▼
 MCPKU Runtime
-    │  orchestrates: shell → git → web → browser → diagnostics → autofix
-    ▼
+│  orchestrates: shell → git → web → browser → diagnostics → autofix
+▼
 28 MCP Servers
-    │  each a self-contained stdio process
-    ▼
+│  each a self-contained stdio process
+▼
 Your System / Repo / DB / Browser / Logs
 ```
 
@@ -148,34 +148,34 @@ The heart of MCPKU is its **closed-loop debugging pipeline**:
 
 ```
 Run command   ──❌──→  Parse traceback  ──→  Classify error
-    │                                                    │
-    │                                        ┌───────────┴───────────┐
-    │                                        │                       │
-    │                                   Check Error KB       Search 6 sources
-    │                                   (past errors)        in parallel:
-    │                                                         │  Web (DDG)
-    │                                                         │  GitHub Issues
-    │                                                         │  Stack Overflow
-    │                                                         │  MDN / npm / PyPI
-    │                                                         │  Crates.io
-    │                                                         │  DevDocs
-    │                                        └───────────┬───────────┘
-    │                                                    │
-    │                                              Apply fix strategy
-    │                                                    │
-    │                                         ┌──────────┴──────────┐
-    │                                         │                     │
-    │                                    Fix succeeds        No fix / max retries
-    │                                         │                     │
-    │                                         │          Auto-save error to KB
-    │                                         │          (error_kb/*.json)
-    │                                         │                     │
-    └──✅── Retry ──────────── Fix succeeds ───┘                     │
-                                      │                              │
-                                      │                        AI reads results,
-                                      │                        applies fix
-                                      │                              │
-                                Optional: git commit ──────── retry ─┘
+│                                                    │
+│                                        ┌───────────┴───────────┐
+│                                        │                       │
+│                                   Check Error KB       Search 6 sources
+│                                   (past errors)        in parallel:
+│                                                         │  Web (DDG)
+│                                                         │  GitHub Issues
+│                                                         │  Stack Overflow
+│                                                         │  MDN / npm / PyPI
+│                                                         │  Crates.io
+│                                                         │  DevDocs
+│                                        └───────────┬───────────┘
+│                                                    │
+│                                              Apply fix strategy
+│                                                    │
+│                                         ┌──────────┴──────────┐
+│                                         │                     │
+│                                    Fix succeeds        No fix / max retries
+│                                         │                     │
+│                                         │          Auto-save error to KB
+│                                         │          (error_kb/*.json)
+│                                         │                     │
+└──✅── Retry ──────────── Fix succeeds ───┘                     │
+│                              │
+│                        AI reads results,
+│                        applies fix
+│                              │
+Optional: git commit ──────── retry ─┘
 ```
 
 This pipeline is implemented across two servers:
@@ -212,10 +212,10 @@ from other repos. Override options:
 - `autofix_run(command, workdir="E:/foo")` → saves to `E:/foo/error_kb/`
 - `autofix_save_error(..., project="E:/foo")` → saves to `E:/foo/error_kb/`
 - `autofix_search_kb` / `autofix_kb_stats` / `autofix_kb_trends` all read
-  from CWD's `error_kb/` (use the opencode session CWD to scope queries)
+from CWD's `error_kb/` (use the opencode session CWD to scope queries)
 - `ERROR_KB_DIR=/path` env var → force a single global KB dir
 - `AUTOFIX_STATELESS=1` → disable KB persistence entirely (return to default
-  fallback path from `ERROR_KB_DIR` or MCPKU root)
+fallback path from `ERROR_KB_DIR` or MCPKU root)
 
 **Vector search** (optional): jika `DATABASE_URL` (Postgres + pgvector) tersedia,
 errors juga di-embed dan disimpan di tabel `vec_error_kb` untuk semantic
@@ -317,14 +317,14 @@ The current rule set is **aggressive internet-first**:
 - **Code Error Fallback** — code fails to run / compile error → **search internet for fix before retrying**, no trial-and-error
 - **Chat Failure Fallback** — chat response contains "gagal" / "failed" / "unable" → **force search internet for references** before answering, applies to all models
 - Skip search **only** for: standard algorithms, own-code bugs with 100%
-  certainty, confidence > 95%
+certainty, confidence > 95%
 - **Reference source priority** — AI (verify) → official docs (MDN, framework) →
-  GitHub Discussions/Issues + Discord maintainers → Stack Overflow (classic) →
-  LeetCode/HackerRank (algorithm practice). Use the **cheat sheet table** in
-  AGENTS.md to pick the fastest source per problem type.
+GitHub Discussions/Issues + Discord maintainers → Stack Overflow (classic) →
+LeetCode/HackerRank (algorithm practice). Use the **cheat sheet table** in
+AGENTS.md to pick the fastest source per problem type.
 - **Quick links** — see [`URLS.md`](./URLS.md) for all curated reference URLs
-  (MDN, framework docs, package registries, Discord communities, etc.) —
-  skip searching for the source and `web_fetch_url` directly.
+(MDN, framework docs, package registries, Discord communities, etc.) —
+skip searching for the source and `web_fetch_url` directly.
 
 ### Memory — auto-load user rules on session start
 
@@ -339,12 +339,12 @@ Typical pattern:
 ```python
 # 1. Once: store your active rule
 create_entities([{
-    "name": "AutofallbackRule",
-    "entityType": "preference",
-    "observations": [
-        "[2026-XX-XX] When in doubt, verify. Use web search when...",
-        "[2026-XX-XX] Skip search for: standard algorithms, pure logic...",
-    ]
+"name": "AutofallbackRule",
+"entityType": "preference",
+"observations": [
+"[2026-XX-XX] When in doubt, verify. Use web search when...",
+"[2026-XX-XX] Skip search for: standard algorithms, pure logic...",
+]
 }])
 
 # 2. Every new session: MCP server instructions auto-trigger this
@@ -419,11 +419,11 @@ step — the references are already in the output it sees.
 Trade-off:
 
 - **Auto-call** (`autofix`) — adds 2–5s latency per error, but model
-  cannot skip. Most reliable.
+cannot skip. Most reliable.
 - **Demand** (`think`, `memory`, `diagnostics`) — zero latency cost,
-  but the model decides whether to follow through. `think` has a
-  double-lock (prompt-level instruction + tool-level stuck detector) as
-  backup.
+but the model decides whether to follow through. `think` has a
+double-lock (prompt-level instruction + tool-level stuck detector) as
+backup.
 
 `error_kb/` is a per-project directory where `autofix` saves failed errors as
 JSON files for cross-session reference. Stored at `<cwd>/error_kb/` of the
@@ -472,33 +472,33 @@ similarity matrix. Confidence is computed from:
 
 ```json
 {
-  "success": true,
-  "tool": "query",
-  "query": "how to fix ModuleNotFoundError in Python",
-  "language": "python",
-  "confidence": {
-    "score": 82,
-    "verdict": "high",
-    "coverage": 25,
-    "agreement": 22,
-    "weight_bonus": 15,
-    "kb_bonus": 20,
-    "clusters": [["stackoverflow", "mdn", "web"], ["diagnostics"]],
-    "sources_returned": 4,
-    "sources_total": 6
-  },
-  "sources": [
-    {
-      "name": "stackoverflow",
-      "weight": 0.9,
-      "preview": "Run pip install to add missing packages...",
-      "status": null
-    }
-  ],
-  "consensus_topics": ["stackoverflow", "mdn", "web"],
-  "recommended_fix": "pip install <package>",
-  "sources_returned": 4,
-  "sources_total": 6
+"success": true,
+"tool": "query",
+"query": "how to fix ModuleNotFoundError in Python",
+"language": "python",
+"confidence": {
+"score": 82,
+"verdict": "high",
+"coverage": 25,
+"agreement": 22,
+"weight_bonus": 15,
+"kb_bonus": 20,
+"clusters": [["stackoverflow", "mdn", "web"], ["diagnostics"]],
+"sources_returned": 4,
+"sources_total": 6
+},
+"sources": [
+{
+"name": "stackoverflow",
+"weight": 0.9,
+"preview": "Run pip install to add missing packages...",
+"status": null
+}
+],
+"consensus_topics": ["stackoverflow", "mdn", "web"],
+"recommended_fix": "pip install <package>",
+"sources_returned": 4,
+"sources_total": 6
 }
 ```
 
@@ -522,17 +522,17 @@ result3 = search_nodes(q)
 
 // Good: parallel (one round-trip)
 parallel([
-  autofix_run(cmd),
-  classify_error(err),
-  search_nodes(q),
-  research.query(q, err)
+autofix_run(cmd),
+classify_error(err),
+search_nodes(q),
+research.query(q, err)
 ])
 
 // Good: lag-triggered parallel web search (think > 10s without progress)
 parallel([
-  think(reasoning="searching for <error>", lag_ms=0),
-  web.search_web("<error> 2025 fix"),
-  web.search_stackoverflow("<error>"),
+think(reasoning="searching for <error>", lag_ms=0),
+web.search_web("<error> 2025 fix"),
+web.search_stackoverflow("<error>"),
 ])
 ```
 
@@ -561,14 +561,14 @@ python -m pytest tests/ -v    # 462 tests, ~24 seconds
 
 ```jsonc
 {
-  "mcp": {
-    "bash":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_bash.py"],       "enabled": true, "timeout": 60000 },
-    "think":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_think.py"],      "enabled": true, "timeout": 60000 },
-    "time":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_time.py"],       "enabled": true, "timeout": 60000 },
-    // ... all 28 servers wrapped with "cmd", "/c" + explicit timeout: 60000
-    "context7":   { "type": "local", "command": ["cmd", "/c", "node", "C:/Users/r/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"], "enabled": true, "timeout": 120000 },
-    "doc_intel":  { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_doc_intel.py"],  "enabled": true, "timeout": 60000 }
-  }
+"mcp": {
+"bash":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_bash.py"],       "enabled": true, "timeout": 60000 },
+"think":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_think.py"],      "enabled": true, "timeout": 60000 },
+"time":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_time.py"],       "enabled": true, "timeout": 60000 },
+// ... all 28 servers wrapped with "cmd", "/c" + explicit timeout: 60000
+"context7":   { "type": "local", "command": ["cmd", "/c", "node", "C:/Users/r/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"], "enabled": true, "timeout": 120000 },
+"doc_intel":  { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_doc_intel.py"],  "enabled": true, "timeout": 60000 }
+}
 }
 ```
 
@@ -628,25 +628,25 @@ config at `~/.config/opencode/opencode.jsonc`. The original file stays in
 ```jsonc
 // ~/.config/opencode/opencode.jsonc
 {
-  "mcp": {
-    "bash":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_bash.py"],       "enabled": true, "timeout": 60000 },
-    "think":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_think.py"],      "enabled": true, "timeout": 60000 },
-    "time":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_time.py"],       "enabled": true, "timeout": 60000 },
-    "filesystem": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_filesystem.py"], "enabled": true, "timeout": 60000 },
-    "git":        { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_git.py"],        "enabled": true, "timeout": 60000 },
-    "github":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_github.py"],     "enabled": true, "timeout": 60000 },
-    "web":        { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_web.py"],        "enabled": true, "timeout": 60000 },
-    "vector":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_vector.py"],     "enabled": true, "timeout": 60000 },
-    "postgres":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_postgres.py"],   "enabled": true, "timeout": 60000 },
-    "sqlite":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sqlite.py"],     "enabled": true, "timeout": 60000 },
-    "redis":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_redis.py"],      "enabled": true, "timeout": 60000 },
-    "memory":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_memory.py"],     "enabled": true, "timeout": 60000 },
-    "browser":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_browser.py"],    "enabled": true, "timeout": 60000 },
-    "diagnostics":{"type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_diagnostics.py"], "enabled": true, "timeout": 60000 },
-    "autofix":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_autofix.py"],    "enabled": true, "timeout": 60000 },
-    "context7":   { "type": "local", "command": ["cmd", "/c", "node", "C:/Users/<user>/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"], "enabled": true, "timeout": 120000 },
-    "research":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_research.py"],   "enabled": true, "timeout": 60000 }
-  }
+"mcp": {
+"bash":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_bash.py"],       "enabled": true, "timeout": 60000 },
+"think":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_think.py"],      "enabled": true, "timeout": 60000 },
+"time":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_time.py"],       "enabled": true, "timeout": 60000 },
+"filesystem": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_filesystem.py"], "enabled": true, "timeout": 60000 },
+"git":        { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_git.py"],        "enabled": true, "timeout": 60000 },
+"github":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_github.py"],     "enabled": true, "timeout": 60000 },
+"web":        { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_web.py"],        "enabled": true, "timeout": 60000 },
+"vector":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_vector.py"],     "enabled": true, "timeout": 60000 },
+"postgres":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_postgres.py"],   "enabled": true, "timeout": 60000 },
+"sqlite":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sqlite.py"],     "enabled": true, "timeout": 60000 },
+"redis":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_redis.py"],      "enabled": true, "timeout": 60000 },
+"memory":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_memory.py"],     "enabled": true, "timeout": 60000 },
+"browser":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_browser.py"],    "enabled": true, "timeout": 60000 },
+"diagnostics":{"type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_diagnostics.py"], "enabled": true, "timeout": 60000 },
+"autofix":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_autofix.py"],    "enabled": true, "timeout": 60000 },
+"context7":   { "type": "local", "command": ["cmd", "/c", "node", "C:/Users/<user>/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"], "enabled": true, "timeout": 120000 },
+"research":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_research.py"],   "enabled": true, "timeout": 60000 }
+}
 }
 ```
 
@@ -660,25 +660,25 @@ current directory.
 
 ```json
 {
-  "mcpServers": {
-    "bash":       { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_bash.py"] },
-    "think":      { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_think.py"] },
-    "time":       { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_time.py"] },
-    "filesystem": { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_filesystem.py"] },
-    "git":        { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_git.py"] },
-    "github":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_github.py"] },
-    "web":        { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_web.py"] },
-    "vector":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_vector.py"] },
-    "postgres":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_postgres.py"] },
-    "sqlite":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_sqlite.py"] },
-    "redis":      { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_redis.py"] },
-    "memory":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_memory.py"] },
-    "browser":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_browser.py"] },
-    "diagnostics":{"command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_diagnostics.py"] },
-    "autofix":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_autofix.py"] },
-    "context7":   { "command": "cmd", "args": ["/c", "node", "C:/Users/<user>/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"] },
-    "research":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_research.py"] }
-  }
+"mcpServers": {
+"bash":       { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_bash.py"] },
+"think":      { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_think.py"] },
+"time":       { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_time.py"] },
+"filesystem": { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_filesystem.py"] },
+"git":        { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_git.py"] },
+"github":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_github.py"] },
+"web":        { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_web.py"] },
+"vector":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_vector.py"] },
+"postgres":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_postgres.py"] },
+"sqlite":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_sqlite.py"] },
+"redis":      { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_redis.py"] },
+"memory":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_memory.py"] },
+"browser":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_browser.py"] },
+"diagnostics":{"command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_diagnostics.py"] },
+"autofix":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_autofix.py"] },
+"context7":   { "command": "cmd", "args": ["/c", "node", "C:/Users/<user>/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"] },
+"research":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_research.py"] }
+}
 }
 ```
 
@@ -871,19 +871,19 @@ server to call based on the `instructions` metadata embedded in each server.
 
 ```
 User prompt
-    │
+│
 AI Model
-    │  reads instructions: "auto-call parse_traceback on every error"
-    ▼
+│  reads instructions: "auto-call parse_traceback on every error"
+▼
 MCPKU Server  ──── stdio ────→  Python process
-    │                           │
-    │                           ├── mcp_bash.py        (shell)
-    │                           ├── mcp_filesystem.py  (file I/O)
-    │                           ├── mcp_diagnostics.py (error parsing)
-    │                           ├── mcp_autofix.py     (auto-fix loop)
-    │                           └── ... (15 more — see table below)
-    │
-    └──→ Returns structured result → AI interprets → next action
+│                           │
+│                           ├── mcp_bash.py        (shell)
+│                           ├── mcp_filesystem.py  (file I/O)
+│                           ├── mcp_diagnostics.py (error parsing)
+│                           ├── mcp_autofix.py     (auto-fix loop)
+│                           └── ... (15 more — see table below)
+│
+└──→ Returns structured result → AI interprets → next action
 ```
 
 ---
@@ -891,13 +891,13 @@ MCPKU Server  ──── stdio ────→  Python process
 ## Security
 
 - `bash` — command allowlist + argument denylist (wildcard deletes, `-rf`,
-  subshell injection, etc.). Git restricted to explicit subcommand allowlist.
-  Orphan process killed on timeout to prevent resource leaks.
+subshell injection, etc.). Git restricted to explicit subcommand allowlist.
+Orphan process killed on timeout to prevent resource leaks.
 - `redis.flushdb` — 2-step: request issues a short-lived token, confirm
-  consumes it.
+consumes it.
 - `sqlite` — identifier validation via regex before PRAGMA interpolation.
 - `postgres` — read-only: only `SELECT` / `WITH` / `EXPLAIN` / `SHOW`
-  allowed.
+allowed.
 - `filesystem` — rooted at fixed allowlist. Extend via `MCP_EXTRA_ALLOWED_DIR`.
 
 See [`PATCH_NOTES.md`](PATCH_NOTES.md) for full details.
@@ -1014,5 +1014,11 @@ Kami sedang mengembangkan MCPKU dari *orchestrator* menjadi *Agentic OS* dengan 
 MIT — see [LICENSE](LICENSE).
 
 
-## MCP Wrapper Update
+
 - Semua MCP server sekarang otomatis berjalan melalui mcp_wrapper.py untuk auto-diagnostics dan error reporting.
+
+
+## MCPKU Status
+- Semua MCP server otomatis berjalan via mcp_wrapper.py.
+- Konfigurasi murni JSON (no comments) untuk stabilitas parser.
+- Sync otomatis via erify_setup.py.
