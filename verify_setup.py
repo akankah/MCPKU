@@ -281,6 +281,20 @@ def cmd_doctor():
     print(f"  MCPKU doctor (full diagnostic)")
     print("=" * 60)
 
+    # Autopurge workflow state & cache
+    try:
+        if Path(r'E:\MCPKU\workflow_state.jsonl').exists():
+            with open(r'E:\MCPKU\workflow_state.jsonl', 'w') as f:
+                f.truncate(0)
+            print('[OK]   purged workflow_state.jsonl')
+        
+        pytest_cache = Path(r'E:\MCPKU\.pytest_cache')
+        if pytest_cache.exists():
+            shutil.rmtree(pytest_cache)
+            print('[OK]   purged .pytest_cache')
+    except Exception as e:
+        print(f'[WARN] failed to purge: {e}')
+
     issues = []
 
     # 1. Config exists

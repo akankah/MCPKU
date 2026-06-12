@@ -8,10 +8,35 @@
     "mcp_timeout": 120000
   },
 
-  "disabled_providers": ["mistral", "groq", "zhipuai", "openrouter", "nvidia", "openai", "opencode-go", "ollama-cloud", "kilo"],
+  "disabled_providers": ["mistral", "zhipuai", "openrouter", "openai", "opencode-go", "kilo"],
 
   // B.AI custom provider — OpenAI-compatible
   "provider": {
+    "nvidia-free": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Nvidia Free",
+      "options": {
+        "baseURL": "https://integrate.api.nvidia.com/v1",
+        "apiKey": "{env:NVIDIA_API_KEY}"
+      },
+      "models": {
+        "meta/llama-3.3-70b-instruct": { "disableTools": true },
+        "nvidia/nemotron-3-ultra-550b-a55b": { "disableTools": true },
+        "deepseek-ai/deepseek-r1": { "disableTools": true }
+      }
+    },
+    "ollama-cloud-free": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama Cloud Free",
+      "options": {
+        "baseURL": "https://api.ollama.com/v1",
+        "apiKey": "{env:OLLAMA_API_KEY}"
+      },
+      "models": {
+        "llama3.2": { "disableTools": true },
+        "mistral": { "disableTools": true }
+      }
+    },
     "bai": {
       "npm": "@ai-sdk/openai-compatible",
       "name": "B.AI",
@@ -69,14 +94,7 @@
         "apiKey": "{env:GROQ_API_KEY}"
       },
       "models": {
-        "llama-3.1-8b-instant": {},
-        "llama-3.3-70b-versatile": {},
-        "openai/gpt-oss-120b": {},
-        "openai/gpt-oss-20b": {},
-        "meta-llama/llama-4-scout-17b-16e-instruct": {},
-        "qwen/qwen3-32b": {},
-        "groq/compound": {},
-        "groq/compound-mini": {}
+        "llama-3.1-8b-instant": { "disableTools": true }
       }
     },
     "free-mistral": {
@@ -117,15 +135,6 @@
         "apiKey": "{env:KILO_API_KEY}"
       },
       "models": {
-        "kilo-auto/free": {},
-        "poolside/laguna-m.1:free": {},
-        "nex-agi/nex-n2-pro:free": {},
-        "stepfun/step-3.7-flash:free": {},
-        "nvidia/nemotron-3.5-content-safety:free": {},
-        "nvidia/nemotron-3-ultra-550b-a55b:free": {},
-        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {},
-        "poolside/laguna-xs.2:free": {},
-        "nvidia/nemotron-3-super-120b-a12b:free": {},
         "openrouter/free": {}
       }
     },
@@ -416,5 +425,6 @@
       "enabled": true,
       "timeout": 60000
     }
-  }
+  },
+  "snapshot": false
 }
