@@ -37,3 +37,14 @@ CARA MENGATUR API KEY & ENVIRONMENT VARIABLE (WINDOWS)
      d. Periksa limitasi: Jika error "Request too large", artinya model tersebut punya batasan context (TPM/RPM). Coba ganti model ke versi yang lebih ringan (misalnya dari -70b ke -8b).
      e. Tes API secara manual: Gunakan perintah PowerShell (Invoke-RestMethod) untuk memastikan apakah server provider memang sedang down atau memang API key-nya yang tidak diterima.
      f. Update config: Jika model sudah tidak didukung provider, hapus baris model tersebut dari file `opencode.jsonc`.
+
+6. Tips Tambahan: Mengetes Koneksi API secara Manual (Jika UI tidak responsif):
+   Jika Anda mengalami masalah 
+o response di antarmuka opencode, Anda bisa mengetes apakah koneksi ke provider API Anda masih berfungsi melalui terminal PowerShell:
+
+   $headers = @{'Authorization' = 'Bearer YOUR_API_KEY_HERE'} 
+   Invoke-RestMethod -Uri 'https://YOUR_API_ENDPOINT_URL/models' -Method Get -Headers $headers
+
+   *Ganti YOUR_API_KEY_HERE dengan API key asli Anda dan YOUR_API_ENDPOINT_URL dengan endpoint provider (misal: https://api.b.ai/v1).*
+
+   Jika perintah ini mengembalikan daftar model, berarti koneksi API di sisi server/jaringan normal, dan masalah kemungkinan besar ada pada cache UI atau konfigurasi file .jsonc Anda.
