@@ -1012,3 +1012,7 @@ Kami sedang mengembangkan MCPKU dari *orchestrator* menjadi *Agentic OS* dengan 
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+
+## MCP Wrapper Update
+- Semua MCP server sekarang otomatis berjalan melalui mcp_wrapper.py untuk auto-diagnostics dan error reporting.
