@@ -30,4 +30,4 @@ jobs:
         run: python -m pytest tests/ -v --tb=short
 
       - name: Verify setup
-        run: python verify_setup.py check
+        run: python verify_setup.py check && python verify_setup.py sync
