@@ -13,5 +13,3 @@ workflow_state.jsonl
 output/
 .pytest_cache/
 .config_backup/
-cara ganti api key.txt
-opencode.jsonc.global.backup
