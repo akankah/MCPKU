@@ -719,6 +719,7 @@ REDIS_URL=redis://localhost:6379/0
 OPENAI_API_KEY=sk-xxx
 
 # Optional free-tier providers (set these for free-model access)
+# Model list diverifikasi via /models API tiap provider — lihat cara_fix_model_error.txt
 ZHIPUAI_API_KEY=xxx      # Z.AI Free — 5 models: glm-4.6, glm-4.7, glm-5, glm-5-turbo, glm-5.1
 KILO_API_KEY=xxx
 NVIDIA_API_KEY=xxx

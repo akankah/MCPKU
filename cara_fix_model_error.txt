@@ -1,0 +1,127 @@
+CARA FIX MODEL ERROR DI MCPKU (opencode.jsonc)
+=================================================
+Tanggal: 12 Jun 2026
+
+MASALAH:
+- Model di opencode.jsonc provider section tidak sesuai API asli
+- Model return error 401/404 karena sudah expired atau tidak ada
+- Model "free" ternyata model tebakan, bukan dari API resmi
+
+=== LANGKAH FIX ===
+
+1. QUERY /models ENDPOINT SETIAP PROVIDER
+   Setiap provider OpenAI-compatible punya endpoint:
+     GET https://<baseURL>/models
+     Header: Authorization: Bearer <API_KEY>
+
+   Contoh script:
+     python -c "
+     import requests, os
+     from dotenv import load_dotenv
+     load_dotenv()
+     providers = {
+       'B.AI': ('https://api.b.ai/v1', 'BAI_API_KEY'),
+       'Z.AI': ('https://api.z.ai/api/paas/v4', 'ZHIPUAI_API_KEY'),
+       'Groq': ('https://api.groq.com/openai/v1', 'GROQ_API_KEY'),
+       'Mistral': ('https://api.mistral.ai/v1', 'MISTRAL_API_KEY'),
+       'NVIDIA': ('https://integrate.api.nvidia.com/v1', 'NVIDIA_API_KEY'),
+       'Kilo': ('https://api.kilo.ai/api/gateway', 'KILO_API_KEY'),
+       'Kimchi': ('https://llm.kimchi.dev/openai/v1', 'KIMCHI_API_KEY'),
+       'OpenRouter': ('https://openrouter.ai/api/v1', 'OPENROUTER_API_KEY'),
+     }
+     for name, (base, envvar) in providers.items():
+       key = os.environ.get(envvar, '')
+       if not key: continue
+       r = requests.get(f'{base}/models', headers={'Authorization': f'Bearer {key}'}, timeout=10)
+       if r.status_code == 200:
+         models = [m.get('id','') for m in r.json().get('data',[])]
+         print(f'{name}: {len(models)} models')
+         free = [m for m in models if 'free' in m.lower() or m == 'big-pickle']
+         for f in free: print(f'  FREE: {f}')
+       else:
+         print(f'{name}: HTTP {r.status_code}')
+     "
+
+2. UPDATE opencode.jsonc
+   File: E:\MCPKU\opencode.jsonc
+   Bagian "provider": { ... }
+
+   - Hanya masukkan model yang ADA di response /models API
+   - Untuk provider dengan tag :free (OpenRouter, Kilo), hanya model yang
+     punya suffix :free yang boleh masuk daftar "free" provider
+   - Model yang expired (return 401 "Free promotion has ended") harus dihapus
+
+3. CEK VARIABLE API KEY
+   Pastikan setiap apiKey: ${NAMA_VAR} cocok dengan nama variable di .env
+   Contoh: ${BAI_API_KEY} → harus ada BAI_API_KEY=xxx di .env
+
+4. VERIFIKASI MODEL
+   Test tiap model dengan chat ping:
+     python -c "
+     import asyncio
+     from openai import AsyncOpenAI
+     async def test(base, key, model):
+       c = AsyncOpenAI(base_url=base, api_key=key)
+       r = await c.chat.completions.create(model=model, messages=[{'role':'user','content':'1+1'}])
+       print(f'{model}: {r.choices[0].message.content[:50]}')
+     asyncio.run(test('https://api.b.ai/v1', 'sk-xxx', 'gemini-3.5-flash'))
+     "
+
+=== PROVIDER YANG SUDAH DIVERIFIKASI (12 Jun 2026) ===
+
+B.AI (bai):
+  - gemini-3.5-flash ✅
+  - glm-5.1 ✅
+  - glm-5 ✅
+  - kimi-k2.5 ✅
+
+Alibaba Free (alibaba-free): semua model ✅
+Z.AI Free (z-ai-free): semua model ✅
+Free Groq (free-groq): semua model ✅
+
+Free Mistral (free-mistral):
+  - open-mistral-7b        ❌ HAPUS (tidak ada di API)
+  - open-mixtral-8x7b      ❌ HAPUS (tidak ada di API)
+  - pixtral-large-latest   ❌ HAPUS (tidak ada di API)
+  - open-mistral-nemo      ✅
+  - mistral-small-latest   ✅
+  - mistral-medium-latest  ✅
+  - mistral-large-latest   ✅
+  - codestral-latest       ✅ (tambah)
+  - ministral-3b-latest    ✅ (tambah)
+  - ministral-8b-latest    ✅ (tambah)
+
+Free NVIDIA NIM (free-nvidia):
+  - cosmos3-nano-reasoner  ❌ HAPUS (tidak ada di API)
+  - cosmos3-nano           ❌ HAPUS (tidak ada di API)
+  - nvidia/nemotron-3-ultra-550b-a55b          ✅
+  - deepseek-ai/deepseek-v4-flash              ✅
+  - mistralai/mistral-medium-3.5-128b          ✅
+  - moonshotai/kimi-k2.6                       ✅
+  - stepfun-ai/step-3.7-flash                  ✅
+  - nvidia/nemotron-3-nano-omni-30b-a3b-reasoning ✅
+  - nvidia/nemotron-3.5-content-safety         ✅
+
+Free Kilo Gateway (free-kilo):
+  - google/gemma-4-26b-a4b-it:free  ❌ HAPUS (tidak di Kilo free list)
+  - kilo-auto/free                   ✅ (tambah)
+  - nex-agi/nex-n2-pro:free          ✅ (tambah)
+  - nvidia/nemotron-3.5-content-safety:free        ✅ (tambah)
+  - nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free ✅ (tambah)
+  - poolside/laguna-xs.2:free        ✅ (tambah)
+  - poolside/laguna-m.1:free         ✅
+  - stepfun/step-3.7-flash:free      ✅
+  - nvidia/nemotron-3-ultra-550b-a55b:free  ✅
+  - nvidia/nemotron-3-super-120b-a12b:free   ✅
+  - openrouter/free                  ✅
+
+Kimchi (kimchi): semua model ✅
+
+Free OpenRouter (free-openrouter):
+  - google/lyria-3-pro-preview    ❌ HAPUS (bukan free)
+  - google/lyria-3-clip-preview   ❌ HAPUS (bukan free)
+  - openrouter/owl-alpha          ❌ HAPUS (bukan free)
+  - nex-agi/nex-n2-pro:free        ✅ (tambah)
+  - Semua model :free lainnya      ✅
+
+opencode (built-in): semuanya built-in, tidak perlu verifikasi API

@@ -87,14 +87,13 @@
         "apiKey": "${MISTRAL_API_KEY}"
       },
       "models": {
-        "open-mistral-7b": {},
-        "open-mixtral-8x7b": {},
         "open-mistral-nemo": {},
         "mistral-small-latest": {},
         "mistral-medium-latest": {},
         "mistral-large-latest": {},
-        "codestral": {},
-        "pixtral-large-latest": {}
+        "codestral-latest": {},
+        "ministral-3b-latest": {},
+        "ministral-8b-latest": {}
       }
     },
     "opencode": {
@@ -124,8 +123,6 @@
         "moonshotai/kimi-k2.6": {},
         "stepfun-ai/step-3.7-flash": {},
         "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": {},
-        "nvidia/cosmos3-nano-reasoner": {},
-        "nvidia/cosmos3-nano": {},
         "nvidia/nemotron-3.5-content-safety": {}
       }
     },
@@ -137,11 +134,15 @@
         "apiKey": "${KILO_API_KEY}"
       },
       "models": {
-        "stepfun/step-3.7-flash:free": {},
+        "kilo-auto/free": {},
         "poolside/laguna-m.1:free": {},
+        "nex-agi/nex-n2-pro:free": {},
+        "stepfun/step-3.7-flash:free": {},
+        "nvidia/nemotron-3.5-content-safety:free": {},
         "nvidia/nemotron-3-ultra-550b-a55b:free": {},
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {},
+        "poolside/laguna-xs.2:free": {},
         "nvidia/nemotron-3-super-120b-a12b:free": {},
-        "google/gemma-4-26b-a4b-it:free": {},
         "openrouter/free": {}
       }
     },
@@ -190,10 +191,8 @@
         "liquid/lfm-2.5-1.2b-thinking:free": {},
         "liquid/lfm-2.5-1.2b-instruct:free": {},
         "nousresearch/hermes-3-llama-3.1-405b:free": {},
+        "nex-agi/nex-n2-pro:free": {},
         "cognitivecomputations/dolphin-mistral-24b-venice-edition:free": {},
-        "google/lyria-3-pro-preview": {},
-        "google/lyria-3-clip-preview": {},
-        "openrouter/owl-alpha": {},
         "openrouter/free": {}
       }
     }
