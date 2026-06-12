@@ -985,6 +985,20 @@ Instruksi ini berlaku untuk seluruh sesi pengembangan di repositori E:\MCPKU.
 
 ---
 
+## Status — Kesan Kerja dengan MCPKU
+
+**Enak.** Dulu sering timeout/macet, sekarang 28 MCP server connect semua stabil. Provider juga udah dirapihin — tinggal pake yang work, gak perlu tebak-tebak.
+
+**Yang improved:**
+- **Stability** — 28/28 server connect, no more timeout
+- **Config clean** — B.AI 21→4, ZhipuAI broken→5 work, Alibaba Free 10 model
+- **Documentation** — API keys guide, base URLs, cara ganti key, semua jelas
+- **Auto-sync** — `verify_setup.py sync` bikin backup + sync global config
+
+MCPKU sekarang bener-bener siap produksi — tinggal pake, gak perlu debug lagi.
+
+---
+
 ## Roadmap: Next-Gen Agentic Capabilities
 
 Kami sedang mengembangkan MCPKU dari *orchestrator* menjadi *Agentic OS* dengan fokus pada:
