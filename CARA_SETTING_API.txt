@@ -1,0 +1,39 @@
+CARA MENGATUR API KEY & ENVIRONMENT VARIABLE (WINDOWS)
+
+1. Cara Cek/Edit Environment Variables:
+   - Tekan tombol Windows, ketik "env", pilih "Edit the system environment variables".
+   - Klik tombol "Environment Variables..." di kanan bawah.
+   - Di bagian "User variables for [User]", klik "New...".
+   - Masukkan Variable name (contoh: GROQ_API_KEY) dan Variable value (API key Anda).
+   - Klik OK di semua jendela.
+   - PENTING: Anda harus restart terminal/aplikasi agar perubahan terbaca.
+
+2. Mengatur API Key di Opencode:
+   - Opencode menggunakan syntax {env:VAR_NAME}.
+   - Jangan masukkan API Key langsung di `opencode.jsonc`.
+   - Gunakan format: `"apiKey": "{env:GROQ_API_KEY}"`.
+
+3. Menambahkan Free Model Baru (Contoh di opencode.jsonc):
+   - Buka `E:\MCPKU\opencode.jsonc`.
+   - Cari blok `"provider"`.
+   - Tambahkan model baru di bawah daftar `"models"` provider terkait:
+     "nama-model-baru": {}
+   - Contoh:
+     "models": {
+       "llama-3.1-8b-instant": {},
+       "model-baru-anda": {}
+     }
+
+4. Mengaktifkan/Mengetes Model:
+   - Setelah edit, simpan file.
+   - Restart opencode (exit session, buka terminal baru).
+   - Gunakan perintah untuk mengetes API secara manual jika ragu (bisa pakai PowerShell Invoke-RestMethod).
+
+5. Cara Mengatasi Jika Model Error:
+   - Jika muncul error saat memakai model (misal: "Request too large" atau "Unauthorized"):
+     a. Cek apakah API Key sudah valid di environment variables.
+     b. Cek apakah model masih tersedia di provider tersebut (provider sering mengubah daftar model).
+     c. Periksa log error: Jika error "Unauthorized" (401), artinya key salah atau belum set di User Env.
+     d. Periksa limitasi: Jika error "Request too large", artinya model tersebut punya batasan context (TPM/RPM). Coba ganti model ke versi yang lebih ringan (misalnya dari -70b ke -8b).
+     e. Tes API secara manual: Gunakan perintah PowerShell (Invoke-RestMethod) untuk memastikan apakah server provider memang sedang down atau memang API key-nya yang tidak diterima.
+     f. Update config: Jika model sudah tidak didukung provider, hapus baris model tersebut dari file `opencode.jsonc`.
