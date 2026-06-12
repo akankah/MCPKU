@@ -1,0 +1,189 @@
+﻿{
+  "$schema": "https://opencode.ai/config.json",
+  "experimental": {
+    "mcp_timeout": 120000
+  },
+  "disabled_providers": ["mistral", "groq", "zhipuai", "openrouter", "nvidia", "openai", "opencode-go", "ollama-cloud", "kilo"],
+  "provider": {
+    "bai": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "B.AI",
+      "options": {
+        "baseURL": "https://api.b.ai/v1",
+        "apiKey": "{env:BAI_API_KEY}"
+      },
+      "models": {
+        "gemini-3.5-flash": {},
+        "glm-5.1": {},
+        "glm-5": {},
+        "kimi-k2.5": {}
+      }
+    },
+    "alibaba-free": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Alibaba Free",
+      "options": {
+        "baseURL": "https://ws-ndy4oqsdo8b54pfm.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
+        "apiKey": "{env:ALIBABA_API_KEY}"
+      },
+      "models": {
+        "qwen-turbo": {},
+        "qwen-plus": {},
+        "qwen-max": {},
+        "qwen3.5-122b-a10b": {},
+        "qwen3.7-plus": {},
+        "qwen3-vl-235b-a22b-thinking": {},
+        "qwen-plus-2025-07-28": {},
+        "qwen3-max": {},
+        "qwen3.5-plus-2026-02-15": {},
+        "qwen-mt-flash": {}
+      }
+    },
+    "z-ai-free": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Z.AI Free",
+      "options": {
+        "baseURL": "https://api.z.ai/api/paas/v4",
+        "apiKey": "{env:ZHIPUAI_API_KEY}"
+      },
+      "models": {
+        "glm-4.6": {},
+        "glm-4.7": {},
+        "glm-5": {},
+        "glm-5-turbo": {},
+        "glm-5.1": {}
+      }
+    },
+    "free-groq": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Free Groq",
+      "options": {
+        "baseURL": "https://api.groq.com/openai/v1",
+        "apiKey": "{env:GROQ_API_KEY}"
+      },
+      "models": {
+        "llama-3.1-8b-instant": {},
+        "llama-3.3-70b-versatile": {},
+        "openai/gpt-oss-120b": {},
+        "openai/gpt-oss-20b": {},
+        "meta-llama/llama-4-scout-17b-16e-instruct": {},
+        "qwen/qwen3-32b": {},
+        "groq/compound": {},
+        "groq/compound-mini": {}
+      }
+    },
+    "free-mistral": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Free Mistral",
+      "options": {
+        "baseURL": "https://api.mistral.ai/v1",
+        "apiKey": "{env:MISTRAL_API_KEY}"
+      },
+      "models": {
+        "open-mistral-nemo": {},
+        "mistral-small-latest": {},
+        "mistral-medium-latest": {},
+        "mistral-large-latest": {},
+        "codestral-latest": {},
+        "ministral-3b-latest": {},
+        "ministral-8b-latest": {}
+      }
+    },
+    "opencode": {
+      "models": {
+        "gpt-5-nano": {},
+        "glm-5-free": {},
+        "kimi-k2.5-free": {},
+        "minimax-m2.5-free": {},
+        "minimax-m2.7-free": {},
+        "big-pickle": {},
+        "deepseek-v4-flash-free": {},
+        "mimo-v2.5-free": {},
+        "nemotron-3-super-free": {}
+      }
+    },
+    "free-kilo": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Free Kilo Gateway",
+      "options": {
+        "baseURL": "https://api.kilo.ai/api/gateway",
+        "apiKey": "{env:KILO_API_KEY}"
+      },
+      "models": {
+        "kilo-auto/free": {},
+        "poolside/laguna-m.1:free": {},
+        "nex-agi/nex-n2-pro:free": {},
+        "stepfun/step-3.7-flash:free": {},
+        "nvidia/nemotron-3.5-content-safety:free": {},
+        "nvidia/nemotron-3-ultra-550b-a55b:free": {},
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free": {},
+        "poolside/laguna-xs.2:free": {},
+        "nvidia/nemotron-3-super-120b-a12b:free": {},
+        "openrouter/free": {}
+      }
+    },
+    "kimchi": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Kimchi",
+      "options": {
+        "baseURL": "https://llm.kimchi.dev/openai/v1",
+        "litellmProxy": true,
+        "apiKey": "{env:KIMCHI_API_KEY}"
+      },
+      "models": {
+        "kimi-k2.6": {},
+        "kimi-k2.5": {},
+        "minimax-m2.7": {},
+        "nemotron-3-super-fp4": {}
+      }
+    },
+    "free-openrouter": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Free OpenRouter",
+      "options": {
+        "baseURL": "https://openrouter.ai/api/v1",
+        "apiKey": "{env:OPENROUTER_API_KEY}"
+      },
+      "models": {
+        "google/gemma-4-31b-it:free": {},
+        "nvidia/nemotron-3-ultra-550b-a55b:free": {},
+        "openai/gpt-oss-120b:free": {},
+        "qwen/qwen3-coder:free": {},
+        "meta-llama/llama-3.3-70b-instruct:free": {},
+        "nousresearch/hermes-3-llama-3.1-405b:free": {},
+        "nex-agi/nex-n2-pro:free": {},
+        "openrouter/free": {}
+      }
+    }
+  },
+  "mcp": {
+    "bash": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_bash.py"], "enabled": true, "timeout": 60000 },
+    "think": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_think.py"], "enabled": true, "timeout": 60000 },
+    "sqlite": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sqlite.py"], "enabled": true, "timeout": 60000, "env": { "SQLITE_DB_PATH": "", "PYTHONIOENCODING": "utf-8" } },
+    "time": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_time.py"], "enabled": true, "timeout": 60000, "env": { "LOCAL_TIMEZONE": "Asia/Jakarta" } },
+    "filesystem": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_filesystem.py"], "enabled": true, "timeout": 60000, "env": { "MCP_EXTRA_ALLOWED_DIR": "E:/MCPKU", "MCP_FS_ALLOW_ALL": "1" } },
+    "memory": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_memory.py"], "enabled": true, "timeout": 60000, "env": { "MEMORY_FILE_PATH": "E:/MCPKU/memory.jsonl" } },
+    "git": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_git.py"], "enabled": true, "timeout": 60000 },
+    "web": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_web.py"], "enabled": true, "timeout": 60000, "env": { "FIRECRAWL_API_KEY": "{env:FIRECRAWL_API_KEY}", "STACKEX_API_KEY": "{env:STACKEX_API_KEY}" } },
+    "github": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_github.py"], "enabled": true, "timeout": 60000, "env": { "GITHUB_API_KEY": "{env:GITHUB_API_KEY}" } },
+    "redis": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_redis.py"], "enabled": true, "timeout": 60000, "env": { "REDIS_URL": "redis://localhost:6379/0" } },
+    "postgres": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_postgres.py"], "enabled": true, "timeout": 60000, "env": { "DATABASE_URL": "{env:DATABASE_URL}", "REDIS_URL": "redis://localhost:6379/0" } },
+    "vector": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_vector.py"], "enabled": true, "timeout": 60000, "env": { "DATABASE_URL": "{env:DATABASE_URL}", "OPENAI_API_KEY": "{env:OPENAI_API_KEY}", "REDIS_URL": "redis://localhost:6379/0" } },
+    "browser": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_browser.py"], "enabled": true, "timeout": 60000 },
+    "diagnostics": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_diagnostics.py"], "enabled": true, "timeout": 60000 },
+    "autofix": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_autofix.py"], "enabled": true, "timeout": 60000 },
+    "context7": { "type": "local", "command": ["cmd", "/c", "node", "C:/Users/r/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"], "enabled": true, "timeout": 120000 },
+    "research": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_research.py"], "enabled": true, "timeout": 60000 },
+    "agent": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/agentku_buat_chat.py"], "enabled": true, "timeout": 60000 },
+    "visualizer": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_visualizer.py"], "enabled": true, "timeout": 60000 },
+    "sysmon": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sysmon.py"], "enabled": true, "timeout": 60000 },
+    "ocr": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_ocr.py"], "enabled": true, "timeout": 60000 },
+    "git_doc": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_git_doc.py"], "enabled": true, "timeout": 60000 },
+    "api_tester": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_api_tester.py"], "enabled": true, "timeout": 60000 },
+    "perf_fixer": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_perf_fixer.py"], "enabled": true, "timeout": 60000 },
+    "refactor": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_refactor.py"], "enabled": true, "timeout": 60000 },
+    "doc_intel": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_doc_intel.py"], "enabled": true, "timeout": 60000 },
+    "media": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_media.py"], "enabled": true, "timeout": 60000 },
+    "planner": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_planner.py"], "enabled": true, "timeout": 60000 }
+  }
+}
