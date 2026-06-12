@@ -1018,7 +1018,13 @@ MIT — see [LICENSE](LICENSE).
 - Semua MCP server sekarang otomatis berjalan melalui mcp_wrapper.py untuk auto-diagnostics dan error reporting.
 
 
-## MCPKU Status
+
+## MCPKU System Status
+- **Wrapper Otomatis**: Semua server MCP berjalan melalui mcp_wrapper.py untuk auto-diagnostics dan error reporting.
+- **Konfigurasi**: Menggunakan format JSON murni (no comments) untuk stabilitas parser.
+- **Sync**: Sinkronisasi otomatis via erify_setup.py.
+- **Kondisi**: Sistem dalam status *Self-Diagnosing* (mendukung auto-fix melalui error_kb).
+- **Default Model**: google/gemini-flash-lite-latest.
 - Semua MCP server otomatis berjalan via mcp_wrapper.py.
 - Konfigurasi murni JSON (no comments) untuk stabilitas parser.
 - Sync otomatis via erify_setup.py.
