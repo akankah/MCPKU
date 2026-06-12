@@ -1028,3 +1028,8 @@ MIT — see [LICENSE](LICENSE).
 - Semua MCP server otomatis berjalan via mcp_wrapper.py.
 - Konfigurasi murni JSON (no comments) untuk stabilitas parser.
 - Sync otomatis via erify_setup.py.
+
+## 18. Auto-Purge Cache (Penting!)
+Jika sistem mulai terasa lambat atau sering error maximum number of tool calls, sistem kini memiliki fitur pembersihan otomatis:
+   - Jalankan python verify_setup.py doctor 
+   - Ini akan otomatis membersihkan workflow_state.jsonl dan .pytest_cache yang sering menyebabkan perulangan tak terbatas.
