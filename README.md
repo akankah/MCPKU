@@ -1024,6 +1024,34 @@ MCPKU sekarang bener-bener siap produksi — tinggal pake, gak perlu debug lagi.
 
 ---
 
+## Performance Tuning (v2026-06-13)
+
+### Applied Optimizations
+
+| Area | Before | After | Impact |
+|---|---|---|---|
+| **Parallel tools** | 14/101 | **21/101** | +50% parallel-capable |
+| **GitHub read tools** | `parallel_ok=False` | `parallel_ok=True` + timeout 15→10s | Parallel PR/issue/repo listing |
+| **Research tools** | `parallel_ok=False` | `parallel_ok=True` + timeout 20→15s | Parallel multi-source queries |
+| **Timeouts** | Conservative | Reduced 10-30% | Faster fallback on slow endpoints |
+
+### Safe tools now parallel_ok=True:
+- `github_get_repo`, `github_list_issues`, `github_list_pull_requests`, `github_get_file_contents`, `github_list_workflows`
+- `research_query`, `research_quick`, `research_deep`
+- `github_search_code`, `github_search_issues` (already enabled)
+
+### Remaining sequential (by design):
+- **Dangerous/mutating**: `github_create_issue`, `github_create_pull_request`, `github_trigger_workflow`, `autofix_run`
+- **Browser**: `browser_fetch`, `screenshot` (Playwright session not thread-safe)
+- **Heavy compute**: `api_tester_stress_test` (120s)
+
+### Next optimizations (planned):
+1. **Redis cache** for `mcp_research.py`, `mcp_github.py`, `mcp_vector.py`
+2. **HTTP connection pooling** in `mcp_web.py` / `mcp_github.py`
+3. **Embedding cache** in `mcp_vector.py` / `mcp_research.py`
+
+---
+
 ## Roadmap: Next-Gen Agentic Capabilities
 
 Kami sedang mengembangkan MCPKU dari *orchestrator* menjadi *Agentic OS* dengan fokus pada:
