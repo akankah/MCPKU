@@ -131,3 +131,137 @@ _entry("xxx_do_something", "mcp_xxx", "do_something",
        requires_network=False, dangerous=False, timeout_suggestion=10, parallel_ok=True),
 # 3. Test: python -c "from mcp_manifest import get_tool; print(get_tool('xxx_do_something').get_params())"
 ```
+
+---
+
+## TUNING PERFORMANCE MCPKU (NETWORK & NON-NETWORK TOOLS)
+
+### Ringkasan Cepat
+| Metric | Sebelum | Sesudah (v2026-06-13) |
+|---|---|---|
+| **Parallel-capable tools** | 14 | **58** (+314%) |
+| **Timeout avg (network)** | 20-30s | **8-15s** |
+| **Kategori parallel** | 4 | **10** |
+
+### 1. NETWORK TOOLS (butuh internet) — 28 tools
+
+**File config:** `E:\MCPKU\mcp_manifest.py` (blok `TOOL_MANIFEST`)
+
+**Tuning yang sudah diterapkan:**
+```python
+# GitHub read tools — parallel_ok=True, timeout 15→10s
+_entry("github_get_repo", ..., parallel_ok=True, timeout_suggestion=10),
+_entry("github_list_issues", ..., parallel_ok=True, timeout_suggestion=10),
+_entry("github_list_pull_requests", ..., parallel_ok=True, timeout_suggestion=10),
+_entry("github_get_file_contents", ..., parallel_ok=True, timeout_suggestion=8),
+
+# Research tools — parallel_ok=True, timeout 20→15s
+_entry("research_query", ..., parallel_ok=True, timeout_suggestion=15),
+_entry("research_quick", ..., parallel_ok=True, timeout_suggestion=8),
+_entry("research_deep", ..., parallel_ok=True, timeout_suggestion=25),
+
+# Web search — sudah parallel_ok=True
+_entry("web_search_web", ..., parallel_ok=True, timeout_suggestion=15),
+_entry("search_npm", ..., parallel_ok=True, timeout_suggestion=10),
+# dll...
+```
+
+**Cara custom timeout:**
+```python
+# Di mcp_manifest.py, ubah timeout_suggestion
+_entry("github_search_code", "mcp_github", "search_code",
+       category="github", description="Search code in repo", 
+       requires_network=True, timeout_suggestion=10, parallel_ok=True),  # 15→10s
+```
+
+### 2. NON-NETWORK TOOLS (lokal) — 73 tools
+
+**File config:** `E:\MCPKU\mcp_manifest.py` (blok `TOOL_MANIFEST`)
+
+**Tools yang sudah parallel_ok=True (37 tools):**
+
+| Kategori | Tools |
+|---|---|
+| **files (15)** | fs_read_file, fs_read_multiple_files, fs_list_directory, fs_list_directory_detailed, fs_directory_tree, fs_search_files, fs_grep_files, fs_glob_pattern, fs_get_file_info, fs_path_exists, fs_list_allowed_directories, fs_diff_files, doc_intel_read_pdf, doc_intel_read_docx, doc_intel_read_xlsx |
+| **debug (8)** | autofix_search_kb, autofix_history, autofix_strategies, autofix_kb_stats, autofix_kb_trends, diagnostics_classify_error, diagnostics_explain_error, diagnostics_get_error_history |
+| **memory (3)** | memory_search_nodes, memory_open_nodes, memory_read_graph |
+| **git/git_doc (4)** | git_status, git_log, git_doc_generate_commit_proposal, git_doc_generate_pr_summary |
+| **vector (3)** | vector_search, vector_collection_stats, vector_list_collections |
+| **time (3)** | time_get_current_time, time_convert_time, time_list_timezones |
+| **perf/refactor (2)** | perf_fixer_analyze_performance_report, refactor_check_code_smells |
+
+**Cara tambah parallel_ok ke tool lokal baru:**
+```python
+# Contoh: tambah parallel_ok ke fs_list_directory
+_entry("fs_list_directory", "mcp_filesystem", "list_directory",
+       category="files", description="List directory contents", 
+       parallel_ok=True),  # Tambah ini
+```
+
+### 3. YANG TIDAK BOLEH PARALLEL (by design)
+
+| Alasan | Tools |
+|---|---|
+| **Dangerous/mutating** | github_create_issue, github_create_pull_request, github_trigger_workflow, autofix_run, fs_write_file, fs_edit_file, fs_delete_file, fs_move_file, git_commit, memory_delete_*, vector_delete_documents, refactor_clean_python_code, refactor_rename_symbol_project |
+| **Browser (Playwright)** | browser_fetch, screenshot |
+| **Heavy compute** | api_tester_stress_test (120s), research_deep (25s) |
+| **Stateful/orchestrator** | agent_plan, agent_execute*, planner_plan_generate, think |
+
+### 4. VERIFIKASI SETELAH TUNING
+
+```bash
+# Cek total parallel-capable
+python -c "from mcp_manifest import TOOL_MANIFEST; print(f'Parallel: {sum(1 for t in TOOL_MANIFEST.values() if t.parallel_ok)}/{len(TOOL_MANIFEST)}')"
+
+# Cek per kategori
+python -c "
+from mcp_manifest import TOOL_MANIFEST
+from collections import defaultdict
+by_cat = defaultdict(int)
+for t in TOOL_MANIFEST.values():
+    if t.parallel_ok:
+        by_cat[t.category] += 1
+for cat, count in sorted(by_cat.items(), key=lambda x: -x[1]):
+    print(f'{cat}: {count}')
+"
+
+# Jalankan test
+python -m pytest tests/test_manifest.py -v
+python -m pytest tests/ -q
+```
+
+### 5. OPTIMASI LAIN (lanjutan)
+
+| Optimasi | File | Status |
+|---|---|---|
+| **Redis cache** untuk research/github/vector | mcp_research.py, mcp_github.py, mcp_vector.py | Planned |
+| **HTTP connection pooling** | mcp_web.py, mcp_github.py | Planned |
+| **Embedding cache** | mcp_vector.py, mcp_research.py | Planned |
+| **Lazy imports** | mcp_doc_intel.py | Done |
+
+### 6. QUICK REFERENCE — FLAG PRIORITAS
+
+| Flag | Kapan True | Kapan False |
+|---|---|---|
+| `parallel_ok` | Read-only, search, independent | Write/delete, stateful, browser, heavy compute |
+| `dangerous` | Write/delete/mutate | Read-only |
+| `requires_network` | Perlu internet (API call) | Lokal only (file, git, time, memory) |
+| `timeout_suggestion` | 8-15s (network), N/A (lokal) | - |
+
+### 7. COMMAND CEK STATUS
+
+```bash
+# Lihat semua tool + flags
+python -c "
+from mcp_manifest import TOOL_MANIFEST
+for t in TOOL_MANIFEST.values():
+    net = 'NET' if t.requires_network else 'LOCAL'
+    par = 'PAR' if t.parallel_ok else 'SEQ'
+    dang = 'DNG' if t.dangerous else ''
+    print(f'{t.name:<35} {net} {par} {dang} timeout={t.timeout_suggestion}s')
+"
+```
+
+---
+
+**Total tools: 101 | Parallel: 58 | Categories: 13 | Tests: 429 pass**

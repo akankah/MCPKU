@@ -1038,7 +1038,7 @@ MCPKU sekarang bener-bener siap produksi — tinggal pake, gak perlu debug lagi.
 | **Memory/Vector/Git/Time** | `parallel_ok=False` | `parallel_ok=True` (13 tools) | Parallel read-only ops |
 | **Timeouts** | Conservative | Reduced 10-30% | Faster fallback on slow endpoints |
 
-### Safe tools now parallel_ok=True (58 total):
+### Safe tools now parallel_ok=True (60 total):
 
 **Network (21):**
 - `github_get_repo`, `github_list_issues`, `github_list_pull_requests`, `github_get_file_contents`, `github_list_workflows`, `github_search_code`, `github_search_issues`
@@ -1046,8 +1046,8 @@ MCPKU sekarang bener-bener siap produksi — tinggal pake, gak perlu debug lagi.
 - `web_search_web`, `web_search_stackoverflow`, `search_npm`, `search_pypi`, `search_crates`, `search_readthedocs`, `search_mdn`, `search_devdocs`, `web_fetch_url`
 - `vector_search`
 
-**Local (37):**
-- **Files (15):** `fs_read_file`, `fs_read_multiple_files`, `fs_list_directory`, `fs_list_directory_detailed`, `fs_directory_tree`, `fs_search_files`, `fs_grep_files`, `fs_glob_pattern`, `fs_get_file_info`, `fs_path_exists`, `fs_list_allowed_directories`, `fs_diff_files`, `doc_intel_read_pdf`, `doc_intel_read_docx`, `doc_intel_read_xlsx`
+**Local (39):**
+- **Files (17):** `fs_read_file`, `fs_read_multiple_files`, `fs_list_directory`, `fs_list_directory_detailed`, `fs_directory_tree`, `fs_search_files`, `fs_grep_files`, `fs_glob_pattern`, `fs_get_file_info`, `fs_path_exists`, `fs_list_allowed_directories`, `fs_diff_files`, `fs_create_directory`, `fs_copy_file`, `doc_intel_read_pdf`, `doc_intel_read_docx`, `doc_intel_read_xlsx`
 - **Debug (8):** `autofix_search_kb`, `autofix_history`, `autofix_strategies`, `autofix_kb_stats`, `autofix_kb_trends`, `diagnostics_classify_error`, `diagnostics_explain_error`, `diagnostics_get_error_history`
 - **Memory (3):** `memory_search_nodes`, `memory_open_nodes`, `memory_read_graph`
 - **Git (4):** `git_status`, `git_log`, `git_doc_generate_commit_proposal`, `git_doc_generate_pr_summary`
@@ -1055,6 +1055,8 @@ MCPKU sekarang bener-bener siap produksi — tinggal pake, gak perlu debug lagi.
 - **Time (3):** `time_get_current_time`, `time_convert_time`, `time_list_timezones`
 - **Perf (1):** `perf_fixer_analyze_performance_report`
 - **Refactor (1):** `refactor_check_code_smells`
+
+**Filesystem READ timeout: 30s → 10s** (13 tools)
 
 ### Remaining sequential (by design):
 - **Dangerous/mutating**: `github_create_issue`, `github_create_pull_request`, `github_trigger_workflow`, `autofix_run`, `fs_write_file`, `fs_edit_file`, `fs_delete_file`, `fs_move_file`, `git_commit`, `memory_delete_*`, `vector_delete_documents`, `refactor_clean_python_code`, `refactor_rename_symbol_project`
