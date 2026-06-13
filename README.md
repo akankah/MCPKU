@@ -1030,20 +1030,37 @@ MCPKU sekarang bener-bener siap produksi — tinggal pake, gak perlu debug lagi.
 
 | Area | Before | After | Impact |
 |---|---|---|---|
-| **Parallel tools** | 14/101 | **21/101** | +50% parallel-capable |
+| **Parallel tools** | 14/101 | **58/101** | +314% parallel-capable |
 | **GitHub read tools** | `parallel_ok=False` | `parallel_ok=True` + timeout 15→10s | Parallel PR/issue/repo listing |
 | **Research tools** | `parallel_ok=False` | `parallel_ok=True` + timeout 20→15s | Parallel multi-source queries |
+| **Filesystem read** | `parallel_ok=False` | `parallel_ok=True` (10 tools) | Parallel file search/list/read |
+| **Diagnostics** | `parallel_ok=False` | `parallel_ok=True` (4 tools) | Parallel error classification |
+| **Memory/Vector/Git/Time** | `parallel_ok=False` | `parallel_ok=True` (13 tools) | Parallel read-only ops |
 | **Timeouts** | Conservative | Reduced 10-30% | Faster fallback on slow endpoints |
 
-### Safe tools now parallel_ok=True:
-- `github_get_repo`, `github_list_issues`, `github_list_pull_requests`, `github_get_file_contents`, `github_list_workflows`
+### Safe tools now parallel_ok=True (58 total):
+
+**Network (21):**
+- `github_get_repo`, `github_list_issues`, `github_list_pull_requests`, `github_get_file_contents`, `github_list_workflows`, `github_search_code`, `github_search_issues`
 - `research_query`, `research_quick`, `research_deep`
-- `github_search_code`, `github_search_issues` (already enabled)
+- `web_search_web`, `web_search_stackoverflow`, `search_npm`, `search_pypi`, `search_crates`, `search_readthedocs`, `search_mdn`, `search_devdocs`, `web_fetch_url`
+- `vector_search`
+
+**Local (37):**
+- **Files (15):** `fs_read_file`, `fs_read_multiple_files`, `fs_list_directory`, `fs_list_directory_detailed`, `fs_directory_tree`, `fs_search_files`, `fs_grep_files`, `fs_glob_pattern`, `fs_get_file_info`, `fs_path_exists`, `fs_list_allowed_directories`, `fs_diff_files`, `doc_intel_read_pdf`, `doc_intel_read_docx`, `doc_intel_read_xlsx`
+- **Debug (8):** `autofix_search_kb`, `autofix_history`, `autofix_strategies`, `autofix_kb_stats`, `autofix_kb_trends`, `diagnostics_classify_error`, `diagnostics_explain_error`, `diagnostics_get_error_history`
+- **Memory (3):** `memory_search_nodes`, `memory_open_nodes`, `memory_read_graph`
+- **Git (4):** `git_status`, `git_log`, `git_doc_generate_commit_proposal`, `git_doc_generate_pr_summary`
+- **Vector (3):** `vector_search`, `vector_collection_stats`, `vector_list_collections`
+- **Time (3):** `time_get_current_time`, `time_convert_time`, `time_list_timezones`
+- **Perf (1):** `perf_fixer_analyze_performance_report`
+- **Refactor (1):** `refactor_check_code_smells`
 
 ### Remaining sequential (by design):
-- **Dangerous/mutating**: `github_create_issue`, `github_create_pull_request`, `github_trigger_workflow`, `autofix_run`
+- **Dangerous/mutating**: `github_create_issue`, `github_create_pull_request`, `github_trigger_workflow`, `autofix_run`, `fs_write_file`, `fs_edit_file`, `fs_delete_file`, `fs_move_file`, `git_commit`, `memory_delete_*`, `vector_delete_documents`, `refactor_clean_python_code`, `refactor_rename_symbol_project`
 - **Browser**: `browser_fetch`, `screenshot` (Playwright session not thread-safe)
-- **Heavy compute**: `api_tester_stress_test` (120s)
+- **Heavy compute**: `api_tester_stress_test` (120s), `research_deep` (25s)
+- **Stateful**: `agent_plan`, `agent_execute*`, `planner_plan_generate`, `think`
 
 ### Next optimizations (planned):
 1. **Redis cache** for `mcp_research.py`, `mcp_github.py`, `mcp_vector.py`
