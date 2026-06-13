@@ -257,6 +257,20 @@
         "MEMORY_FILE_PATH": "E:/MCPKU/memory.jsonl"
       }
     },
+    // serena: Semantic code analysis, symbol search, references, inheritance.
+    "serena": {
+      "type": "local",
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_serena.py"],
+      "enabled": true,
+      "timeout": 60000
+    },
+    // sequential-think: Structured step-by-step reasoning with branches & revision.
+    "sequential-think": {
+      "type": "local",
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sequential_think.py"],
+      "enabled": true,
+      "timeout": 60000
+    },
     "git": {
       "type": "local",
       "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_git.py"],
