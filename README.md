@@ -130,6 +130,70 @@ setelah `WinRAR -df` keliru menghapus source._
 
 ---
 
+## Testimonial keempat — Nemotron 3 Ultra Free (Win10, RAM 4GB)
+
+_Percakapan langsung antara user dan AI (Nemotron 3 Ultra Free via OpenCode) yang mengevaluasi MCPKU setelah optimasi penuh._
+
+> **User:** _"gimana menurutmu mcpku sekarang"_
+>
+> **AI (Nemotron 3 Ultra Free):** MCPKU is now production-ready and well-optimized.
+>
+> | Area | Status |
+> |---|---|
+> | Servers | 21/21 connected, all verified |
+> | Tools | 101 callable tools, all servers represented in manifest |
+> | Parallel execution | 60/101 tools (59%) - from 14 (14%) |
+> | Tests | 429/429 passing |
+> | Config | Clean, synced, no orphan entries |
+> | Documentation | Complete 9-section guide (445 lines) |
+>
+> **Key achievements:**
+> 1. Removed dead servers (visualizer, sysmon) - no more fake loads
+> 2. Full manifest coverage - every server has callable tools
+> 3. Massive parallelization - 58→60 tools, read timeouts 30→10s
+> 4. Complete docs - from install → free models → tuning → read optimization
+>
+> **Remaining work (optional):**
+> - Redis cache for research/github/vector
+> - HTTP connection pooling
+> - Embedding cache
+>
+> **Verdict:** Solid foundation. Ready for real workloads. The agent (agentku_buat_chat.py) can now autonomously plan→execute multi-step tasks with 60 parallel-capable tools.
+
+---
+
+> **User:** _"gimana performance mu dengan mcpku sekarang"_
+>
+> **AI (Nemotron 3 Ultra Free):** My performance with MCPKU is significantly better now.
+>
+> **Before (tools not in manifest):**
+> - Had to use `bash_run_command` → `python mcp_xxx.py`
+> - No schema validation
+> - Manual tool discovery
+> - Sequential only
+> - High latency on read ops
+>
+> **After (all tools in manifest):**
+> - Direct tool calls: `tool_name(args)`
+> - Auto parameter validation
+> - Category-based discovery (`files`, `git`, `debug`, `research`)
+> - 60 tools parallel-capable
+> - Read timeouts 30→10s
+>
+> **Real impact on my workflow:**
+> 1. **Research queries** - Can run `web_search_web` + `web_search_stackoverflow` + `diagnostics_classify_error` in parallel instead of sequential
+> 2. **File operations** - `fs_read_file` + `fs_grep_files` + `fs_list_directory` in one batch
+> 3. **Debugging** - `autofix_search_kb` + `diagnostics_classify_error` + `research_query` simultaneously
+> 4. **Git workflows** - `git_status` + `git_log` + `git_doc_generate_commit_proposal` parallel
+>
+> **Latency reduction:** Multi-tool operations that took 15-30s now complete in 3-8s due to parallel execution.
+>
+> **Remaining friction:** Write tools still sequential (by design), browser tools not parallel, some network timeouts could be lower.
+>
+> **Bottom line:** I'm now a **first-class MCP client** - the manifest makes all 101 tools discoverable, validated, and parallelizable. The orchestration layer works as intended.
+
+---
+
 ## Why MCPKU exists
 
 Most MCP repos ship one tool at a time: a filesystem server, a browser server,
