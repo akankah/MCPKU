@@ -952,5 +952,99 @@ async def autofix_kb_trends(days: int = 30, top_n: int = 10) -> str:
     return "\n".join(out)
 
 
+# ── Code Analysis Fix Integration ────────────────────────────────────────────
+
+_IMPORT_PKG_RE = re.compile(r"(?:No module named|ImportError)\s*['\"]?([a-zA-Z0-9_.-]+)")
+
+
+@mcp.tool(name="fix_lint_errors",
+          description="Accept pylint/code-analyzer findings JSON, auto-fix import errors via pip install, return retry-ready result.")
+async def fix_lint_errors(
+    lint_result_json: str,
+    max_fixes: int = 10,
+    retry_command: str = "",
+) -> str:
+    """
+    Accept lint findings (JSON array or result dict from pylint.lint_file),
+    detect fixable errors (E0401 import, E0602 undefined, C0415 outside-toplevel),
+    apply pip install for each missing package, return updated findings + fix log.
+
+    Usage:
+        result = await fix_lint_errors(lint_result)
+        # retry_command will be executed after fixes applied
+    """
+    try:
+        data = json.loads(lint_result_json)
+        findings = data if isinstance(data, list) else data.get("findings", [])
+    except json.JSONDecodeError as e:
+        return json.dumps({"error": f"Invalid JSON: {e}"}, ensure_ascii=False)
+
+    fixes = []
+    fixed_ids = set()
+    remaining = []
+
+    for f in findings:
+        msg_id = f.get("message-id", "")
+        msg = f.get("message", "")
+        path = f.get("file", f.get("path", ""))
+
+        if msg_id in ("E0401",) and msg_id not in fixed_ids:
+            match = _IMPORT_PKG_RE.search(msg)
+            if match:
+                pkg = match.group(1)
+                if len(fixes) < max_fixes:
+                    fix_key = f"pip install {pkg}"
+                    if fix_key not in fixed_ids:
+                        fixed_ids.add(fix_key)
+                        # Try to install directly
+                        try:
+                            import subprocess as _sp
+                            import sys as _sys
+                            _r = _sp.run([_sys.executable, "-m", "pip", "install", pkg],
+                                          capture_output=True, text=True, timeout=60)
+                            success = _r.returncode == 0
+                            fixes.append({
+                                "package": pkg,
+                                "command": fix_key,
+                                "source_path": path,
+                                "source_line": f.get("line", 0),
+                                "message_id": msg_id,
+                                "success": success,
+                                "detail": _r.stdout.strip()[:200] if success else _r.stderr.strip()[:200],
+                            })
+                        except Exception as ex:
+                            fixes.append({
+                                "package": pkg,
+                                "command": fix_key,
+                                "success": False,
+                                "error": str(ex),
+                            })
+                        continue
+            remaining.append(f)
+        elif msg_id in ("E0602", "W0611", "C0415"):
+            remaining.append({
+                **f,
+                "fix_hint": {
+                    "E0602": "Add import or check variable name spelling",
+                    "W0611": "Remove unused import or use the imported name",
+                    "C0415": "Move import to top of file",
+                }.get(msg_id, "Manual fix required"),
+                "auto_fixable": False,
+            })
+            remaining.append(f)
+        else:
+            remaining.append(f)
+
+    return json.dumps({
+        "fixes_applied": fixes,
+        "fix_count": len(fixes),
+        "remaining_count": len(remaining),
+        "remaining_findings": remaining,
+        "auto_fixable_remaining": sum(1 for r in remaining
+                                       if r.get("message-id") in ("E0401", "E0602", "W0611", "C0415")),
+        "retry_command": retry_command if retry_command else "",
+    }, ensure_ascii=False)
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
