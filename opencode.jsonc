@@ -289,21 +289,8 @@
       "timeout": 60000,
       "env": {
         "DATABASE_URL": "{env:DATABASE_URL}",
-        "OPENAI_API_KEY": "{env:OPENAI_API_KEY}",
-        "REDIS_URL": "redis://localhost:6379/0"
+        "OPENAI_API_KEY": "{env:OPENAI_API_KEY}"
       }
-    },
-    "visualizer": {
-      "type": "local",
-      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_visualizer.py"],
-      "enabled": true,
-      "timeout": 60000
-    },
-    "sysmon": {
-      "type": "local",
-      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sysmon.py"],
-      "enabled": true,
-      "timeout": 60000
     },
     "git_doc": {
       "type": "local",

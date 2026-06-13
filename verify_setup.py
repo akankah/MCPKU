@@ -22,7 +22,7 @@ EXPECTED_SERVERS = {
     "bash", "think", "time", "filesystem", "memory",
     "git", "web", "github", "vector",
     "browser", "diagnostics", "autofix", "context7", "research",
-    "agent", "planner", "visualizer", "sysmon", "git_doc",
+    "agent", "planner", "git_doc",
     "api_tester", "perf_fixer", "refactor", "doc_intel",
 }
 
@@ -116,7 +116,7 @@ def check_paths(servers: dict) -> list:
 
 
 def cmd_check():
-    """Verify all 18 MCPs are correctly registered in global config."""
+    """Verify all 21 MCPs are correctly registered in global config."""
     print("=" * 60)
     print(f"  MCPKU setup check")
     print(f"  global config: {GLOBAL_CONFIG}")

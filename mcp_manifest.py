@@ -206,6 +206,98 @@ TOOL_MANIFEST: dict[str, ToolEntry] = dict([
     # ── Planner ──
     _entry("planner_plan_generate", "mcp_planner", "plan_generate",
            category="plan", description="Generate reusable workflow plan"),
+
+    # ── Agent ──
+    _entry("agent_plan", "agentku_buat_chat", "agent_plan",
+           category="plan", description="Create DAG plan from goal"),
+    _entry("agent_execute", "agentku_buat_chat", "agent_execute",
+           category="plan", description="Execute a plan step"),
+    _entry("agent_execute_all", "agentku_buat_chat", "agent_execute_all",
+           category="plan", description="Execute all pending plan steps"),
+    _entry("agent_list_plans", "agentku_buat_chat", "agent_list_plans",
+           category="plan", description="List all saved plans"),
+    _entry("agent_status", "agentku_buat_chat", "agent_status",
+           category="plan", description="Check plan execution status"),
+    _entry("agent_mark_step", "agentku_buat_chat", "agent_mark_step",
+           category="plan", description="Mark plan step completed/failed"),
+
+    # ── Time ──
+    _entry("time_get_current_time", "mcp_time", "get_current_time",
+           category="time", description="Get current time in timezone"),
+    _entry("time_convert_time", "mcp_time", "convert_time",
+           category="time", description="Convert time between timezones"),
+    _entry("time_list_timezones", "mcp_time", "list_timezones",
+           category="time", description="List available IANA timezones"),
+
+    # ── GitHub ──
+    _entry("github_get_repo", "mcp_github", "get_repo",
+           category="github", description="Get repository details", requires_network=True, timeout_suggestion=15),
+    _entry("github_list_issues", "mcp_github", "list_issues",
+           category="github", description="List issues", requires_network=True, timeout_suggestion=15),
+    _entry("github_create_issue", "mcp_github", "create_issue",
+           category="github", description="Create issue", requires_network=True, dangerous=True, timeout_suggestion=15),
+    _entry("github_list_pull_requests", "mcp_github", "list_pull_requests",
+           category="github", description="List pull requests", requires_network=True, timeout_suggestion=15),
+    _entry("github_create_pull_request", "mcp_github", "create_pull_request",
+           category="github", description="Create pull request", requires_network=True, dangerous=True, timeout_suggestion=15),
+    _entry("github_search_code", "mcp_github", "search_code",
+           category="github", description="Search code in repo", requires_network=True, timeout_suggestion=15, parallel_ok=True),
+    _entry("github_search_issues", "mcp_github", "search_issues",
+           category="github", description="Search issues/PRs", requires_network=True, timeout_suggestion=15, parallel_ok=True),
+    _entry("github_get_file_contents", "mcp_github", "get_file_contents",
+           category="github", description="Get file contents from repo", requires_network=True, timeout_suggestion=10),
+    _entry("github_list_workflows", "mcp_github", "list_workflows",
+           category="github", description="List GitHub Actions workflows", requires_network=True, timeout_suggestion=15),
+    _entry("github_trigger_workflow", "mcp_github", "trigger_workflow",
+           category="github", description="Trigger workflow run", requires_network=True, dangerous=True, timeout_suggestion=30),
+
+    # ── Vector ──
+    _entry("vector_create_collection", "mcp_vector", "create_collection",
+           category="vector", description="Create vector collection"),
+    _entry("vector_add_documents", "mcp_vector", "add_documents",
+           category="vector", description="Add documents to vector collection"),
+    _entry("vector_search", "mcp_vector", "search",
+           category="vector", description="Semantic search in vector collection", parallel_ok=True),
+    _entry("vector_collection_stats", "mcp_vector", "collection_stats",
+           category="vector", description="Get collection statistics"),
+    _entry("vector_delete_documents", "mcp_vector", "delete_documents",
+           category="vector", description="Delete documents from collection", dangerous=True),
+    _entry("vector_list_collections", "mcp_vector", "list_collections",
+           category="vector", description="List all vector collections"),
+
+    # ── Git Doc ──
+    _entry("git_doc_generate_commit_proposal", "mcp_git_doc", "generate_commit_proposal",
+           category="git", description="Generate commit message from staged changes", requires_repo=True),
+    _entry("git_doc_generate_pr_summary", "mcp_git_doc", "generate_pr_summary",
+           category="git", description="Generate PR summary from diff", requires_repo=True),
+
+    # ── API Tester ──
+    _entry("api_tester_performance_test", "mcp_api_tester", "performance_test",
+           category="perf", description="Test endpoint latency over multiple requests", requires_network=True, timeout_suggestion=60),
+    _entry("api_tester_stress_test", "mcp_api_tester", "stress_test",
+           category="perf", description="High concurrency stress test", requires_network=True, timeout_suggestion=120),
+
+    # ── Perf Fixer ──
+    _entry("perf_fixer_analyze_performance_report", "mcp_perf_fixer", "analyze_performance_report",
+           category="perf", description="Analyze API tester report for optimization"),
+    _entry("perf_fixer_bridge_to_autofix", "mcp_perf_fixer", "bridge_to_autofix",
+           category="perf", description="Trigger autofix from high latency"),
+
+    # ── Refactor ──
+    _entry("refactor_check_code_smells", "mcp_refactor", "check_code_smells",
+           category="refactor", description="Scan for long functions, deep nesting"),
+    _entry("refactor_clean_python_code", "mcp_refactor", "clean_python_code",
+           category="refactor", description="Remove unused imports, format with black", dangerous=True),
+    _entry("refactor_rename_symbol_project", "mcp_refactor", "rename_symbol_project",
+           category="refactor", description="Rename symbol across project", dangerous=True),
+
+    # ── Doc Intel ──
+    _entry("doc_intel_read_pdf", "mcp_doc_intel", "read_pdf",
+           category="files", description="Extract text from PDF"),
+    _entry("doc_intel_read_docx", "mcp_doc_intel", "read_docx",
+           category="files", description="Extract text from Word DOCX"),
+    _entry("doc_intel_read_xlsx", "mcp_doc_intel", "read_xlsx",
+           category="files", description="Extract data from Excel XLSX"),
 ])
 
 # ── Category groupings ──

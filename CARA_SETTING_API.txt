@@ -47,4 +47,87 @@ o response di antarmuka opencode, Anda bisa mengetes apakah koneksi ke provider 
 
    *Ganti YOUR_API_KEY_HERE dengan API key asli Anda dan YOUR_API_ENDPOINT_URL dengan endpoint provider (misal: https://api.b.ai/v1).*
 
-   Jika perintah ini mengembalikan daftar model, berarti koneksi API di sisi server/jaringan normal, dan masalah kemungkinan besar ada pada cache UI atau konfigurasi file .jsonc Anda.
+    Jika perintah ini mengembalikan daftar model, berarti koneksi API di sisi server/jaringan normal, dan masalah kemungkinan besar ada pada cache UI atau konfigurasi file .jsonc Anda.
+
+---
+
+## CARA MENAMBAHKAN SERVER KE TOOL_MANIFEST (ENABLE AUTO PARALLEL EXECUTION)
+
+### 1. Buka file manifest
+```bash
+E:\MCPKU\mcp_manifest.py
+```
+
+### 2. Tambahkan ToolEntry untuk setiap fungsi server
+Gunakan helper `_entry(name, module, func_name, **kwargs)` di blok `TOOL_MANIFEST`:
+
+```python
+_entry("tool_name", "mcp_module", "function_name",
+       category="kategori",          # research, debug, files, git, github, perf, vector, time, plan, think, bash, refactor
+       description="Deskripsi singkat",
+       requires_network=True/False,  # True kalau butuh internet
+       dangerous=True/False,         # True kalau destructive (write/delete)
+       timeout_suggestion=30,        # Detik, hint untuk model
+       parallel_ok=True/False)       # True = bisa jalan parallel dengan tool lain
+```
+
+### 3. Contoh lengkap (mcp_github):
+```python
+# Di section GITHUB
+_entry("github_list_issues", "mcp_github", "list_issues",
+       category="github", description="List issues", requires_network=True, timeout_suggestion=15),
+_entry("github_create_issue", "mcp_github", "create_issue",
+       category="github", description="Create issue", requires_network=True, dangerous=True, timeout_suggestion=15),
+_entry("github_search_code", "mcp_github", "search_code",
+       category="github", description="Search code in repo", requires_network=True, timeout_suggestion=15, parallel_ok=True),
+```
+
+### 4. Auto Parallel Execution — Cara Kerja
+Setelah di manifest dengan `parallel_ok=True`, model bisa memanggil **multiple tools sekaligus** dalam satu batch:
+
+```json
+// Satu round-trip parallel (cepat)
+parallel([
+  github_search_code(query="error handler"),
+  web_search_stackoverflow("python ModuleNotFoundError"),
+  diagnostics_classify_error("ModuleNotFoundError: No module named 'requests'"),
+  research_query("how to fix missing imports in Python")
+])
+```
+
+**Syarat parallel:**
+- Tool harus di `TOOL_MANIFEST` dengan `parallel_ok=True`
+- Tool tidak bergantung output tool lain (independen)
+- Kategori berbeda/sama tapi fungsi independen
+
+### 5. Category yang support parallel (recommended):
+| Category | Tools yang sebaiknya parallel_ok=True |
+|---|---|
+| research | web_search_*, search_*, research_*, browser_fetch |
+| debug | diagnostics_*, autofix_search_kb, autofix_kb_stats |
+| github | github_search_code, github_search_issues |
+| perf | api_tester_performance_test |
+| files | fs_search_files, fs_grep_files, fs_glob_pattern |
+
+### 6. Verifikasi manifest
+```bash
+python -c "from mcp_manifest import TOOL_MANIFEST; print(f'Total tools: {len(TOOL_MANIFEST)}')"
+python -m pytest tests/test_manifest.py -v
+```
+
+### 7. Tips Best Practice
+- **Selalu set `timeout_suggestion`** untuk tool network (10-30s)
+- **`dangerous=True`** untuk write/delete/mutate operations
+- **`requires_network=True`** untuk tool butuh internet
+- **`parallel_ok=True`** hanya untuk read-only / search / independent tools
+- **Category konsisten** agar mudah discovery: research, debug, files, git, github, perf, vector, time, plan, think, bash, refactor
+
+### 8. Contoh tambah server baru (mcp_xxx):
+```python
+# 1. Tambah import di atas (optional, lazy load pakai importlib)
+# 2. Tambah _entry di section yang sesuai:
+_entry("xxx_do_something", "mcp_xxx", "do_something",
+       category="files", description="Do something useful",
+       requires_network=False, dangerous=False, timeout_suggestion=10, parallel_ok=True),
+# 3. Test: python -c "from mcp_manifest import get_tool; print(get_tool('xxx_do_something').get_params())"
+```

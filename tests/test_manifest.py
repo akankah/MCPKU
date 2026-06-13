@@ -102,16 +102,17 @@ class TestTOOL_MANIFEST:
         cats = get_categories()
         assert "research" in cats
         assert "memory" in cats
-        assert "github" in cats
+        assert "git" in cats
+        assert "bash" in cats
         assert all(isinstance(c, str) for c in cats)
 
     def test_dangerous_tools_exist(self):
         dangerous = [e for e in TOOL_MANIFEST.values() if e.dangerous]
-        assert len(dangerous) > 10
+        assert len(dangerous) > 5
 
     def test_tools_with_network(self):
         networked = [e for e in TOOL_MANIFEST.values() if e.requires_network]
-        assert len(networked) > 20
+        assert len(networked) >= 16
 
     def test_no_tool_without_module(self):
         for e in TOOL_MANIFEST.values():

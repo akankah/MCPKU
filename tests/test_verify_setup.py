@@ -71,7 +71,7 @@ class TestMainDispatch:
 
 
 class TestExpectedServers:
-    """The canonical 18-server set must include the core tools."""
+    """The canonical 21-server set must include the core tools."""
 
     def test_all_core_servers_present(self):
         assert "bash" in verify_setup.EXPECTED_SERVERS
@@ -80,5 +80,5 @@ class TestExpectedServers:
         assert "autofix" in verify_setup.EXPECTED_SERVERS
         assert "diagnostics" in verify_setup.EXPECTED_SERVERS
 
-    def test_count_is_19(self):
-        assert len(verify_setup.EXPECTED_SERVERS) == 19
+    def test_count_is_21(self):
+        assert len(verify_setup.EXPECTED_SERVERS) == 21

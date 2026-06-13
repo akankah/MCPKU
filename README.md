@@ -3,7 +3,7 @@
 <img alt="MCPKU" src="https://raw.githubusercontent.com/akankah/MCPKU/main/assets/logo-light.png">
 </picture>
 
-**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 23 MCP
+**MCPKU** is an open-source **AI Runtime** — a coordinated layer of 21 MCP
 servers that gives AI agents the ability to read, write, execute, debug, fix,
 and commit code autonomously.
 
@@ -16,7 +16,7 @@ AI Model
 MCPKU Runtime
 │  orchestrates: shell → git → web → browser → diagnostics → autofix
 ▼
-23 MCP Servers
+21 MCP Servers
 │  each a self-contained stdio process
 ▼
 Your System / Repo / DB / Browser / Logs
@@ -239,38 +239,74 @@ Supported auto-fix strategies:
 
 ---
 
-## 23 MCP Servers (Core)
+## 21 MCP Servers (Core)
 
 Each server is a single self-contained Python file. Enable only what you need.
 
-| Server        | File                  | What it gives you                                                         |
-|---------------|-----------------------|---------------------------------------------------------------------------|
-| `bash`        | `mcp_bash.py`         | Sandboxed shell with allowlist + argument denylist + timeout orphan kill  |
-| `think`       | `mcp_think.py`        | Per-session chain-of-thought + stuck-pattern detector + lag detector      |
-| `time`        | `mcp_time.py`         | Current time, timezone conversion, IANA timezone listing                  |
-| `filesystem`  | `mcp_filesystem.py`   | Read/write/search/diff inside an allowlisted directory tree               |
-| `git`         | `mcp_git.py`          | Status, diff, log, commit, branch, merge, rebase, stash, tag, blame       |
-| `github`      | `mcp_github.py`       | 68 tools: repos, issues, PRs, releases, gists, workflows, alerts, labels |
-| `web`         | `mcp_web.py`          | URL fetch + web search (DDG/Firecrawl) + Stack Overflow + npm/PyPI/MDN/crates/DevDocs |
-| `context7`    | (npm `@upstash/context7-mcp`) | Up-to-date library docs — prevents stale API/syntax from training cutoff |
-| `vector`      | `mcp_vector.py`       | Postgres + pgvector + OpenAI embeddings, cosine similarity search          |
-| `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          |
-| `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (fetch, screenshot)                      |
-| `diagnostics` | `mcp_diagnostics.py`  | Parse, classify, explain errors from any command output (Py/JS/Rust/Go)  |
-| `autofix`     | `mcp_autofix.py`      | Closed-loop debug: auto-fix + parallel search (web/GitHub/SO) + error KB |
-| `planner`     | `mcp_planner.py`      | AI-driven DAG task graph generator (planner/ package)                     |
-| `research`    | `mcp_research.py`     | Semantic consensus engine: query/quick/deep with embedding-based agreement|
-| `manifest`    | `mcp_manifest.py`     | Central tool metadata registry (64 tools, 12 categories)                  |
-| `agent`       | `agentku_buat_chat.py`| Autonomous agent: planner + manifest for dynamic tool discovery           |
-| `visualizer`  | `mcp_visualizer.py`   | Generate Mermaid ERD diagrams from SQLite/Postgres schemas                |
-| `sysmon`      | `mcp_sysmon.py`       | Advanced system monitor: CPU, RAM, Disk, and Process management           |
-| `git_doc`     | `mcp_git_doc.py`      | Auto-generate commit messages and PR summaries from git diffs             |
-| `api_tester`  | `mcp_api_tester.py`   | API Performance & Stress Tester: Latency analysis and concurrency testing |
-| `perf_fixer`  | `mcp_perf_fixer.py`   | Performance Fixer Bridge: Connects API Tester results to Auto-Fix         |
-| `refactor`    | `mcp_refactor.py`     | Smart Refactorer: Automated clean code, linting, and symbol renaming      |
-| `doc_intel`   | `mcp_doc_intel.py`    | Local Document Intelligence: Read PDF, DOCX, and XLSX files locally       |
+| Server        | File                  | What it gives you                                                         | Tools |
+|---------------|-----------------------|---------------------------------------------------------------------------|-------|
+| `bash`        | `mcp_bash.py`         | Sandboxed shell with allowlist + argument denylist + timeout orphan kill  | 1 |
+| `think`       | `mcp_think.py`        | Per-session chain-of-thought + stuck-pattern detector + lag detector      | 1 |
+| `time`        | `mcp_time.py`         | Current time, timezone conversion, IANA timezone listing                  | 3 |
+| `filesystem`  | `mcp_filesystem.py`   | Read/write/search/diff inside an allowlisted directory tree               | 19 |
+| `git`         | `mcp_git.py`          | Status, diff, log, commit, branch, merge, rebase, stash, tag, blame       | 3 |
+| `github`      | `mcp_github.py`       | Repos, issues, PRs, releases, workflows, code search                      | 10 |
+| `web`         | `mcp_web.py`          | URL fetch + web search (DDG/Firecrawl) + Stack Overflow + npm/PyPI/MDN/crates/DevDocs | 10 |
+| `context7`    | (npm `@upstash/context7-mcp`) | Up-to-date library docs — prevents stale API/syntax from training cutoff | 0 |
+| `vector`      | `mcp_vector.py`       | SQLite-vec / Postgres + pgvector + OpenAI embeddings, cosine similarity search | 6 |
+| `memory`      | `mcp_memory.py`       | JSONL-backed knowledge graph (entities, relations, observations)          | 9 |
+| `browser`     | `mcp_browser.py`      | Headless Chromium via Playwright (fetch, screenshot)                      | 2 |
+| `diagnostics` | `mcp_diagnostics.py`  | Parse, classify, explain errors from any command output (Py/JS/Rust/Go)  | 7 |
+| `autofix`     | `mcp_autofix.py`      | Closed-loop debug: auto-fix + parallel search (web/GitHub/SO) + error KB | 7 |
+| `planner`     | `mcp_planner.py`      | AI-driven DAG task graph generator (planner/ package)                     | 1 |
+| `research`    | `mcp_research.py`     | Semantic consensus engine: query/quick/deep with embedding-based agreement| 3 |
+| `manifest`    | `mcp_manifest.py`     | Central tool metadata registry (101 tools, 13 categories)                 | 0 |
+| `agent`       | `agentku_buat_chat.py`| Autonomous agent: planner + manifest for dynamic tool discovery           | 7 |
+| `git_doc`     | `mcp_git_doc.py`      | Auto-generate commit messages and PR summaries from git diffs             | 2 |
+| `api_tester`  | `mcp_api_tester.py`   | API Performance & Stress Tester: Latency analysis and concurrency testing | 2 |
+| `perf_fixer`  | `mcp_perf_fixer.py`   | Performance Fixer Bridge: Connects API Tester results to Auto-Fix         | 2 |
+| `refactor`    | `mcp_refactor.py`     | Smart Refactorer: Automated clean code, linting, and symbol renaming      | 3 |
+| `doc_intel`   | `mcp_doc_intel.py`    | Local Document Intelligence: Read PDF, DOCX, and XLSX files locally       | 3 |
 
 `mcp_cache.py` is a shared helper for Redis-backed response caching (used by `vector`, `web`). Not a standalone server.
+
+**Total: 101 callable tools across 13 categories** (research, memory, debug, files, git, github, perf, refactor, vector, time, plan, think, bash)
+
+---
+
+### Tool Manifest Impact — Model Perspective
+
+> **Before adding to manifest:**
+> - Server loads in opencode but AI **cannot call tools directly**
+> - Only manual access via `bash_run_command` → `python mcp_xxx.py`
+> - No schema, parameter validation, categories
+> - Agent/planner cannot use in workflows
+>
+> **After adding to `TOOL_MANIFEST`:**
+
+| Benefit | Description |
+|---|---|
+| **Direct AI calls** | `tool_name(args)` → server runs, returns structured JSON |
+| **Auto schema validation** | Parameters validated (type, required, defaults) |
+| **Categories visible** | Appears in `research`, `debug`, `files`, `git` for discovery |
+| **Network/Danger flags** | AI knows if tool needs internet or is destructive |
+| **Parallel execution** | `parallel_ok=True` allows concurrent calls |
+| **Timeout hints** | `timeout_suggestion` prevents hangs |
+| **Agent/Planner integration** | Usable in DAG plans, auto-fallback chains |
+| **Self-documenting** | `get_params()` shows args, `get_func()` lazy-loads |
+
+**Example — `mcp_github` (0 → 10 tools):**
+```python
+# Before: AI cannot access GitHub API
+# After: AI can directly call
+github_list_issues(repo="owner/repo", state="open")
+github_create_issue(repo="owner/repo", title="Bug", body="...")
+github_search_code(query="function lang:python repo:owner/repo")
+```
+
+**Effort:** ~5-10 min per server to add `ToolEntry`. High ROI — unlocks full automation.
+
+---
 
 ### AGENTS.md — opencode rules reference (included in repo)
 
@@ -541,7 +577,7 @@ python -m pytest tests/ -v    # 462 tests, ~24 seconds
 
 ## Windows MCP Timeout Fix (opencode v1.17+)
 
-**Problem**: On Windows, opencode v1.17.3 spawns MCP servers via `child_process.spawn()` without `shell: true`. This fails to resolve `.exe`/`.cmd` shims, causing all 28 servers to timeout on startup (30s default).
+**Problem**: On Windows, opencode v1.17.3 spawns MCP servers via `child_process.spawn()` without `shell: true`. This fails to resolve `.exe`/`.cmd` shims, causing all 21 servers to timeout on startup (30s default).
 
 **Root causes**:
 1. `spawn("python", ...)` doesn't find `python.exe` on Windows without shell
@@ -556,7 +592,7 @@ python -m pytest tests/ -v    # 462 tests, ~24 seconds
 "bash":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_bash.py"],       "enabled": true, "timeout": 60000 },
 "think":      { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_think.py"],      "enabled": true, "timeout": 60000 },
 "time":       { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_time.py"],       "enabled": true, "timeout": 60000 },
-// ... all 28 servers wrapped with "cmd", "/c" + explicit timeout: 60000
+// ... all 21 servers wrapped with "cmd", "/c" + explicit timeout: 60000
 "context7":   { "type": "local", "command": ["cmd", "/c", "node", "C:/Users/r/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"], "enabled": true, "timeout": 120000 },
 "doc_intel":  { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_doc_intel.py"],  "enabled": true, "timeout": 60000 }
 }
@@ -570,7 +606,7 @@ python -m pytest tests/ -v    # 462 tests, ~24 seconds
 | Lazy imports | `mcp_doc_intel.py` | Defer `pypdf`/`python-docx`/`pandas` to tool call time |
 | Direct node path | `opencode.jsonc` | Bypass `npx` for context7 (uses global install) |
 
-**Result**: 28/28 servers connect reliably on Windows 10/11 (opencode v1.17.3).
+**Result**: 21/21 servers connect reliably on Windows 10/11 (opencode v1.17.3).
 
 **Tested**: Windows 10 + Windows 11, Python 3.11+, opencode v1.17.3.
 
@@ -592,7 +628,7 @@ session, every directory, every model** — now and after future opencode
 upgrades.
 
 ```bash
-python verify_setup.py check     # verify current setup (19/19 registered?)
+python verify_setup.py check     # verify current setup (21/21 registered?)
 python verify_setup.py sync      # install/repair global config
 python verify_setup.py status    # show registered servers + paths
 python verify_setup.py doctor    # full diagnostic + fix suggestions
@@ -635,8 +671,6 @@ config at `~/.config/opencode/opencode.jsonc`. The original file stays in
 "context7":   { "type": "local", "command": ["cmd", "/c", "node", "C:/Users/<user>/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"], "enabled": true, "timeout": 120000 },
 "research":   { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_research.py"],   "enabled": true, "timeout": 60000 },
 "planner":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_planner.py"],    "enabled": true, "timeout": 60000 },
-"visualizer": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_visualizer.py"], "enabled": true, "timeout": 60000 },
-"sysmon":     { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_sysmon.py"],     "enabled": true, "timeout": 60000 },
 "git_doc":    { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_git_doc.py"],    "enabled": true, "timeout": 60000 },
 "api_tester": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_api_tester.py"], "enabled": true, "timeout": 60000 },
 "perf_fixer": { "type": "local", "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_perf_fixer.py"], "enabled": true, "timeout": 60000 },
@@ -673,8 +707,6 @@ current directory.
 "context7":   { "command": "cmd", "args": ["/c", "node", "C:/Users/<user>/AppData/Roaming/npm/node_modules/@upstash/context7-mcp/dist/index.js"] },
 "research":   { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_research.py"] },
 "planner":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_planner.py"] },
-"visualizer": { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_visualizer.py"] },
-"sysmon":     { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_sysmon.py"] },
 "git_doc":    { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_git_doc.py"] },
 "api_tester": { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_api_tester.py"] },
 "perf_fixer": { "command": "cmd", "args": ["/c", "python", "E:/MCPKU/mcp_perf_fixer.py"] },
@@ -696,7 +728,7 @@ current directory.
 
 | File | Tracked | Purpose |
 |------|---------|---------|
-| `opencode.jsonc` | ✅ Yes | 23 MCP server definitions with `cmd /c` wrapper + `timeout` |
+| `opencode.jsonc` | ✅ Yes | 21 MCP server definitions with `cmd /c` wrapper + `timeout` |
 | `mcp_wrapper.py` | ✅ Yes | Optional diagnostics injector (not used by default) |
 
 ### Files NOT in repo (create locally)
@@ -830,7 +862,7 @@ mutating tools must request approval first.
 
 - All **read** tools (`read_file`, `grep_files`, `search_files`, `list_directory`)
 - Git **read-only** (`status`, `log`, `diff`, `show`, `blame`, `branch list`)
-- Non-file MCPs (`context7`, `github`, `redis`, `postgres`, `sqlite`, `web`, `time`, `memory`, `think`, `diagnostics`, `research`)
+- Non-file MCPs (`context7`, `github`, `web`, `time`, `memory`, `think`, `diagnostics`, `research`, `vector`)
 - `mcp_bash` commands that do not touch `E:\MCPKU` (e.g. `ls`, `pytest`, `pip install`)
 
 ### How the prompt looks
@@ -895,11 +927,7 @@ MCPKU Server  ──── stdio ────→  Python process
 - `bash` — command allowlist + argument denylist (wildcard deletes, `-rf`,
 subshell injection, etc.). Git restricted to explicit subcommand allowlist.
 Orphan process killed on timeout to prevent resource leaks.
-- `redis.flushdb` — 2-step: request issues a short-lived token, confirm
-consumes it.
-- `sqlite` — identifier validation via regex before PRAGMA interpolation.
-- `postgres` — read-only: only `SELECT` / `WITH` / `EXPLAIN` / `SHOW`
-allowed.
+- `vector` — SQLite-vec / pgvector with cosine similarity search
 - `filesystem` — rooted at fixed allowlist. Extend via `MCP_EXTRA_ALLOWED_DIR`.
 
 See [`PATCH_NOTES.md`](PATCH_NOTES.md) for full details.
@@ -913,7 +941,7 @@ pip install pytest pytest-asyncio
 python -m pytest tests/ -v
 ```
 
-**416 tests** across 19 server modules. Pure unit tests with no network, DB,
+**429 tests** across 21 server modules. Pure unit tests with no network, DB,
 or browser dependency. Runs in ~22 seconds.
 
 | Module | Tests | What's covered |
@@ -935,7 +963,7 @@ or browser dependency. Runs in ~22 seconds.
 | `test_perf.py` | 7 | Benchmark: parallel batching, lag detector overhead, timeout safety |
 | `test_autofallback.py` | 7 | Memory autofallback with mocked knowledge graph |
 | `test_manifest.py` | 20 | ToolEntry dataclass, TOOL_MANIFEST integrity, category helpers |
-| `test_cache.py` | 17 | Key normalization, Redis abstraction, silent degradation |
+| `test_cache.py` | 17 | Key normalization, Redis abstraction, silent degradation (optional) |
 
 ---
 
@@ -951,7 +979,7 @@ or browser dependency. Runs in ~22 seconds.
 | `AUTOFIX_STATELESS=1` | `autofix`, `diagnostics` | `0` | Skip in-memory history |
 | `ERROR_KB_DIR` | `autofix` | `<cwd>/error_kb/` | Force global KB dir (overrides per-project CWD resolution) |
 | `OPENAI_API_KEY` | `mcp_vector.py` | — | Embeddings (falls back to local hash) |
-| `REDIS_URL` | `mcp_cache.py` | `redis://localhost:6379/0` | For caching |
+| `REDIS_URL` | `mcp_cache.py` | `redis://localhost:6379/0` | For caching (optional) |
 | `MCP_EXTRA_ALLOWED_DIR` | `mcp_filesystem.py` | — | Extra allowlisted roots (comma-sep) |
 | `MEMORY_FILE_PATH` | `mcp_memory.py` | `memory.jsonl` | Knowledge graph persistence |
 | `LOCAL_TIMEZONE` | `mcp_time.py` | UTC | Default display timezone |
@@ -983,13 +1011,14 @@ Instruksi ini berlaku untuk seluruh sesi pengembangan di repositori E:\MCPKU.
 
 ## Status — Kesan Kerja dengan MCPKU
 
-**Enak.** Dulu sering timeout/macet, sekarang 23 MCP server connect semua stabil. Provider juga udah dirapihin — tinggal pake yang work, gak perlu tebak-tebak.
+**Enak.** Dulu sering timeout/macet, sekarang 21 MCP server connect semua stabil. Provider juga udah dirapihin — tinggal pake yang work, gak perlu tebak-tebak.
 
 **Yang improved:**
-- **Stability** — 23/23 server connect, no more timeout
+- **Stability** — 21/21 server connect, no more timeout
 - **Config clean** — B.AI 21→4, ZhipuAI broken→5 work, Alibaba Free 10 model
 - **Documentation** — API keys guide, base URLs, cara ganti key, semua jelas
 - **Auto-sync** — `verify_setup.py sync` bikin backup + sync global config
+- **Tool manifest** — 101 tools across 13 categories, all servers callable
 
 MCPKU sekarang bener-bener siap produksi — tinggal pake, gak perlu debug lagi.
 
@@ -1008,23 +1037,3 @@ Kami sedang mengembangkan MCPKU dari *orchestrator* menjadi *Agentic OS* dengan 
 
 MIT — see [LICENSE](LICENSE).
 
-
-
-- Semua MCP server sekarang otomatis berjalan melalui mcp_wrapper.py untuk auto-diagnostics dan error reporting.
-
-
-
-## MCPKU System Status
-- **Wrapper Otomatis**: Semua server MCP berjalan melalui mcp_wrapper.py untuk auto-diagnostics dan error reporting.
-- **Konfigurasi**: Menggunakan format JSON murni (no comments) untuk stabilitas parser.
-- **Sync**: Sinkronisasi otomatis via verify_setup.py.
-- **Kondisi**: Sistem dalam status *Self-Diagnosing* (mendukung auto-fix melalui error_kb).
-- **Default Model**: free-kilo/openrouter/free.
-- Semua MCP server otomatis berjalan via mcp_wrapper.py.
-- Konfigurasi murni JSON (no comments) untuk stabilitas parser.
-- Sync otomatis via verify_setup.py.
-
-## 18. Auto-Purge Cache (Penting!)
-Jika sistem mulai terasa lambat atau sering error maximum number of tool calls, sistem kini memiliki fitur pembersihan otomatis:
-   - Jalankan python verify_setup.py doctor 
-   - Ini akan otomatis membersihkan .pytest_cache yang sering menyebabkan perulangan tak terbatas.
