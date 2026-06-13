@@ -298,6 +298,34 @@ TOOL_MANIFEST: dict[str, ToolEntry] = dict([
            category="files", description="Extract text from Word DOCX", parallel_ok=True),
     _entry("doc_intel_read_xlsx", "mcp_doc_intel", "read_xlsx",
            category="files", description="Extract data from Excel XLSX", parallel_ok=True),
+
+    # ── Serena (Semantic Code Analysis) ──
+    _entry("serena_semantic_search", "mcp_serena", "semantic_search",
+           category="refactor", description="Search codebase by semantic intent", parallel_ok=True),
+    _entry("serena_find_references", "mcp_serena", "find_references",
+           category="refactor", description="Find all references to a symbol", parallel_ok=True),
+    _entry("serena_get_symbol_definition", "mcp_serena", "get_symbol_definition",
+           category="refactor", description="Get symbol definition with source", parallel_ok=True),
+    _entry("serena_get_file_symbols", "mcp_serena", "get_file_symbols",
+           category="refactor", description="List all symbols in a file", parallel_ok=True),
+    _entry("serena_get_call_hierarchy", "mcp_serena", "get_call_hierarchy",
+           category="refactor", description="Show callers/callees for a function", parallel_ok=True),
+    _entry("serena_get_inheritance_tree", "mcp_serena", "get_inheritance_tree",
+           category="refactor", description="Show class inheritance hierarchy", parallel_ok=True),
+    _entry("serena_analyze_import_graph", "mcp_serena", "analyze_import_graph",
+           category="refactor", description="Analyze import dependencies", parallel_ok=True),
+    _entry("serena_fuzzy_find", "mcp_serena", "fuzzy_find",
+           category="refactor", description="Fuzzy-find files and symbols", parallel_ok=True),
+
+    # ── Sequential Thinking ──
+    _entry("seqthink_sequential_thinking", "mcp_sequential_think", "sequential_thinking",
+           category="think", description="Structured step-by-step reasoning"),
+    _entry("seqthink_get_thought_history", "mcp_sequential_think", "get_thought_history",
+           category="think", description="Get full thought history", parallel_ok=True),
+    _entry("seqthink_think_summary", "mcp_sequential_think", "think_summary",
+           category="think", description="Get concise thinking summary", parallel_ok=True),
+    _entry("seqthink_clear_session", "mcp_sequential_think", "clear_session",
+           category="think", description="Clear thinking session"),
 ])
 
 # ── Category groupings ──
