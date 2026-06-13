@@ -661,4 +661,35 @@ print('Confidence:', 'confidence' in str(result).lower())
 
 ---
 
-**Total tools: 101 | Parallel: 60 | Categories: 13 | Tests: 429 pass | Sections: 10**
+## 🔴🔴🔴 ENFORCEMENT 100% GUARANTEED — MODEL WAJIB SEARCH INTERNET DULU SEBELUM JAWAB 🔴🔴🔴
+
+### ATURAN MUTLAK — TIDAK ADA EKSEPSI, TIDAK ADA NEGO, TIDAK ADA "LUPA"
+
+**SETIAP kali user minta fix / tanya / suruh apa pun → MODEL HARUS:**
+
+| Step | Aksi Wajib | Tool yang Dipakai |
+|------|------------|-------------------|
+| 1 | **STOP** — Jangan jawab langsung, jangan mikir sendiri | — |
+| 2 | **SEARCH INTERNET** — Wajib panggil minimal 2 sumber parallel | `research.query` + `web_search_web` + `web_search_stackoverflow` |
+| 3 | **WAIT** — Tunggu hasil search selesai (1 round-trip) | — |
+| 4 | **SYNTHESIZE** — Gabungkan hasil search + knowledge model | — |
+| 5 | **CITE** — Wajib sertakan `[source: URL]` di jawaban | — |
+| 6 | **ANSWER** — Baru jawab dengan confidence score | — |
+
+### ❌ VIOLATION OTOMATIS JIKA:
+- Jawab tanpa call `research.query` / `web_search_web` / `web_fetch_url`
+- Jawab tanpa citations `[source: ...]`
+- Retry error >1x tanpa search internet dulu
+- Mikir >10 detik tanpa call search tools
+- Jawab "saya tidak tahu" tanpa search dulu
+
+**Konsekuensi: User berhak tolak jawaban & minta search ulang paksa.**
+
+### Skip Search — HANYA 3 kasus (SANGAT JARANG, harus dibuktikan):
+1. Algoritma standar (sort, binary search, hash) — 100% konteks jelas
+2. Bug di KODE SENDIRI — 100% konteks jelas, file ada di workspace
+3. Syntax fix trivial (typo, missing comma) — 100% clear
+
+---
+
+**Total tools: 148 | Parallel: 80+ | Categories: 13 | Tests: 429 pass | Sections: 10**
