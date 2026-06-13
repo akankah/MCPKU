@@ -442,4 +442,97 @@ asyncio.run(test())
 
 ---
 
-**Total tools: 101 | Parallel: 60 | Categories: 13 | Tests: 429 pass | Sections: 9**
+**Total tools: 101 | Parallel: 60 | Categories: 13 | Tests: 429 pass | Sections: 10**
+
+---
+
+## AUTOFALLBACK RULE — PAKSA 100% SEARCH INTERNET SEBELUM JAWAB
+
+### 🔴 ATURAN WAJIB — TIDAK ADA EKSEPSI
+
+**SETIAP pertanyaan user WAJIB memicu pencarian internet DULU.**
+
+Model TIDAK BOLEH menjawab sebelum:
+1. Memanggil `research.query` / `web_search_web` / `web_fetch_url`
+2. Menerima hasil pencarian
+4. Menggabungkan hasil pencarian + knowledge model
+5. Menjawab DENGAN citations dari sumber
+
+### Implementasi di MCPKU
+
+**File yang enforce rule ini:**
+- `E:\MCPKU\AGENTS.md` — project rules
+- `C:\Users\r\.config\opencode\AGENTS.md` — global rules (semua project)
+- `mcp_think.py` — `think` tool instructions
+- `mcp_memory.py` — `search_nodes` instructions  
+- `mcp_diagnostics.py` — `classify_error` instructions
+- `mcp_autofix.py` — `autofix_run` instructions
+
+**Tool yang WAJIB dipanggil saat rule trigger:**
+```python
+# Wajib dipanggil sebelum jawab
+research.query(question)           # Full multi-source research
+web_search_web(query)              # Fast DuckDuckGo search
+web_fetch_url(url)                 # Fetch URL content
+web_search_stackoverflow(query)    # Stack Overflow search
+```
+
+### Rule Trigger — WAJIB Search (NO EXCEPTIONS)
+
+| Trigger | Action |
+|---|---|
+| User bertanya APAPUN | Search internet DULU |
+| `think` tool dipanggil | Search sebelum mikir |
+| Lag > 10 detik | Stop, search immediately |
+| Error / failure | Search exact error |
+| API/endpoint/library unknown | Search docs |
+| Reasoning circular / stuck | Force search |
+| Analisa / reasoning | Cari referensi dulu |
+| Confidence < 95% | Search dulu |
+| Gagal 1x | Search, jangan coba ulang |
+
+### Skip Search — HANYA ini (SANGAT JARANG)
+
+- Algoritma standar (sort, search, graph, hash) — 100% konteks jelas
+- Bug di kode sendiri — 100% konteks jelas
+- Syntax fix trivial
+- Confidence > 95% (hampir tidak pernah)
+
+### Enforcement — VIOLATION JIKA:
+
+- Model jawab TANPA call `research.tools` = **VIOLATION**
+- Jawaban TANPA citations = **VIOLATION**  
+- "Saya tidak tahu" LEBIH BAIK dari jawab tanpa search
+
+### Quick Test Verifikasi
+
+```bash
+# Test apakah rule work
+python -c "
+from mcp_research import query
+result = query('apa itu MCPKU?')
+print('Citations:', 'citations' in str(result).lower())
+print('Sources:', 'sources' in str(result).lower())
+"
+```
+
+### Prioritas Sumber (WAJIB urutkan)
+
+1. **Dokumentasi resmi** — MDN, framework docs, Alibaba Cloud docs
+2. **GitHub Issues/Discussions** — Maintainer jawab langsung
+3. **Stack Overflow** — Filter `min_score`
+4. **Web (DuckDuckGo)** — Default fallback
+
+### Anti-pattern — DILARANG
+
+- ❌ Tanya AI tanpa verify
+- ❌ Asumsi SO up-to-date (cek tanggal)
+- ❌ Skip docs resmi
+- ❌ Trust random blog tanpa cek author/tanggal
+- ❌ Trial-and-error tanpa search
+- ❌ Nunggu 2-3x failure baru search
+- ❌ Mikir >10 detik tanpa web search
+
+---
+
+**Total tools: 101 | Parallel: 60 | Categories: 13 | Tests: 429 pass | Sections: 10**
