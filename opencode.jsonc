@@ -55,20 +55,20 @@
       "npm": "@ai-sdk/openai-compatible",
       "name": "Alibaba Free",
       "options": {
-        "baseURL": "https://ws-ndy4oqsdo8b54pfm.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
+        "baseURL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "apiKey": "{env:ALIBABA_API_KEY}"
       },
       "models": {
-        "qwen-turbo": {},
-        "qwen-plus": {},
-        "qwen-max": {},
-        "qwen3.5-122b-a10b": {},
-        "qwen3.7-plus": {},
-        "qwen3-vl-235b-a22b-thinking": {},
-        "qwen-plus-2025-07-28": {},
-        "qwen3-max": {},
-        "qwen3.5-plus-2026-02-15": {},
-        "qwen-mt-flash": {}
+        "qwen-turbo": { "maxTokens": 16384 },
+        "qwen-plus": { "maxTokens": 16384 },
+        "qwen-max": { "maxTokens": 32768 },
+        "qwen3.5-122b-a10b": { "maxTokens": 16384 },
+        "qwen3.7-plus": { "maxTokens": 16384 },
+        "qwen3-vl-235b-a22b-thinking": { "maxTokens": 16384 },
+        "qwen-plus-2025-07-28": { "maxTokens": 16384 },
+        "qwen3-max": { "maxTokens": 32768 },
+        "qwen3.5-plus-2026-02-15": { "maxTokens": 16384 },
+        "qwen-mt-flash": { "maxTokens": 16384 }
       }
     },
     "z-ai-free": {
