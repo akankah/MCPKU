@@ -1,4 +1,58 @@
-CARA MENGATUR API KEY & ENVIRONMENT VARIABLE (WINDOWS)
+# PANDUAN LENGKAP: INSTAL OPENCODE + SETUP MCPKU + FREE PROVIDER + TUNING
+# =========================================================================
+
+## 0. INSTALASI AWAL OPENCODE + MCPKU
+
+### 0.1 Install OpenCode CLI
+```bash
+# Windows (PowerShell as Admin)
+irm https://opencode.ai/install.ps1 | iex
+
+# Atau via npm
+npm install -g @opencode/cli
+
+# Verify
+opencode --version
+# Expected: 1.17.x+
+```
+
+### 0.2 Clone & Setup MCPKU
+```bash
+# Clone repo
+git clone https://github.com/akankah/MCPKU.git E:\MCPKU
+cd E:\MCPKU
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Install Playwright (for browser tool)
+playwright install chromium
+
+# Verify setup
+python verify_setup.py check
+# Should show: "Registered: 21/21" + "Setup complete"
+```
+
+### 0.3 Sync Config ke Global OpenCode
+```bash
+# Sync MCPKU config ke ~/.config/opencode/opencode.jsonc
+python verify_setup.py sync
+
+# Verify
+python verify_setup.py check
+# Expected: "Registered: 21/21" + "all server paths valid" + "all servers enabled"
+```
+
+### 0.4 Jalankan OpenCode
+```bash
+opencode
+# Tekan Ctrl+M untuk lihat MCP servers
+# Semua 21 server harus ✓ connected
+```
+
+---
+
+## CARA MENGATUR API KEY & ENVIRONMENT VARIABLE (WINDOWS)
 
 1. Cara Cek/Edit Environment Variables:
    - Tekan tombol Windows, ketik "env", pilih "Edit the system environment variables".
@@ -264,4 +318,128 @@ for t in TOOL_MANIFEST.values():
 
 ---
 
-**Total tools: 101 | Parallel: 58 | Categories: 13 | Tests: 429 pass**
+### 8. TUNING READ (FILE) OPERATIONS — BIAKIN LEBIH CEPAT
+
+**File config:** `E:\MCPKU\mcp_manifest.py` → section Filesystem
+
+#### A. Kurangi Timeout READ Tools (30s → 10s)
+
+Tools read file/dir biasanya selesai dalam <100ms. Timeout 30s cuma nambah latency kalau ada error.
+
+```python
+# Di mcp_manifest.py, ubah timeout_suggestion
+_entry("fs_read_file", "mcp_filesystem", "read_file",
+       category="files", description="Read file contents", 
+       parallel_ok=True, timeout_suggestion=10),  # 30→10s
+
+_entry("fs_read_multiple_files", "mcp_filesystem", "read_multiple_files",
+       category="files", description="Read multiple files at once", 
+       parallel_ok=True, timeout_suggestion=10),
+
+_entry("fs_list_directory", "mcp_filesystem", "list_directory",
+       category="files", description="List directory contents", 
+       parallel_ok=True, timeout_suggestion=10),
+
+# ... dst untuk 13 READ tools
+```
+
+**Tools yang timeout 30→10s (13 tools):**
+- `fs_read_file`, `fs_read_multiple_files`, `fs_list_directory`
+- `fs_list_directory_detailed`, `fs_directory_tree`, `fs_search_files`
+- `fs_grep_files`, `fs_glob_pattern`, `fs_get_file_info`
+- `fs_path_exists`, `fs_list_allowed_directories`, `fs_diff_files`
+- `fs_read_multiple_files`
+
+**Impact:** Fallback 20s lebih cepat kalau file/dir tidak ditemukan atau permission denied.
+
+#### B. Enable Parallel untuk Idempotent Operations
+
+Tools yang aman dijalankan parallel (tidak mutating state):
+
+```python
+# fs_create_directory — idempotent (mkdir -p), aman parallel
+_entry("fs_create_directory", "mcp_filesystem", "create_directory",
+       category="files", description="Create directory", 
+       parallel_ok=True),  # Baru
+
+# fs_copy_file — independent source/dest paths, aman parallel
+_entry("fs_copy_file", "mcp_filesystem", "copy_file",
+       category="files", description="Copy file/directory", 
+       parallel_ok=True),  # Baru
+```
+
+**Tools baru parallel_ok=True:**
+- `fs_create_directory` — `mkdir -p` idempotent, no race condition
+- `fs_copy_file` — source/dest independen, aman parallel
+
+#### C. Write Tools TETAP Sequential (Jangan Diubah)
+
+| Tool | Alasan |
+|---|---|
+| `fs_write_file` | Overwrite → race condition |
+| `fs_append_file` | Append → race condition |
+| `fs_edit_file` | Modify in-place → race condition |
+| `fs_move_file` | Rename → race condition |
+| `fs_delete_file` | Delete → race condition |
+
+#### D. Verifikasi Perubahan
+
+```bash
+# Cek filesystem tools
+python -c "
+from mcp_manifest import TOOL_MANIFEST
+fs = [t for t in TOOL_MANIFEST.values() if t.module == 'mcp_filesystem']
+for t in fs:
+    rw = 'READ' if not t.dangerous else 'WRITE'
+    par = 'PAR' if t.parallel_ok else 'SEQ'
+    print(f'{t.name:<30} {rw} {par} timeout={t.timeout_suggestion}s')
+"
+
+# Expected output:
+# fs_read_file                   READ PAR timeout=10s
+# fs_read_multiple_files         READ PAR timeout=10s
+# fs_write_file                  WRITE SEQ timeout=30s
+# fs_create_directory            READ PAR timeout=30s
+# fs_copy_file                   READ PAR timeout=30s
+# ...
+```
+
+#### E. Quick Test Performa
+
+```bash
+# Test read 10 file parallel vs sequential
+python -c "
+import asyncio, time
+from mcp_filesystem import read_file
+
+async def test():
+    files = [f'E:/MCPKU/test_{i}.txt' for i in range(10)]
+    # Sequential
+    start = time.time()
+    for f in files:
+        try: await read_file(f)
+        except: pass
+    print(f'Sequential: {time.time()-start:.2f}s')
+    
+    # Parallel
+    start = time.time()
+    await asyncio.gather(*[read_file(f) for f in files], return_exceptions=True)
+    print(f'Parallel: {time.time()-start:.2f}s')
+
+asyncio.run(test())
+"
+```
+
+#### E. Summary Tuning Read
+
+| Metric | Sebelum | Sesudah |
+|---|---|---|
+| **READ timeout** | 30s | **10s** (13 tools) |
+| **READ parallel** | 11 tools | **13 tools** (+2) |
+| **CREATE parallel** | 0 | **1** (`fs_create_directory`) |
+| **COPY parallel** | 0 | **1** (`fs_copy_file`) |
+| **Total parallel FILES** | 15 | **17** |
+
+---
+
+**Total tools: 101 | Parallel: 60 | Categories: 13 | Tests: 429 pass | Sections: 9**
