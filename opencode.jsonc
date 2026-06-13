@@ -328,6 +328,21 @@
       "enabled": true,
       "timeout": 60000
     },
+    // encoding: Character encoding conversion, Unicode normalization,
+    //            base64/hex/URL encode, mojibake repair.
+    "encoding": {
+      "type": "local",
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_encoding.py"],
+      "enabled": true,
+      "timeout": 60000
+    },
+    // code-analyzer: Static analysis, complexity, security scanning, deps.
+    "code-analyzer": {
+      "type": "local",
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_code_analyzer.py"],
+      "enabled": true,
+      "timeout": 60000
+    },
     // diagnostics: Auto-parse errors from any command output.
     //              AI MUST call parse_traceback / classify_error
     //              automatically on every error without waiting for user.

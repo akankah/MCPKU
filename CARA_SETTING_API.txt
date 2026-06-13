@@ -105,6 +105,54 @@ o response di antarmuka opencode, Anda bisa mengetes apakah koneksi ke provider 
 
 ---
 
+## FIX MODEL ALIBABA ERROR — TROUBLESHOOTING LENGKAP
+
+### Masalah Umum Alibaba Free Provider
+
+| Error | Penyebab | Solusi |
+|---|---|---|
+| `401 Unauthorized` | API Key salah / tidak di-set di env | Cek `ALIBABA_API_KEY` di User Environment Variables |
+| `403 Forbidden` | Key valid tapi akses ditolak / model tidak diizinkan | Cek dashboard Alibaba Cloud / DashScope console |
+| `429 Too Many Requests` | Rate limit TPM/RPM tercapai | Ganti ke model lebih kecil (qwen-turbo → qwen-plus) atau wait |
+| `500 Internal Server Error` | Server provider down | Cek status.dashscope.aliyuncs.com, retry nanti |
+| `Request too large` | Context window terlalu kecil untuk input | Kurangi input / gunakan model context lebih besar |
+| `model_not_found` | Model tidak tersedia di provider | Update `opencode.jsonc` — hapus model deprecated |
+
+### Langkah Debug Otomatis (WAJIB dijalankan sebelum tanya)
+
+```bash
+# 1. Test API manual via PowerShell
+$headers = @{'Authorization' = "Bearer $env:ALIBABA_API_KEY"}
+Invoke-RestMethod -Uri 'https://dashscope.aliyuncs.com/compatible-mode/v1/models' -Method Get -Headers $headers
+
+# 2. Jika gagal → cek env var
+echo $env:ALIBABA_API_KEY
+
+# 3. Jika kosong → set di User Env (bukan System)
+# Windows: Win+R → sysdm.cpl → Advanced → Environment Variables → User variables → New
+# Name: ALIBABA_API_KEY | Value: sk-xxxxxxxxxxxxx
+
+# 4. Restart terminal → test lagi
+```
+
+### Auto-Fix Flow (pakai mcp_autofix)
+
+```json
+{
+  "command": "opencode --model alibaba-free/qwen-turbo \"test\"",
+  "workdir": "E:/MCPKU",
+  "max_retries": 3,
+  "auto_commit": false
+}
+```
+→ `mcp_autofix` akan:
+1. Detect error type (401/403/429/500)
+2. Search internet untuk fix terbaru
+3. Suggest: update key, ganti model, wait rate limit
+4. Retry dengan fix
+
+---
+
 ## CARA MENAMBAHKAN SERVER KE TOOL_MANIFEST (ENABLE AUTO PARALLEL EXECUTION)
 
 ### 1. Buka file manifest
@@ -532,6 +580,84 @@ print('Sources:', 'sources' in str(result).lower())
 - ❌ Trial-and-error tanpa search
 - ❌ Nunggu 2-3x failure baru search
 - ❌ Mikir >10 detik tanpa web search
+
+---
+
+## 🔴 ENFORCED RULE: 100% INTERNET SEARCH MANDATORY — PAKSA MODEL CARI REFERENSI DULU
+
+### Aturan Mutlak (NO EXCEPTIONS, NO NEGOTIATION)
+
+**SETIAP user request → MODEL WAJIB:**
+1. **STOP** — jangan jawab langsung
+2. **CALL** `research.query` / `web_search_web` / `web_fetch_url` / `web_search_stackoverflow`
+3. **WAIT** hasil search (parallel batch dalam 1 round-trip)
+4. **SYNTHESIZE** jawaban dari search results + model knowledge
+4. **CITE** sources: `[source: URL]` atau `[source: doc title]`
+5. **ANSWER** dengan confidence score
+
+### Implementasi Enforcement di Kode
+
+**File yang sudah hardcode rule ini (bisa diverifikasi):**
+- `E:\MCPKU\AGENTS.md` line 1-50 — project rules
+- `C:\Users\r\.config\opencode\AGENTS.md` line 1-50 — global rules
+- `mcp_think.py` line 31-41 — `think` tool instructions
+- `mcp_diagnostics.py` line 55-65 — `classify_error` instructions
+- `mcp_autofix.py` line 40-60 — `autofix_run` instructions
+- `mcp_memory.py` line 20-30 — `search_nodes` instructions
+
+**Tool yang WAJIB dipanggil (parallel batch):**
+```python
+# Satu batch parallel — WAJIB untuk setiap query
+parallel([
+  research.query(question="user_question"),
+  web_search_web(query="user_question"),
+  web_search_stackoverflow(query="user_question", tags="python"),
+  diagnostics_classify_error(error_text="")  # kalau ada error
+])
+```
+
+### Trigger Conditions — SEMUA trigger WAJIB search:
+
+| Trigger | Wajib Search? |
+|---|---|
+| User nanya APAPUN | ✅ YA |
+| `think` dipanggil | ✅ YA (sebelum mikir) |
+| Lag > 10 detik | ✅ YA (stop, search) |
+| Error / failure | ✅ YA (search exact error) |
+| API/endpoint/library unknown | ✅ YA |
+| Reasoning stuck/circular | ✅ YA |
+| Confidence < 95% | ✅ YA |
+| Gagal 1x | ✅ YA (search, jangan retry blind) |
+| Analisa/debug | ✅ YA (cari referensi dulu) |
+
+### Skip Search — HANYA 3 kasus ini (extremely rare):
+
+1. Algoritma standar (sort, binary search, hash) — 100% konteks jelas, zero ambiguity
+2. Bug di KODE SENDIRI — 100% konteks jelas, file ada di workspace
+3. Syntax fix trivial (typo, missing comma) — 100% clear
+
+### Enforcement Checklist — Model VIOLATION jika:
+
+- ❌ Jawab TANPA call `research.query` / `web_search_web` / `web_fetch_url`
+- ❌ Jawab TANPA citations `[source: ...]`
+- ❌ Jawab "saya tidak tahu" TANPA search dulu
+- ❌ Retry error >1x TANPA search internet
+- ❌ Mikir >10 detik TANPA call search tools
+
+**Penalti violation: User berhak tolak jawaban & minta search ulang.**
+
+### Verification Test (bisa dijalankan user)
+
+```bash
+# Test apakah model benar-benar search sebelum jawab
+python -c "
+from mcp_research import query
+result = query('apa itu MCPKU autofix rule?')
+print('Has sources:', 'sources' in str(result).lower() or 'citations' in str(result).lower())
+print('Has URLs:', 'http' in str(result).lower())
+print('Confidence:', 'confidence' in str(result).lower())
+"
+```
 
 ---
 

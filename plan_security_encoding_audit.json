@@ -1,0 +1,92 @@
+{
+  "name": "security-encoding-audit",
+  "goal": "Scan project for security vulnerabilities and encoding issues, then generate a markdown report",
+  "steps": [
+    {
+      "id": "step_1",
+      "name": "analyze_project_structure",
+      "tool": "code-analyzer.analyze_project",
+      "description": "Get project overview: languages, file counts, LOC, top dependencies",
+      "arguments": {
+        "root_dir": "E:/MCPKU",
+        "max_files": 200
+      },
+      "depends_on": [],
+      "parallel": true
+    },
+    {
+      "id": "step_2",
+      "name": "security_scan",
+      "tool": "code-analyzer.security_scan",
+      "description": "Scan all source files for 10 vulnerability patterns",
+      "arguments": {
+        "target": "E:/MCPKU"
+      },
+      "depends_on": ["step_1"],
+      "parallel": true
+    },
+    {
+      "id": "step_3",
+      "name": "dead_code_check",
+      "tool": "code-analyzer.dead_code_finder",
+      "description": "Find unused imports and unreachable code in main Python files",
+      "arguments": {
+        "file_path": "E:/MCPKU/mcp_code_analyzer.py"
+      },
+      "depends_on": ["step_1"],
+      "parallel": true
+    },
+    {
+      "id": "step_4",
+      "name": "complexity_report",
+      "tool": "code-analyzer.complexity_report",
+      "description": "Cyclomatic complexity analysis for high-complexity functions",
+      "arguments": {
+        "file_path": "E:/MCPKU/mcp_code_analyzer.py",
+        "min_complexity": 5
+      },
+      "depends_on": ["step_1"],
+      "parallel": true
+    },
+    {
+      "id": "step_5",
+      "name": "find_duplications",
+      "tool": "code-analyzer.find_duplications",
+      "description": "Find duplicated code blocks across project",
+      "arguments": {
+        "target": "E:/MCPKU",
+        "min_lines": 5,
+        "min_similarity": 0.9
+      },
+      "depends_on": ["step_1"],
+      "parallel": true
+    },
+    {
+      "id": "step_6",
+      "name": "encoding_detection_sample",
+      "tool": "encoding.detect_encoding",
+      "description": "Detect encoding of a sample file that might have issues",
+      "arguments": {
+        "bytes_hex": "636166c3a92074657374"
+      },
+      "depends_on": [],
+      "parallel": true
+    },
+    {
+      "id": "step_7",
+      "name": "generate_report",
+      "tool": "bash.run_command",
+      "description": "Generate markdown report from all findings",
+      "arguments": {
+        "command": "cat > E:/MCPKU/audit_report.md << 'EOF'\n# Security & Encoding Audit Report\n\nGenerated: $(date)\nProject: E:/MCPKU\n\n## Project Overview\n{{step_1.result}}\n\n## Security Findings\n{{step_2.result}}\n\n## Dead Code Issues\n{{step_3.result}}\n\n## Complexity Report\n{{step_4.result}}\n\n## Code Duplications\n{{step_5.result}}\n\n## Encoding Detection Sample\n{{step_6.result}}\n\nEOF"
+      },
+      "depends_on": ["step_1", "step_2", "step_3", "step_4", "step_5", "step_6"],
+      "parallel": false
+    }
+  ],
+  "execution_policy": "parallel_when_possible",
+  "retry_policy": {
+    "max_retries": 2,
+    "use_autofix": true
+  }
+}
