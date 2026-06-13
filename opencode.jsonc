@@ -343,6 +343,20 @@
       "enabled": true,
       "timeout": 60000
     },
+    // path-resolver: Resolve relative/absolute paths, workspace roots, cross-platform.
+    "path-resolver": {
+      "type": "local",
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_path_resolver.py"],
+      "enabled": true,
+      "timeout": 60000
+    },
+    // pylint: Python static analysis with pylint.
+    "pylint": {
+      "type": "local",
+      "command": ["cmd", "/c", "python", "E:/MCPKU/mcp_pylint.py"],
+      "enabled": true,
+      "timeout": 120000
+    },
     // diagnostics: Auto-parse errors from any command output.
     //              AI MUST call parse_traceback / classify_error
     //              automatically on every error without waiting for user.
