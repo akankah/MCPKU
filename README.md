@@ -984,6 +984,193 @@ MCPKU Server  ──── stdio ────→  Python process
 └──→ Returns structured result → AI interprets → next action
 ```
 
+### Visual Architecture (Mermaid)
+
+```mermaid
+graph TB
+    subgraph "AI Client (OpenCode / Claude / Cursor)"
+        A[AI Model] --> B[MCP Client]
+    end
+
+    B --> C[MCPKU Runtime<br/>21 stdio servers]
+
+    subgraph "Core Orchestration"
+        C1[Agent<br/>agentku_buat_chat]
+        C2[Planner<br/>mcp_planner]
+        C3[Research<br/>mcp_research]
+        C4[Think<br/>mcp_think]
+    end
+
+    subgraph "Debug & Fix Loop"
+        D1[Diagnostics<br/>mcp_diagnostics]
+        D2[Autofix<br/>mcp_autofix]
+        D3[Error KB<br/>error_kb/]
+    end
+
+    subgraph "External Access"
+        E1[Web Search<br/>mcp_web]
+        E2[GitHub API<br/>mcp_github]
+        E3[Context7<br/>context7]
+        E4[Browser<br/>mcp_browser]
+    end
+
+    subgraph "Local Ops"
+        F1[Filesystem<br/>mcp_filesystem]
+        F2[Git<br/>mcp_git]
+        F3[Bash<br/>mcp_bash]
+        F4[Git Doc<br/>mcp_git_doc]
+        F5[Refactor<br/>mcp_refactor]
+        F6[Doc Intel<br/>mcp_doc_intel]
+    end
+
+    subgraph "State & Memory"
+        G1[Memory<br/>mcp_memory]
+        G2[Vector DB<br/>mcp_vector]
+        G3[Time<br/>mcp_time]
+    end
+
+    subgraph "Quality & Perf"
+        H1[API Tester<br/>mcp_api_tester]
+        H2[Perf Fixer<br/>mcp_perf_fixer]
+        H3[Doc Intel<br/>mcp_doc_intel]
+    end
+
+    C --> C1 & C2 & C3 & C4
+    C --> D1 & D2 & D3
+    C --> E1 & E2 & E3 & E4
+    C --> F1 & F2 & F3 & F4 & F5 & F6
+    C --> G1 & G2 & G3
+    C --> H1 & H2 & H3
+
+    D1 -.-> D2
+    D2 -.-> D3
+    C1 -.-> C2
+    C2 -.-> C3
+```
+
+---
+
+## 🎬 Demo: "Wow" Moments
+
+### 1. Autonomous Bug Fix (30s → 3s)
+
+```bash
+# User: "Fix the failing test in tests/test_web.py"
+# Agent autonomously:
+```
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant D as Diagnostics
+    participant F as Autofix
+    participant W as Web Search
+    participant G as Git
+
+    U->>A: "Fix failing test"
+    A->>D: parse_traceback(error)
+    D-->>A: ErrorType + FixStrategy
+    A->>F: autofix_run(cmd, max_retries=3)
+    F->>W: search_web + search_stackoverflow (parallel)
+    W-->>F: Fix references
+    F->>F: Apply fix + retry
+    F-->>A: Fixed!
+    A->>G: git_commit("fix: ...")
+    G-->>A: Committed
+    A-->>U: ✅ Fixed + committed
+```
+
+**Before:** 15-30 min manual debug  
+**After:** 30 seconds autonomous
+
+---
+
+### 2. Research Assistant (10 min → 15s)
+
+```python
+# One call does ALL this in parallel:
+result = research.query("How to optimize SQLite for 1M rows in Python?")
+```
+
+```mermaid
+graph LR
+    R[research.query] --> S1[Web Search DDG]
+    R --> S2[Stack Overflow]
+    R --> S3[MDN / npm / PyPI]
+    R --> S4[DevDocs]
+    R --> S5[GitHub Issues]
+    R --> S6[Crates.io]
+    R --> D[Diagnostics]
+    R --> M[Memory]
+    S1 & S2 & S3 & S4 & S5 & S6 & D & M --> C[Consensus Engine]
+    C --> O[Structured JSON:<br/>confidence, verdict,<br/>recommended_fix, sources]
+```
+
+**Output:**
+```json
+{
+  "confidence": {"score": 87, "verdict": "high"},
+  "recommended_fix": "Use WAL mode + connection pooling + PRAGMA optimizations",
+  "sources": [{"name": "stackoverflow", "preview": "Use sqlite3.connect(..., isolation_level=None)..."}]
+}
+```
+
+---
+
+### 3. Auto-Parallel File Ops (10 files → 1 call)
+
+```python
+# Before: 10 sequential calls = 10s
+# After: 1 parallel batch = 1s
+await asyncio.gather(
+    fs_read_file("file1.py"),
+    fs_read_file("file2.py"),
+    fs_grep_files("TODO"),
+    fs_list_directory("src/"),
+    fs_search_files("*.py"),
+    fs_get_file_info("config.json")
+)
+```
+
+---
+
+### 4. Git Workflow Automation
+
+```bash
+# Single agent call:
+agent_plan("Create PR with fix for issue #42")
+```
+
+**Agent does:**
+1. `git_status` → check changes
+2. `git_log` → recent commits
+3. `github_search_code` → find related code
+4. `agent_plan` → create DAG plan
+5. `agent_execute_all` → run all steps
+6. `git_commit` → commit with generated message
+7. `github_create_pull_request` → create PR
+
+---
+
+### 5. Real-time Debugging Dashboard
+
+```bash
+# One command watches stderr, classifies errors, suggests fixes
+diagnostics_watch_stderr("python -m pytest tests/ -x")
+```
+
+```mermaid
+graph LR
+    CMD[Run Command] --> STDERR[stderr stream]
+    STDERR --> PARSE[parse_traceback]
+    PARSE --> CLASSIFY[classify_error]
+    CLASSIFY --> KB[Search error_kb/]
+    KB --> FIX[autofix_strategies]
+    FIX --> SUGGEST[Suggested fix]
+    SUGGEST --> USER[Show to user]
+```
+
 ---
 
 ## Security
